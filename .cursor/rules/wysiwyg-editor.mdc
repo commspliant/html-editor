@@ -1,0 +1,61 @@
+---
+description: Project conventions for the reusable React/TypeScript WYSIWYG editor
+alwaysApply: true
+---
+
+# WYSIWYG Editor
+
+This repo is a **reusable React + TypeScript editor library**, not an application. Downstream apps import the package; they do not copy source.
+
+Layout: `src/` (library), `playground/` (consumer app), `*.stories.tsx` next to public UI, `*.test.ts(x)` next to modules.
+
+## Custom contenteditable
+
+Build on native `contenteditable`. Do **not** add TipTap, Lexical, Slate, Quill, or Draft.js. Hide browser quirks in core (selection, commands, document model). Features must not poke the DOM ad hoc.
+
+```ts
+// ❌ BAD — feature reaches into the DOM
+el.innerHTML = `<b>${text}</b>`
+
+// ✅ GOOD — feature goes through core commands
+editor.commands.toggleMark('bold')
+```
+
+## Visual HTML output
+
+When serializing content from visual/WYSIWYG (`contenteditable`) editing, put presentation on inline `style` attributes in the result HTML. Keep structural tags (`p`, `ul`, `h1`, `a`, etc.). Do not emit editor CSS classes or rely on stylesheet rules for document formatting.
+
+This applies to **document HTML** (`value` / visual-surface output), not editor chrome (toolbar and menus still use CSS modules).
+
+```html
+<!-- ❌ BAD — class-based / stylesheet-dependent formatting -->
+<p class="align-center"><span class="text-red">Hello</span></p>
+
+<!-- ✅ GOOD — inline styles in the serialized HTML -->
+<p style="text-align: center"><span style="color: red">Hello</span></p>
+```
+
+## Modular + public API
+
+Each feature (bold, lists, history, toolbar) is an isolated module with its own commands, UI, stories, and tests. Compose via the core command/plugin API. Do not import another module's internals.
+
+Export a narrow public API from `src/index.ts`. `react` / `react-dom` are peer dependencies. Playground-only code must not leak into the library.
+
+```ts
+// ❌ BAD — leaking internals
+export * from './core/selection-impl'
+
+// ✅ GOOD — stable surface
+export { Editor, EditorToolbar } from './components'
+export type { EditorProps, EditorCommand } from './types'
+```
+
+## Storybook, playground, tests
+
+- **Storybook:** every public component/module gets stories for isolated behavior. Stories are the visual contract, not the playground.
+- **Playground:** `playground/` consumes the library the same way other projects will. Manual integration only — no editor logic lives here. When a public feature changes, update `README.md` and playground documentation (see the documentation rule).
+- **Tests:** colocate unit tests with modules. Cover commands, selection, and serialization. Playground and Storybook do not replace tests.
+
+## React / TypeScript
+
+Functional components, strict TypeScript, no `any` on public types. Put editor logic in custom hooks, not class components.

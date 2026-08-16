@@ -1,0 +1,20 @@
+---
+description: All user-facing UI copy must go through en/es localisation
+alwaysApply: true
+---
+
+# Localisation
+
+Library chrome is localised. Supported locales are **`en`** (default) and **`es`**. Do not hardcode English or Spanish in JSX.
+
+Every new key must be added to **both** [`src/i18n/en.ts`](src/i18n/en.ts) and [`src/i18n/es.ts`](src/i18n/es.ts). Read copy with `t('key')` from `useT()`.
+
+Host content (`value`, consumer `placeholder`) is the consuming app’s copy — the library does not translate it. Playground chrome uses `playground/src/i18n/`, not library dictionaries.
+
+```tsx
+// ❌ BAD — hardcoded chrome
+<button aria-label="Editor mode">Visual</button>
+
+// ✅ GOOD — dictionary key, both locales
+<button aria-label={t('modeVisualAria')}>{t('modeVisual')}</button>
+```

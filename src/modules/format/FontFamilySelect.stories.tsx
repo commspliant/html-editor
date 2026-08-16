@@ -1,0 +1,226 @@
+import type { Meta, StoryObj } from '@storybook/react'
+import { mergeFontFaces } from '../../core/fontFamily'
+import { LocaleProvider } from '../../i18n/LocaleProvider'
+import { FontFamilySelect } from './FontFamilySelect'
+
+const fonts = mergeFontFaces()
+
+const meta = {
+  title: 'Format/FontFamilySelect',
+  component: FontFamilySelect,
+  args: {
+    commands: {
+      save: async () => undefined,
+      open: async () => undefined,
+      print: () => undefined,
+      undo: () => undefined,
+      redo: () => undefined,
+      setVisualMode: () => undefined,
+      setHtmlMode: () => undefined,
+      toggleFullscreen: () => undefined,
+      toggleBold: () => undefined,
+      toggleItalic: () => undefined,
+      toggleUnderline: () => undefined,
+      toggleStrikethrough: () => undefined,
+      setFontSize: () => undefined,
+      setFontSizeUnit: () => undefined,
+      setFontFamily: () => undefined,
+      setFontColor: () => undefined,
+      setHighlightColor: () => undefined,
+      setParagraphStyle: () => undefined,
+      alignLeft: () => undefined,
+      alignCenter: () => undefined,
+      alignRight: () => undefined,
+      alignJustify: () => undefined,
+      indent: () => undefined,
+      outdent: () => undefined,
+      toggleBulletList: () => undefined,
+      toggleNumberedList: () => undefined,
+      openFontProperties: () => undefined,
+      applyFontProperties: () => undefined,
+      openParagraphProperties: () => undefined,
+      applyParagraphProperties: () => undefined,
+      openPageProperties: () => undefined,
+      applyPageProperties: () => undefined,
+      openCustomParagraphStyleDialog: () => undefined,
+      applyCustomParagraphStyle: () => undefined,
+      openLinkDialog: () => undefined,
+      applyLink: () => undefined,
+      openBookmarkDialog: () => undefined,
+      applyBookmark: () => undefined,
+      openImageDialog: () => undefined,
+      applyImage: () => undefined,
+      openImageProperties: () => undefined,
+      applyImageProperties: () => undefined,
+      openTableDialog: () => undefined,
+      applyTable: () => undefined,
+      openTableProperties: () => undefined,
+      applyTableProperties: () => undefined,
+      openCellProperties: () => undefined,
+      applyCellProperties: () => undefined,
+      openRowProperties: () => undefined,
+      applyRowProperties: () => undefined,
+      insertRowBelow: () => undefined,
+      insertRowBefore: () => undefined,
+      deleteRow: () => undefined,
+      insertColumnAfter: () => undefined,
+      insertColumnBefore: () => undefined,
+      deleteColumn: () => undefined,
+      cut: async () => undefined,
+      copy: async () => undefined,
+      deleteSelection: () => undefined,
+      clearFormatting: () => undefined,
+    },
+    queries: {
+      isVisualMode: () => true,
+      isHtmlMode: () => false,
+      isFullscreen: () => false,
+      canUndo: () => false,
+      canRedo: () => false,
+      isBold: () => false,
+      isItalic: () => false,
+      isUnderline: () => false,
+      isStrikethrough: () => false,
+      getFontSize: () => 12,
+      getFontSizeUnit: () => 'pt' as const,
+      isFontSizeMixed: () => false,
+      getFontFamily: () => 'Georgia, serif',
+      isFontFamilyMixed: () => false,
+      getFontFaces: () => fonts,
+      getFontColor: () => null,
+      isFontColorMixed: () => false,
+      getHighlightColor: () => null,
+      isHighlightColorMixed: () => false,
+      getParagraphStyle: () => 'p' as const,
+      isParagraphStyleMixed: () => false,
+      isAlignLeft: () => false,
+      isAlignCenter: () => false,
+      isAlignRight: () => false,
+      isAlignJustify: () => false,
+      canOutdent: () => false,
+      isBulletList: () => false,
+      isNumberedList: () => false,
+      customParagraphStylesEnabled: () => false,
+      getCustomParagraphStyles: () => [],
+      isCustomParagraphStylesLoading: () => false,
+      isLink: () => false,
+      isImageSelected: () => false,
+      isInTable: () => false,
+      hasTextSelection: () => true,
+    },
+  },
+  decorators: [
+    (Story) => (
+      <LocaleProvider>
+        <div
+          className="toolbar"
+          style={{ display: 'flex', background: '#f0f0f0', padding: '0.25rem' }}
+        >
+          <Story />
+        </div>
+      </LocaleProvider>
+    ),
+  ],
+} satisfies Meta<typeof FontFamilySelect>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Default: Story = {}
+
+export const Mixed: Story = {
+  args: {
+    queries: {
+      isVisualMode: () => true,
+      isHtmlMode: () => false,
+      isFullscreen: () => false,
+      canUndo: () => false,
+      canRedo: () => false,
+      isBold: () => false,
+      isItalic: () => false,
+      isUnderline: () => false,
+      isStrikethrough: () => false,
+      getFontSize: () => 12,
+      getFontSizeUnit: () => 'pt',
+      isFontSizeMixed: () => false,
+      getFontFamily: () => null,
+      isFontFamilyMixed: () => true,
+      getFontFaces: () => fonts,
+      getFontColor: () => null,
+      isFontColorMixed: () => false,
+      getHighlightColor: () => null,
+      isHighlightColorMixed: () => false,
+      getParagraphStyle: () => 'p' as const,
+      isParagraphStyleMixed: () => false,
+      isAlignLeft: () => false,
+      isAlignCenter: () => false,
+      isAlignRight: () => false,
+      isAlignJustify: () => false,
+      canOutdent: () => false,
+      isBulletList: () => false,
+      isNumberedList: () => false,
+      customParagraphStylesEnabled: () => false,
+      getCustomParagraphStyles: () => [],
+      isCustomParagraphStylesLoading: () => false,
+      isLink: () => false,
+      isImageSelected: () => false,
+      isInTable: () => false,
+      hasTextSelection: () => true,
+    },
+  },
+}
+
+export const WithCustomFonts: Story = {
+  args: {
+    queries: {
+      isVisualMode: () => true,
+      isHtmlMode: () => false,
+      isFullscreen: () => false,
+      canUndo: () => false,
+      canRedo: () => false,
+      isBold: () => false,
+      isItalic: () => false,
+      isUnderline: () => false,
+      isStrikethrough: () => false,
+      getFontSize: () => 12,
+      getFontSizeUnit: () => 'pt',
+      isFontSizeMixed: () => false,
+      getFontFamily: () => 'Pacifico, cursive',
+      isFontFamilyMixed: () => false,
+      getFontFaces: () =>
+        mergeFontFaces([
+          {
+            name: 'Pacifico',
+            family: 'Pacifico, cursive',
+            css: 'https://fonts.googleapis.com/css2?family=Pacifico&display=swap',
+          },
+        ]),
+      getFontColor: () => null,
+      isFontColorMixed: () => false,
+      getHighlightColor: () => null,
+      isHighlightColorMixed: () => false,
+      getParagraphStyle: () => 'p' as const,
+      isParagraphStyleMixed: () => false,
+      isAlignLeft: () => false,
+      isAlignCenter: () => false,
+      isAlignRight: () => false,
+      isAlignJustify: () => false,
+      canOutdent: () => false,
+      isBulletList: () => false,
+      isNumberedList: () => false,
+      customParagraphStylesEnabled: () => false,
+      getCustomParagraphStyles: () => [],
+      isCustomParagraphStylesLoading: () => false,
+      isLink: () => false,
+      isImageSelected: () => false,
+      isInTable: () => false,
+      hasTextSelection: () => true,
+    },
+  },
+}
+
+export const Disabled: Story = {
+  args: {
+    disabled: true,
+  },
+}

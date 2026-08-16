@@ -1,0 +1,18 @@
+export {
+  clampFontSize,
+  convertFontSize,
+  DEFAULT_FONT_SIZE_UNIT,
+  FONT_SIZE_LIMITS,
+  FONT_SIZE_PRESETS,
+  FONT_SIZE_UNITS,
+  formatFontSize,
+  formatFontSizeNumber,
+  isFontSizeUnit,
+  parseFontSize,
+  parseFontSizeInput,
+  pxToUnit,
+  roundFontSize,
+  unitToPx,
+  type FontSizeUnit,
+  type ParsedFontSize,
+} from '../../core/fontSizeUnits'
