@@ -279,17 +279,26 @@ The shipped CSS resets inherited styles on the editor root and restyles chrome a
 ## Development
 
 ```bash
-make install    # npm install
-make dev        # playground at the Vite dev server
-make build      # library to dist/ (es, cjs, types, CSS)
-make test       # vitest
-make storybook  # Storybook on port 6006
+make install            # npm install
+make dev                # playground at the Vite dev server
+make build              # library to dist/ (es, cjs, types, CSS)
+make build-playground   # static playground to playground/dist/
+make preview            # serve playground/dist locally
+make test               # vitest
+make storybook          # Storybook on port 6006
 ```
 
 - `src/` is the library. Public exports live in `src/index.ts`.
 - `playground/` is a consumer app: it imports `wysiwyg-editor` the same way other projects will. No editor logic belongs there.
 - Stories (`*.stories.tsx`) sit next to public UI and are the visual contract.
 - Tests (`*.test.ts(x)`) sit next to modules.
+
+The live demo is the playground static build. On DigitalOcean App Platform, deploy a **static site** from the repo root with:
+
+- **Build command:** `npm ci && npm run build:playground`
+- **Output directory:** `playground/dist` (required — leaving this blank auto-detects the library `dist/`, which has no `index.html`)
+- **Source directory:** `/`
+- **Node:** 18+ (set `NODE_VERSION=20` if the build image is older)
 
 ```tsx
 import { Editor } from 'wysiwyg-editor'
