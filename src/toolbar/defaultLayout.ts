@@ -1,0 +1,83 @@
+import { MENU_SEPARATOR, type ToolbarLayout } from './types'
+
+export const defaultToolbarLayout: ToolbarLayout = {
+  menus: [
+    { id: 'file', items: ['save', 'open', MENU_SEPARATOR, 'print'] },
+    { id: 'edit', items: ['undo', 'redo'] },
+    {
+      id: 'insert',
+      items: [
+        'link',
+        'bookmark',
+        MENU_SEPARATOR,
+        'image',
+        'table',
+        MENU_SEPARATOR,
+        { submenu: 'insertRow', items: ['insertRowBelow', 'insertRowBefore', 'deleteRow'] },
+        { submenu: 'insertColumn', items: ['insertColumnAfter', 'insertColumnBefore', 'deleteColumn'] },
+      ],
+    },
+    { id: 'view', items: ['visual', 'html', MENU_SEPARATOR, 'fullscreen'] },
+    {
+      id: 'format',
+      items: [
+        { submenu: 'paragraphStyles', items: [] },
+        MENU_SEPARATOR,
+        {
+          submenu: 'font',
+          items: [
+            'fontProperties',
+            MENU_SEPARATOR,
+            { submenu: 'highlightColor', items: [] },
+            MENU_SEPARATOR,
+            'bold',
+            'italic',
+            'underline',
+            'strikethrough',
+          ],
+        },
+        MENU_SEPARATOR,
+        'clearFormatting',
+        MENU_SEPARATOR,
+        {
+          submenu: 'paragraph',
+          items: [
+            'paragraphProperties',
+            MENU_SEPARATOR,
+            'alignLeft',
+            'alignCenter',
+            'alignRight',
+            'alignJustify',
+            MENU_SEPARATOR,
+            'indent',
+            'outdent',
+            MENU_SEPARATOR,
+            'bulletList',
+            'numberedList',
+          ],
+        },
+        MENU_SEPARATOR,
+        {
+          submenu: 'page',
+          items: ['pageProperties'],
+        },
+        MENU_SEPARATOR,
+        'imageProperties',
+        MENU_SEPARATOR,
+        'tableProperties',
+        'cellProperties',
+        'rowProperties',
+      ],
+    },
+  ],
+  iconGroups: [
+    { id: 'file', items: ['save', 'open'] },
+    { id: 'print', items: ['print'] },
+    { id: 'edit', items: ['undo', 'redo'] },
+    { id: 'insert', items: ['link', 'bookmark', 'image', 'table'] },
+    { id: 'font', items: ['fontFamily', 'paragraphStyle', 'fontSize', 'fontColor', 'highlightColor', 'bold', 'italic', 'underline', 'strikethrough', 'clearFormatting'] },
+    { id: 'align', items: ['alignLeft', 'alignCenter', 'alignRight', 'alignJustify'] },
+    { id: 'paragraph', items: ['indent', 'outdent', 'bulletList', 'numberedList'] },
+    { id: 'view', items: ['visual', 'html', 'fullscreen'] },
+  ],
+}

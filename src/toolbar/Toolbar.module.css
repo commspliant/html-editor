@@ -1,0 +1,428 @@
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Duplicate class beats Editor `.root * { all: revert }` so container queries apply. */
+.toolbar.toolbar {
+  container-type: inline-size;
+}
+
+.toolbar .menuBar {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  background: var(--wysiwyg-menu-background, #fff);
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.toolbar .menuBarDesktop {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.toolbar .brandMark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0.25rem 0.65rem 0.25rem 0.5rem;
+}
+
+.toolbar .brandMarkIcon {
+  display: block;
+  height: 2.5rem;
+  width: auto;
+  aspect-ratio: 616.23 / 542.09;
+  overflow: visible;
+}
+
+.toolbar .brandMarkIcon * {
+  stroke: none;
+}
+
+.toolbar .menuBarCompact {
+  display: none;
+  align-items: stretch;
+}
+
+.toolbar[data-compact] .menuBarDesktop {
+  display: none;
+}
+
+.toolbar[data-compact] .menuBarCompact {
+  display: flex;
+}
+
+@container (max-width: 40rem) {
+  .toolbar .menuBarDesktop {
+    display: none;
+  }
+
+  .toolbar .menuBarCompact {
+    display: flex;
+  }
+}
+
+.toolbar .menuWrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.toolbar .menuButton,
+.toolbar .iconButton,
+.toolbar .menuItem {
+  appearance: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 400;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  text-decoration: none;
+  color: #444;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.toolbar .menuButton,
+.toolbar .menuItem {
+  color: var(--wysiwyg-menu-color, #444);
+  font-size: var(--wysiwyg-menu-font-size, 0.875rem);
+  font-family: var(--wysiwyg-menu-font-family, inherit);
+}
+
+.toolbar .menuButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.9rem;
+  text-align: center;
+}
+
+.toolbar .menuButton::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 0.4rem;
+  border-style: solid;
+  border-width: 0.28rem 0.22rem 0;
+  border-color: currentColor transparent transparent;
+  transform: translateY(0.08em);
+}
+
+.toolbar .hamburgerButton::after {
+  content: none;
+  display: none;
+  margin: 0;
+  border: 0;
+}
+
+.toolbar .iconNav {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  background: var(--wysiwyg-toolbar-background, #f0f0f0);
+}
+
+.toolbar .iconTrack {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.toolbar .iconTrack::-webkit-scrollbar {
+  display: none;
+}
+
+.toolbar .iconTrackInner {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+}
+
+.toolbar .iconGroup {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+}
+
+.toolbar .iconGroup:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  align-self: stretch;
+  margin: 0.35rem 0.15rem;
+  background: #d0d0d0;
+}
+
+.toolbar .iconButton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.65rem;
+}
+
+.tooltipTrigger {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: stretch;
+}
+
+.toolbar .scrollButton {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  background: var(--wysiwyg-toolbar-background, #f0f0f0);
+}
+
+.toolbar .scrollButton .iconButton {
+  height: 100%;
+}
+
+.toolbar .scrollButton:hover,
+.toolbar .scrollButton:focus-within {
+  background: var(--wysiwyg-toolbar-background, #f0f0f0);
+}
+
+.toolbar .scrollButtonLeft {
+  left: 0;
+  box-shadow: 6px 0 8px -4px rgb(0 0 0 / 16%);
+}
+
+.toolbar .scrollButtonRight {
+  right: 0;
+  box-shadow: -6px 0 8px -4px rgb(0 0 0 / 16%);
+}
+
+.toolbar .iconButton[aria-pressed='true'] {
+  color: #111;
+  background: #ececec;
+  box-shadow: inset 0 -2px 0 #111;
+}
+
+.toolbar .menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 10rem;
+  margin: 0;
+  padding: 0.25rem 0;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: var(--wysiwyg-menu-background, #fff);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+}
+
+.toolbar .submenuWrap {
+  position: relative;
+}
+
+.toolbar .submenu {
+  top: 0;
+  left: 100%;
+  z-index: 3;
+}
+
+.toolbar .submenuTrigger {
+  justify-content: space-between;
+}
+
+.toolbar .submenuTrigger::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 0.75rem;
+  border-style: solid;
+  border-width: 0.22rem 0 0.22rem 0.28rem;
+  border-color: transparent transparent transparent currentColor;
+}
+
+.toolbar .menuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  background: var(--wysiwyg-menu-background, #fff);
+  color: var(--wysiwyg-menu-color, #444);
+  font-size: var(--wysiwyg-menu-font-size, 0.875rem);
+  font-family: var(--wysiwyg-menu-font-family, inherit);
+}
+
+.toolbar .menuOverlayHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0.15rem 0.15rem 0.9rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.toolbar .menuOverlayTitle {
+  font-size: inherit;
+  font-weight: 600;
+  color: inherit;
+}
+
+.toolbar .menuOverlayBody {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+.toolbar .menuOverlay .menuWrap {
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+
+.toolbar .menuOverlay .menuButton {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.toolbar .menuOverlay .menu {
+  position: static;
+  top: auto;
+  left: auto;
+  z-index: auto;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 0 0.25rem;
+}
+
+.toolbar .menuOverlay .submenuWrap {
+  position: static;
+}
+
+.toolbar .menuOverlay .submenu {
+  position: static;
+  top: auto;
+  left: auto;
+  z-index: auto;
+}
+
+.toolbar .menuOverlay .submenuTrigger::after {
+  transform: rotate(90deg);
+}
+
+.toolbar .menuOverlay .menuItem {
+  white-space: normal;
+}
+
+.toolbar .menuSeparator {
+  height: 1px;
+  margin: 0.25rem 0.5rem;
+  background: #d0d0d0;
+  border: 0;
+}
+
+.toolbar .menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.toolbar .menuItem:hover,
+.toolbar .menuItem:focus-visible {
+  background: #f0f0f0;
+  color: #111;
+}
+
+.toolbar .menuItem[aria-checked='true'] {
+  color: #111;
+  font-weight: 600;
+}
+
+.toolbar .menuButton:hover,
+.toolbar .iconButton:hover,
+.toolbar .menuButton:focus-visible,
+.toolbar .iconButton:focus-visible {
+  color: #111;
+  background: #f0f0f0;
+}
+
+.toolbar .menuButton:focus-visible,
+.toolbar .iconButton:focus-visible,
+.toolbar .menuItem:focus-visible {
+  outline: 2px solid #8ab4ff;
+  outline-offset: -2px;
+}
+
+.toolbar .menuButton:disabled,
+.toolbar .iconButton:disabled,
+.toolbar .menuItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.toolbar .menuItem:disabled:hover,
+.toolbar .menuItem:disabled:focus-visible {
+  background: transparent;
+  color: inherit;
+}
+
+.toolbar .icon,
+.toolbar .icon * {
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.toolbar .icon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 1100;
+  padding: 0.2rem 0.45rem;
+  border-radius: 3px;
+  background: #222;
+  color: #fff;
+  font: 0.75rem / 1.2 system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tooltipElevated {
+  z-index: 1300;
+  max-width: 18rem;
+  white-space: normal;
+}

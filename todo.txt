@@ -1,0 +1,46 @@
+custom fonts in menus, custom border and border radious (DONE)
+backround color DONE
+Custom pre-defined Styles (drop down H list extention) (those custom defined styles cold be saveble to db so hook required to laod, save) DONE
+
+insert
+ -image (DONE)
+ -video
+ -audio
+format brush
+remove formatting (DONE)
+tables (DONE)
+edit toolbar settings (local storage, can reset)
+save as md, 
+load from md
+convert between md and html
+read aloud by browser?
+zoom?
+ruler?
+Pages?
+dark mode
+custom menu hides as property
+auto save hooks
+customizable auto sanitize Javascipt, including javascript: in tags
+backround image
+backround image position, crop
+background image zoom
+css animations
+bookmark manager
+config where to show  the toolbar
+draw? (svg?)
+Animation library
+<hr>
+Add special HTML block, like toggle, (witch custom CSS provided by us), configurable if allowed to use
+For image inserted, allow referred/embedded, background and non background as well
+Add editing possibilities to position fixed, absolute and z-index for specific features
+Possible javascript block <javasript> separate editor window, 
+Fit, % zoom on screen only
+The save, load is now file, add two buttons (customizable what is shown, with save to API and load from API)
+Add comments to specific lines, especially for commspliant. and this can be shown with show comments, or hide.
+right click custom menu
+make it as an electron app as well, for multiple platform, Desktop HTML word editor
+Import docx? Save as Docx?
+possibiltity to detach main menu only and main menu and toolbar together
+Readonly property, all button and menu disabled, and neather editor can be edited.
+Not only add table, but add responsive grid system, editable properties for mobile devices.
+Drag html file in

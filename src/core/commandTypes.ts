@@ -1,0 +1,311 @@
+import type { CustomActionSelection, CustomParagraphStyle, EditorMode } from '../types'
+import type { LinkAttrs } from './link'
+import type { ImageAttrs } from './image'
+import type { ImagePropertiesApply } from './imageProperties'
+import type { TableApply } from './table'
+import type { TablePropertiesApply } from './tableProperties'
+import type { CellPropertiesApply } from './cellProperties'
+import type { RowPropertiesApply } from './rowProperties'
+import type { FontFace, FontFamilyQuery } from './fontFamily'
+import type { ParagraphStyleTag } from './blockFormat'
+import type { FontSizeQuery, FontSizeUnit } from './fontSize'
+import type { InlineColorQuery } from './inlineColor'
+import type { ListType } from './lists'
+import type { FontMark, FontMarkState } from './marks'
+import type { ParagraphPropertiesApply } from './paragraphProperties'
+import type { ParagraphBoxApply } from './paragraphBox'
+import type { TextAlign } from './textAlign'
+
+export type FontDialogTab = 'general'
+
+export type ParagraphDialogTab = 'general' | 'spacing' | 'border' | 'background'
+
+export type PageDialogTab = 'font' | 'paragraph'
+
+export type LinkDialogTab = 'link' | 'bookmark'
+
+export type ImageDialogTab = 'general' | 'alignment' | 'border' | 'advanced' | 'hover'
+
+export type LinkApply = LinkAttrs
+
+export type ImageApply = ImageAttrs
+
+export type FontPropertiesApply = {
+  size: number | null
+  unit: FontSizeUnit
+  marks: FontMarkState
+  fontFamily: string | null
+  fontFamilyMixed: boolean
+  fontColor: string | null
+  highlightColor: string | null
+  fontColorMixed: boolean
+  highlightColorMixed: boolean
+}
+
+export type PagePropertiesApply = {
+  font: FontPropertiesApply
+  box: ParagraphBoxApply
+}
+
+export type CommandName =
+  | 'save'
+  | 'open'
+  | 'print'
+  | 'undo'
+  | 'redo'
+  | 'setVisualMode'
+  | 'setHtmlMode'
+  | 'toggleFullscreen'
+  | 'toggleBold'
+  | 'toggleItalic'
+  | 'toggleUnderline'
+  | 'toggleStrikethrough'
+  | 'clearFormatting'
+  | 'openFontProperties'
+  | 'openParagraphProperties'
+  | 'openPageProperties'
+  | 'openCustomParagraphStyleDialog'
+  | 'openLinkDialog'
+  | 'openBookmarkDialog'
+  | 'openImageDialog'
+  | 'openImageProperties'
+  | 'openTableDialog'
+  | 'openTableProperties'
+  | 'openCellProperties'
+  | 'openRowProperties'
+  | 'insertRowBelow'
+  | 'insertRowBefore'
+  | 'deleteRow'
+  | 'insertColumnAfter'
+  | 'insertColumnBefore'
+  | 'deleteColumn'
+  | 'cut'
+  | 'copy'
+  | 'deleteSelection'
+  | 'alignLeft'
+  | 'alignCenter'
+  | 'alignRight'
+  | 'alignJustify'
+  | 'indent'
+  | 'outdent'
+  | 'toggleBulletList'
+  | 'toggleNumberedList'
+  | (string & {})
+
+export type QueryName =
+  | 'isVisualMode'
+  | 'isHtmlMode'
+  | 'isFullscreen'
+  | 'canUndo'
+  | 'canRedo'
+  | 'isBold'
+  | 'isItalic'
+  | 'isUnderline'
+  | 'isStrikethrough'
+  | 'isAlignLeft'
+  | 'isAlignCenter'
+  | 'isAlignRight'
+  | 'isAlignJustify'
+  | 'canOutdent'
+  | 'isBulletList'
+  | 'isNumberedList'
+  | 'isLink'
+  | 'isImageSelected'
+  | 'isInTable'
+  | 'hasTextSelection'
+
+export type CommandContext = {
+  getHtml: () => string
+  setHtml: (html: string) => void
+  getMode: () => EditorMode
+  setMode: (mode: EditorMode) => void
+  getFullscreen: () => boolean
+  setFullscreen: (fullscreen: boolean) => void
+  getSelection: () => CustomActionSelection
+  insertText: (text: string) => void
+  insertHtml: (html: string, formattedText?: string) => void
+  undo: () => void
+  redo: () => void
+  canUndo: () => boolean
+  canRedo: () => boolean
+  toggleFontMark: (mark: FontMark) => void
+  isFontMarkActive: (mark: FontMark) => boolean
+  setFontSize: (size: number, unit?: FontSizeUnit) => void
+  setFontSizeUnit: (unit: FontSizeUnit) => void
+  getFontSize: () => number | null
+  getFontSizeUnit: () => FontSizeUnit
+  isFontSizeMixed: () => boolean
+  setFontFamily: (family: string | null) => void
+  getFontFamily: () => string | null
+  isFontFamilyMixed: () => boolean
+  getFontFaces: () => FontFace[]
+  setFontColor: (color: string | null) => void
+  setHighlightColor: (color: string | null) => void
+  getFontColor: () => string | null
+  isFontColorMixed: () => boolean
+  getHighlightColor: () => string | null
+  isHighlightColorMixed: () => boolean
+  setParagraphStyle: (tag: ParagraphStyleTag) => void
+  getParagraphStyle: () => ParagraphStyleTag | null
+  isParagraphStyleMixed: () => boolean
+  setTextAlign: (align: TextAlign) => void
+  getTextAlign: () => TextAlign | null
+  isTextAlignMixed: () => boolean
+  indent: () => void
+  outdent: () => void
+  canOutdent: () => boolean
+  toggleList: (type: ListType) => void
+  isBulletList: () => boolean
+  isNumberedList: () => boolean
+  openFontProperties: (tab?: FontDialogTab) => void
+  applyFontProperties: (draft: FontPropertiesApply) => void
+  openParagraphProperties: (tab?: ParagraphDialogTab) => void
+  applyParagraphProperties: (draft: ParagraphPropertiesApply) => void
+  openPageProperties: (tab?: PageDialogTab) => void
+  applyPageProperties: (draft: PagePropertiesApply) => void
+  openCustomParagraphStyleDialog: (id?: string) => void
+  applyCustomParagraphStyle: (id: string) => void
+  customParagraphStylesEnabled: () => boolean
+  getCustomParagraphStyles: () => CustomParagraphStyle[]
+  isCustomParagraphStylesLoading: () => boolean
+  openLinkDialog: (tab?: LinkDialogTab) => void
+  applyLink: (draft: LinkApply) => void
+  openBookmarkDialog: () => void
+  applyBookmark: (name: string) => void
+  openImageDialog: () => void
+  applyImage: (draft: ImageApply) => void
+  openImageProperties: (tab?: ImageDialogTab) => void
+  applyImageProperties: (draft: ImagePropertiesApply) => void
+  openTableDialog: () => void
+  applyTable: (draft: TableApply) => void
+  openTableProperties: () => void
+  applyTableProperties: (draft: TablePropertiesApply) => void
+  openCellProperties: () => void
+  applyCellProperties: (draft: CellPropertiesApply) => void
+  openRowProperties: () => void
+  applyRowProperties: (draft: RowPropertiesApply) => void
+  insertRowBelow: () => void
+  insertRowBefore: () => void
+  deleteRow: () => void
+  insertColumnAfter: () => void
+  insertColumnBefore: () => void
+  deleteColumn: () => void
+  cut: () => void | Promise<void>
+  copy: () => void | Promise<void>
+  deleteSelection: () => void
+  isLink: () => boolean
+  isImageSelected: () => boolean
+  isInTable: () => boolean
+  clearFormatting: () => void
+  hasTextSelection: () => boolean
+}
+
+export type EditorCommand = () => void | Promise<void>
+
+export type EditorCommands = {
+  save: () => Promise<void>
+  open: () => Promise<void>
+  print: () => void
+  undo: () => void
+  redo: () => void
+  setVisualMode: () => void
+  setHtmlMode: () => void
+  toggleFullscreen: () => void
+  toggleBold: () => void
+  toggleItalic: () => void
+  toggleUnderline: () => void
+  toggleStrikethrough: () => void
+  setFontSize: (size: number, unit?: FontSizeUnit) => void
+  setFontSizeUnit: (unit: FontSizeUnit) => void
+  setFontFamily: (family: string | null) => void
+  setFontColor: (color: string | null) => void
+  setHighlightColor: (color: string | null) => void
+  setParagraphStyle: (tag: ParagraphStyleTag) => void
+  alignLeft: () => void
+  alignCenter: () => void
+  alignRight: () => void
+  alignJustify: () => void
+  indent: () => void
+  outdent: () => void
+  toggleBulletList: () => void
+  toggleNumberedList: () => void
+  openFontProperties: (tab?: FontDialogTab) => void
+  applyFontProperties: (draft: FontPropertiesApply) => void
+  openParagraphProperties: (tab?: ParagraphDialogTab) => void
+  applyParagraphProperties: (draft: ParagraphPropertiesApply) => void
+  openPageProperties: (tab?: PageDialogTab) => void
+  applyPageProperties: (draft: PagePropertiesApply) => void
+  openCustomParagraphStyleDialog: (id?: string) => void
+  applyCustomParagraphStyle: (id: string) => void
+  openLinkDialog: (tab?: LinkDialogTab) => void
+  applyLink: (draft: LinkApply) => void
+  openBookmarkDialog: () => void
+  applyBookmark: (name: string) => void
+  openImageDialog: () => void
+  applyImage: (draft: ImageApply) => void
+  openImageProperties: (tab?: ImageDialogTab) => void
+  applyImageProperties: (draft: ImagePropertiesApply) => void
+  openTableDialog: () => void
+  applyTable: (draft: TableApply) => void
+  openTableProperties: () => void
+  applyTableProperties: (draft: TablePropertiesApply) => void
+  openCellProperties: () => void
+  applyCellProperties: (draft: CellPropertiesApply) => void
+  openRowProperties: () => void
+  applyRowProperties: (draft: RowPropertiesApply) => void
+  insertRowBelow: () => void
+  insertRowBefore: () => void
+  deleteRow: () => void
+  insertColumnAfter: () => void
+  insertColumnBefore: () => void
+  deleteColumn: () => void
+  cut: () => Promise<void>
+  copy: () => Promise<void>
+  deleteSelection: () => void
+  clearFormatting: () => void
+}
+
+export function runEditorCommand(commands: EditorCommands, name: string): void {
+  const fn = (commands as unknown as Record<string, EditorCommand | undefined>)[name]
+  void fn?.()
+}
+
+export type EditorQueries = {
+  isVisualMode: () => boolean
+  isHtmlMode: () => boolean
+  isFullscreen: () => boolean
+  canUndo: () => boolean
+  canRedo: () => boolean
+  isBold: () => boolean
+  isItalic: () => boolean
+  isUnderline: () => boolean
+  isStrikethrough: () => boolean
+  getFontSize: () => number | null
+  getFontSizeUnit: () => FontSizeUnit
+  isFontSizeMixed: () => boolean
+  getFontFamily: () => string | null
+  isFontFamilyMixed: () => boolean
+  getFontFaces: () => FontFace[]
+  getFontColor: () => string | null
+  isFontColorMixed: () => boolean
+  getHighlightColor: () => string | null
+  isHighlightColorMixed: () => boolean
+  getParagraphStyle: () => ParagraphStyleTag | null
+  isParagraphStyleMixed: () => boolean
+  isAlignLeft: () => boolean
+  isAlignCenter: () => boolean
+  isAlignRight: () => boolean
+  isAlignJustify: () => boolean
+  canOutdent: () => boolean
+  isBulletList: () => boolean
+  isNumberedList: () => boolean
+  customParagraphStylesEnabled: () => boolean
+  getCustomParagraphStyles: () => CustomParagraphStyle[]
+  isCustomParagraphStylesLoading: () => boolean
+  isLink: () => boolean
+  isImageSelected: () => boolean
+  isInTable: () => boolean
+  hasTextSelection: () => boolean
+}
+
+export type { FontFace, FontFamilyQuery, FontSizeQuery, InlineColorQuery, ListType, ParagraphStyleTag, TextAlign, ParagraphPropertiesApply, ParagraphBoxApply, ImagePropertiesApply, TableApply, TablePropertiesApply, CellPropertiesApply, RowPropertiesApply }

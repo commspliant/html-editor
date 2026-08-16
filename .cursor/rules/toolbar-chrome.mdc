@@ -1,0 +1,61 @@
+---
+description: Editor chrome — dropdown menu, grouped icon nav, client rearrange, localStorage, reset
+globs: src/**/toolbar/**,**/*Toolbar*,**/*toolbar*,**/icon-nav/**
+alwaysApply: false
+---
+
+# Toolbar chrome
+
+The editor chrome has two surfaces: a **dropdown menu** and **icon navigation**. Clicks run core commands (`editor.commands.*`), not ad-hoc DOM.
+
+## Default groups
+
+Icons ship in library-defined groups. Grouping lives in one default config, not hardcoded in UI markup.
+
+## Client rearrange
+
+The consuming app can reorder icons and groups through the toolbar public API. Do not mutate another feature module’s internals.
+
+## Persistence and reset
+
+Persist the client’s layout in **that client’s `localStorage`**. The library exposes persist/restore and a consumer-set storage key. Do not bake playground-only keys into the package. A public reset restores the library default grouping and clears the stored layout.
+
+```ts
+// ❌ BAD — mark feature writes storage; reset by deleting keys by hand
+localStorage.setItem('playground-toolbar', JSON.stringify(order))
+localStorage.removeItem('playground-toolbar')
+
+// ✅ GOOD — toolbar API persists under the consumer key and can reset
+toolbar.setLayout(order)
+toolbar.resetLayout()
+```
+
+## Tooltips
+
+Every icon-only toolbar control must have a localised tooltip (hover + keyboard focus). Use `t(item.labelKey)` or the control’s existing chrome key. Keep `aria-label` as the accessible name; do not use `title`. Labeled menu triggers and menu items do not need tooltips.
+
+```tsx
+// ❌ BAD — icon-only control with no tooltip
+<button aria-label={t(item.ariaKey)}>
+  <Icon />
+</button>
+
+// ✅ GOOD — localised tooltip plus aria-label
+<Tooltip label={t(item.labelKey)}>
+  <button aria-label={t(item.ariaKey)}>
+    <Icon />
+  </button>
+</Tooltip>
+```
+
+## Menu separators
+
+When adding or regrouping dropdown menu items, review logical groups and put `MENU_SEPARATOR` between them in layout config. Do not hardcode a divider in `MenuBar`. Do not add separators inside a single logical group (for example Save/Open).
+
+```ts
+// ❌ BAD — mixed groups, no divider
+{ id: 'view', items: ['visual', 'html', 'fullscreen'] }
+
+// ✅ GOOD — mode vs display
+{ id: 'view', items: ['visual', 'html', MENU_SEPARATOR, 'fullscreen'] }
+```

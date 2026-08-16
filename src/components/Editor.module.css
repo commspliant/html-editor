@@ -1,0 +1,295 @@
+.root {
+  all: revert;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 16rem;
+  border: var(--wysiwyg-border-width, 1px) solid var(--wysiwyg-border-color, #d0d0d0);
+  border-radius: var(--wysiwyg-border-radius, 6px);
+  box-shadow: var(--wysiwyg-border-shadow, none);
+  overflow: hidden;
+  background: #fff;
+  color: #111;
+  font-family: system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  font-style: normal;
+  font-variant: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-align: start;
+  text-indent: 0;
+  text-transform: none;
+  text-decoration: none;
+  text-shadow: none;
+  white-space: normal;
+  word-spacing: normal;
+  direction: ltr;
+}
+
+.root.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.root .exitFullscreen {
+  position: absolute;
+  z-index: 2;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: #fff;
+  color: #444;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+}
+
+.root .exitFullscreen:hover {
+  background: #f4f4f4;
+}
+
+.root .exitFullscreen:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px #8ab4ff;
+}
+
+.root .exitFullscreenIcon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+/* Reverting SVG wipes path `d` in Chromium, so icons paint as empty boxes. */
+.root *:not(:is(svg, svg *)),
+.root *::before,
+.root *::after {
+  all: revert;
+  box-sizing: border-box;
+}
+
+.root .chrome {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: stretch;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.root .workspace {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+  background: #f0f0f0;
+}
+
+.root .surface {
+  width: 100%;
+  min-height: 100%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+
+.root .visual {
+  flex: 1 0 auto;
+  min-height: 100%;
+  padding: 0.75rem;
+  outline: none;
+}
+
+.root .visual:focus {
+  box-shadow: inset 0 0 0 2px #8ab4ff;
+}
+
+.root .visual:empty::before {
+  content: attr(data-placeholder);
+  color: #888;
+}
+
+.root .html {
+  display: block;
+  appearance: none;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: 100%;
+  margin: 0;
+  min-height: 100%;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 0;
+  resize: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: #111;
+  outline: none;
+  background: #fff;
+}
+
+.root .html:focus {
+  box-shadow: inset 0 0 0 2px #8ab4ff;
+}
+
+.root .html:disabled {
+  opacity: 0.6;
+}
+
+.visual p {
+  margin: 0 0 0.75em;
+}
+
+.visual p:last-child {
+  margin-bottom: 0;
+}
+
+.visual h1,
+.visual h2,
+.visual h3,
+.visual h4,
+.visual h5,
+.visual h6 {
+  margin: 1em 0 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+  color: inherit;
+}
+
+.visual h1:first-child,
+.visual h2:first-child,
+.visual h3:first-child,
+.visual h4:first-child,
+.visual h5:first-child,
+.visual h6:first-child {
+  margin-top: 0;
+}
+
+.visual h1 {
+  font-size: 1.75rem;
+}
+
+.visual h2 {
+  font-size: 1.5rem;
+}
+
+.visual h3 {
+  font-size: 1.25rem;
+}
+
+.visual h4 {
+  font-size: 1.125rem;
+}
+
+.visual h5 {
+  font-size: 1rem;
+}
+
+.visual h6 {
+  font-size: 0.875rem;
+}
+
+.visual ul,
+.visual ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.5em;
+}
+
+.visual li {
+  margin: 0.25em 0;
+}
+
+.visual a {
+  color: #06c;
+  text-decoration: underline;
+}
+
+.visual strong,
+.visual b {
+  font-weight: 700;
+}
+
+.visual em,
+.visual i {
+  font-style: italic;
+}
+
+.visual u {
+  text-decoration: underline;
+}
+
+.visual s {
+  text-decoration: line-through;
+}
+
+.visual blockquote {
+  margin: 0 0 0.75em;
+  padding: 0 0 0 0.75em;
+  border: 0;
+  border-left: 3px solid #d0d0d0;
+  color: #444;
+}
+
+.visual code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875em;
+  background: #f4f4f4;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+.visual pre {
+  margin: 0 0 0.75em;
+  padding: 0.75em;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background: #f4f4f4;
+  border-radius: 4px;
+}
+
+.visual pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.visual hr {
+  margin: 1em 0;
+  border: 0;
+  border-top: 1px solid #d0d0d0;
+}
+
+.visual img {
+  max-width: 100%;
+  vertical-align: middle;
+}

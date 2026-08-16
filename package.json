@@ -1,0 +1,50 @@
+{
+  "name": "wysiwyg-editor",
+  "version": "0.0.1",
+  "description": "Reusable React WYSIWYG editor with visual and HTML modes",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/wysiwyg-editor.css"
+  },
+  "files": ["dist"],
+  "sideEffects": ["**/*.css"],
+  "scripts": {
+    "dev": "vite --config playground/vite.config.ts",
+    "build": "vite build",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@storybook/react": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.13.10",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^26.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "storybook": "^8.6.14",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.2",
+    "vite-plugin-dts": "^4.5.3",
+    "vitest": "^3.0.8"
+  }
+}
