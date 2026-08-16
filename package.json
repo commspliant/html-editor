@@ -18,7 +18,8 @@
   "sideEffects": ["**/*.css"],
   "scripts": {
     "dev": "vite --config playground/vite.config.ts",
-    "build": "vite build",
+    "build": "vite build --config playground/vite.config.ts",
+    "build:lib": "vite build",
     "build:playground": "vite build --config playground/vite.config.ts",
     "preview": "vite preview --config playground/vite.config.ts",
     "storybook": "storybook dev -p 6006",
