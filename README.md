@@ -281,24 +281,26 @@ The shipped CSS resets inherited styles on the editor root and restyles chrome a
 ```bash
 make install            # npm install
 make dev                # playground at the Vite dev server
-make build              # library to dist/ (es, cjs, types, CSS)
-make build-playground   # static playground to playground/dist/
-make preview            # serve playground/dist locally
+make build              # static playground to dist/ (index.html for hosting)
+make build-lib          # library to dist/ (es, cjs, types, CSS)
+make preview            # serve dist/ locally
 make test               # vitest
 make storybook          # Storybook on port 6006
 ```
+
+`make build` and `make build-lib` both write to `dist/` and overwrite each other. Use `make build` for the hosted demo; use `make build-lib` when packaging the library.
 
 - `src/` is the library. Public exports live in `src/index.ts`.
 - `playground/` is a consumer app: it imports `wysiwyg-editor` the same way other projects will. No editor logic belongs there.
 - Stories (`*.stories.tsx`) sit next to public UI and are the visual contract.
 - Tests (`*.test.ts(x)`) sit next to modules.
 
-The live demo is the playground static build. On DigitalOcean App Platform, deploy a **static site** from the repo root with:
+The live demo is the playground static build. DigitalOcean App Platform defaults (`npm run build`, output `dist`) match this. Deploy a **static site** from the repo root with:
 
-- **Build command:** `npm ci && npm run build:playground`
-- **Output directory:** `playground/dist` (required — leaving this blank auto-detects the library `dist/`, which has no `index.html`)
+- **Build command:** `npm run build` (or leave the Node default)
+- **Output directory:** `dist` (not `playground/dist`)
 - **Source directory:** `/`
-- **Node:** 18+ (set `NODE_VERSION=20` if the build image is older)
+- **Node:** 18+ (this repo pins 20 via `.nvmrc`; set `NODE_VERSION=20` if the build image ignores it)
 
 ```tsx
 import { Editor } from 'wysiwyg-editor'
