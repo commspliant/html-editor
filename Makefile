@@ -1,4 +1,4 @@
-.PHONY: install dev build test storybook
+.PHONY: install dev build build-playground preview test storybook
 
 install:
 	npm install
@@ -8,6 +8,12 @@ dev:
 
 build:
 	npm run build
+
+build-playground:
+	npm run build:playground
+
+preview:
+	npm run preview
 
 test:
 	npm test
