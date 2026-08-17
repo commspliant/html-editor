@@ -153,6 +153,7 @@ import { TableDialog } from '../modules/table/TableDialog'
 import { TablePropertiesDialog } from '../modules/table/TablePropertiesDialog'
 import { CellPropertiesDialog } from '../modules/table/CellPropertiesDialog'
 import { RowPropertiesDialog } from '../modules/table/RowPropertiesDialog'
+import { DocumentPreviewDialog } from '../modules/view/DocumentPreviewDialog'
 import { ContextMenu, type ContextMenuKind } from '../modules/contextMenu'
 import { createDocumentHistory } from '../modules/history'
 import { defaultToolbarCatalog, defaultToolbarLayout, EditorToolbar } from '../toolbar'
@@ -303,6 +304,7 @@ export function Editor({
     tab: 'general',
   })
   const [customizeToolbarOpen, setCustomizeToolbarOpen] = useState(false)
+  const [documentPreview, setDocumentPreview] = useState({ open: false, html: '' })
   const [toolbarSettings, setToolbarSettings] = useState<ToolbarCustomization | null>(null)
   const [toolbarSettingsLoading, setToolbarSettingsLoading] = useState(false)
   const [toolbarSettingsBusy, setToolbarSettingsBusy] = useState(false)
@@ -817,13 +819,13 @@ export function Editor({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       if (event.defaultPrevented) return
-      if (fontDialog.open || paragraphDialog.open || pageDialog.open || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen) return
+      if (fontDialog.open || paragraphDialog.open || pageDialog.open || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen || documentPreview.open) return
       event.preventDefault()
       setFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [fullscreen, setFullscreen, fontDialog.open, paragraphDialog.open, pageDialog.open, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen])
+  }, [fullscreen, setFullscreen, fontDialog.open, paragraphDialog.open, pageDialog.open, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen, documentPreview.open])
 
   useEffect(() => {
     const onSelectionChange = () => {
@@ -1285,21 +1287,23 @@ export function Editor({
     refreshMarkState()
   }, [selectedImage, recordVisualHtml, captureSelection, refreshMarkState])
 
+  const getDocumentHtml = useCallback(() => {
+    if (modeRef.current === 'visual' && visualRef.current) {
+      const flushed = visualRef.current.innerHTML
+      const serialized = prependFontStylesheets(
+        flushed,
+        collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
+      )
+      if (serialized !== htmlRef.current) {
+        return recordHtml(serialized, true)
+      }
+    }
+    return htmlRef.current
+  }, [recordHtml])
+
   const commandContext: CommandContext = useMemo(
     () => ({
-      getHtml: () => {
-        if (modeRef.current === 'visual' && visualRef.current) {
-          const flushed = visualRef.current.innerHTML
-          const serialized = prependFontStylesheets(
-            flushed,
-            collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
-          )
-          if (serialized !== htmlRef.current) {
-            return recordHtml(serialized, true)
-          }
-        }
-        return htmlRef.current
-      },
+      getHtml: getDocumentHtml,
       setHtml: (next) => {
         recordHtml(next, false)
       },
@@ -1309,6 +1313,9 @@ export function Editor({
       setFullscreen,
       openCustomizeToolbar: () => {
         setCustomizeToolbarOpen(true)
+      },
+      openDocumentPreview: () => {
+        setDocumentPreview({ open: true, html: getDocumentHtml() })
       },
       undo,
       redo,
@@ -1735,7 +1742,7 @@ export function Editor({
       isImageSelected: () => modeRef.current === 'visual' && selectedImageRef.current !== null,
       isInTable: () => modeRef.current === 'visual' && inTableRef.current,
     }),
-    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage],
+    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2022,6 +2029,11 @@ export function Editor({
             void persistToolbarSettings(null)
           }}
           onClose={() => setCustomizeToolbarOpen(false)}
+        />
+        <DocumentPreviewDialog
+          open={documentPreview.open}
+          html={documentPreview.html}
+          onClose={() => setDocumentPreview({ open: false, html: documentPreview.html })}
         />
         <FontPropertiesDialog
           open={fontDialog.open}

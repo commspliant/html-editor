@@ -30,6 +30,7 @@ function renderToolbar(
     setHtmlMode: vi.fn(),
     toggleFullscreen: vi.fn(),
     openCustomizeToolbar: vi.fn(),
+    openDocumentPreview: vi.fn(),
     toggleBold: vi.fn(),
     toggleItalic: vi.fn(),
     toggleUnderline: vi.fn(),
@@ -381,20 +382,23 @@ describe('EditorToolbar', () => {
 
     await user.click(screen.getByRole('button', { name: 'Switch to visual mode' }))
     await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+    await user.click(screen.getByRole('button', { name: 'Preview document' }))
     await user.click(screen.getByRole('button', { name: 'Toggle full screen' }))
 
     expect(commands.setVisualMode).toHaveBeenCalledTimes(1)
     expect(commands.setHtmlMode).toHaveBeenCalledTimes(1)
+    expect(commands.openDocumentPreview).toHaveBeenCalledTimes(1)
     expect(commands.toggleFullscreen).toHaveBeenCalledTimes(1)
   })
 
-  it('places visual and html in a view icon group', () => {
+  it('places visual, html, and preview in a view icon group', () => {
     renderToolbar()
 
     const group = screen.getByRole('group', { name: 'View' })
     expect(group).toHaveAttribute('data-toolbar-group', 'view')
     expect(group.querySelector('[data-icon="visual"]')).not.toBeNull()
     expect(group.querySelector('[data-icon="html"]')).not.toBeNull()
+    expect(group.querySelector('[data-icon="preview"]')).not.toBeNull()
     expect(group.querySelector('[data-icon="fullscreen"]')).toBeNull()
   })
 
@@ -475,6 +479,10 @@ describe('EditorToolbar', () => {
     expect(commands.setHtmlMode).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Preview' }))
+    expect(commands.openDocumentPreview).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
     await user.click(screen.getByRole('menuitemcheckbox', { name: 'Full screen' }))
     expect(commands.toggleFullscreen).toHaveBeenCalledTimes(1)
 
@@ -508,6 +516,8 @@ describe('EditorToolbar', () => {
     expect(screen.getByRole('button', { name: 'Switch to visual mode' }).querySelector('[data-icon="visual"]')).not.toBeNull()
     expect(screen.getByRole('menuitemradio', { name: 'HTML' }).querySelector('[data-icon="html"]')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Switch to HTML mode' }).querySelector('[data-icon="html"]')).not.toBeNull()
+    expect(screen.getByRole('menuitem', { name: 'Preview' }).querySelector('[data-icon="preview"]')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Preview document' }).querySelector('[data-icon="preview"]')).not.toBeNull()
     expect(screen.getByRole('menuitemcheckbox', { name: 'Full screen' }).querySelector('[data-icon="fullscreen"]')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Toggle full screen' }).querySelector('[data-icon="fullscreen"]')).not.toBeNull()
   })
@@ -519,7 +529,7 @@ describe('EditorToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'View menu' }))
 
     const entries = [...screen.getByRole('menu').children].map((el) => el.getAttribute('role'))
-    expect(entries).toEqual(['menuitemradio', 'menuitemradio', 'separator', null, 'separator', 'menuitemcheckbox'])
+    expect(entries).toEqual(['menuitemradio', 'menuitemradio', 'separator', null, 'separator', 'menuitem', 'menuitemcheckbox'])
     expect(screen.getAllByRole('separator')).toHaveLength(2)
   })
 

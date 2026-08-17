@@ -21,6 +21,7 @@ export const BUILTIN_TOOLBAR_ITEM_IDS = new Set([
   'visual',
   'html',
   'customizeToolbar',
+  'preview',
   'fullscreen',
   'bold',
   'italic',

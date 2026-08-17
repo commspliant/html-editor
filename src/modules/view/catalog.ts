@@ -1,5 +1,5 @@
 import type { ToolbarCatalog } from '../../toolbar/types'
-import { CustomizeToolbarIcon, FullscreenIcon, HtmlIcon, VisualIcon } from '../../icons'
+import { CustomizeToolbarIcon, FullscreenIcon, HtmlIcon, PreviewIcon, VisualIcon } from '../../icons'
 
 export const viewCatalog: ToolbarCatalog = {
   menus: {
@@ -49,6 +49,13 @@ export const viewCatalog: ToolbarCatalog = {
       icon: CustomizeToolbarIcon,
       labelKey: 'commandCustomizeToolbar',
       ariaKey: 'commandCustomizeToolbarAria',
+    },
+    preview: {
+      id: 'preview',
+      command: 'openDocumentPreview',
+      icon: PreviewIcon,
+      labelKey: 'commandPreview',
+      ariaKey: 'commandPreviewAria',
     },
     fullscreen: {
       id: 'fullscreen',
