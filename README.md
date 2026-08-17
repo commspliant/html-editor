@@ -292,9 +292,10 @@ make build-lib          # library to dist/ (es, cjs, types, CSS)
 make preview            # serve dist/ locally
 make test               # vitest
 make storybook          # Storybook on port 6006
+make publish            # library to dist/, then npm publish
 ```
 
-`make build` and `make build-lib` both write to `dist/` and overwrite each other. Use `make build` for the hosted demo; use `make build-lib` when packaging the library.
+`make build` and `make build-lib` both write to `dist/` and overwrite each other. Use `make build` for the hosted demo; use `make build-lib` when packaging the library. `make publish` always runs `make build-lib` first so the playground build is not uploaded. You must be logged in (`npm login`) with 2FA enabled.
 
 - `src/` is the library. Public exports live in `src/index.ts`.
 - `playground/` is a consumer app: it imports `commspliant-html-editor` the same way other projects will. No editor logic belongs there.
