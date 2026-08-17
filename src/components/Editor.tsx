@@ -189,6 +189,7 @@ export function Editor({
   onFullscreenChange,
   placeholder,
   disabled,
+  readOnly = false,
   className,
   locale = 'en',
   toolbarBackground,
@@ -209,6 +210,7 @@ export function Editor({
   disableBuiltinImageInsert,
   toolbarCustomization,
 }: EditorProps) {
+  const locked = Boolean(disabled || readOnly)
   const [html, setHtml] = useControllableState({
     value,
     defaultValue,
@@ -860,7 +862,7 @@ export function Editor({
   }, [mode, captureSelection])
 
   useLayoutEffect(() => {
-    if (mode !== 'visual' || disabled) {
+    if (mode !== 'visual' || locked) {
       setSelectedImage(null)
       return
     }
@@ -872,7 +874,7 @@ export function Editor({
       if (prev && prev.isConnected && root.contains(prev)) return prev
       return null
     })
-  }, [html, mode, disabled])
+  }, [html, mode, locked])
 
   const restoreVisualRange = useCallback((root: HTMLElement) => {
     const live = snapshotSelection({
@@ -1794,7 +1796,7 @@ export function Editor({
 
   const handleVisualBeforeInput = useCallback(
     (event: InputEvent) => {
-      if (disabled) return
+      if (locked) return
       if (
         (event.inputType !== 'insertText' && event.inputType !== 'insertReplacementText') ||
         !event.data
@@ -1836,12 +1838,12 @@ export function Editor({
       captureSelection()
       refreshMarkState()
     },
-    [disabled, recordVisualHtml, captureSelection, refreshMarkState],
+    [locked, recordVisualHtml, captureSelection, refreshMarkState],
   )
 
   const handleVisualContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (disabled) return
+      if (locked) return
       event.preventDefault()
       event.stopPropagation()
       const root = visualRef.current
@@ -1876,12 +1878,12 @@ export function Editor({
         inTable: closestTable(root, event.target as Node) !== null,
       })
     },
-    [disabled, captureSelection],
+    [locked, captureSelection],
   )
 
   const handleVisualPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (disabled) return
+      if (locked) return
       const root = visualRef.current
       if (!root) return
       const img = closestImage(root, event.target as Node)
@@ -1894,12 +1896,12 @@ export function Editor({
       captureSelection()
       setSelectedImage(img)
     },
-    [disabled, captureSelection],
+    [locked, captureSelection],
   )
 
   const handleHistoryKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (disabled) return
+      if (locked) return
       if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey) {
         if (modeRef.current !== 'visual') return
         const root = visualRef.current
@@ -1955,7 +1957,7 @@ export function Editor({
         commands.print()
       }
     },
-    [disabled, undo, redo, commandContext, commands, restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+    [locked, undo, redo, commandContext, commands, restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
   )
 
   const rootClassName = [styles.root, fullscreen ? styles.fullscreen : '', className]
@@ -1985,7 +1987,7 @@ export function Editor({
               layout={layout}
               commands={commands}
               queries={queries}
-              disabled={disabled}
+              disabled={locked}
               menuVisible={menuVisible}
               toolbarVisible={toolbarVisible}
             />
@@ -2001,7 +2003,7 @@ export function Editor({
               onPointerDown={handleVisualPointerDown}
               onContextMenu={handleVisualContextMenu}
               placeholder={placeholder}
-              disabled={disabled}
+              disabled={locked}
             />
           ) : (
             <HtmlSurface
@@ -2009,7 +2011,7 @@ export function Editor({
               html={html}
               onChange={(next) => recordHtml(next, true)}
               placeholder={placeholder}
-              disabled={disabled}
+              disabled={locked}
             />
           )}
         </div>
@@ -2021,7 +2023,7 @@ export function Editor({
           settings={toolbarSettings}
           loading={toolbarSettingsLoading}
           busy={toolbarSettingsBusy}
-          disabled={disabled}
+          disabled={locked}
           onChange={(next) => {
             void persistToolbarSettings(next)
           }}
@@ -2048,7 +2050,7 @@ export function Editor({
           highlightColor={highlightColorState.value}
           highlightColorMixed={highlightColorState.mixed}
           fonts={fontFaces}
-          disabled={disabled}
+          disabled={locked}
           onTabChange={(tab) => setFontDialog({ open: true, tab })}
           onApply={(draft) => commandContext.applyFontProperties(draft)}
           onClose={() => setFontDialog({ open: false, tab: fontDialog.tab })}
@@ -2057,7 +2059,7 @@ export function Editor({
           open={paragraphDialog.open}
           tab={paragraphDialog.tab}
           value={paragraphDialog.value}
-          disabled={disabled}
+          disabled={locked}
           onTabChange={(tab) => setParagraphDialog({ ...paragraphDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyParagraphProperties(draft)}
           onClose={() => setParagraphDialog({ ...paragraphDialog, open: false })}
@@ -2067,7 +2069,7 @@ export function Editor({
           tab={pageDialog.tab}
           value={pageDialog.value}
           fonts={fontFaces}
-          disabled={disabled}
+          disabled={locked}
           onTabChange={(tab) => setPageDialog({ ...pageDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyPageProperties(draft)}
           onClose={() => setPageDialog({ ...pageDialog, open: false })}
@@ -2101,7 +2103,7 @@ export function Editor({
           canDelete={Boolean(onDeleteCustomParagraphStyle)}
           fonts={fontFaces}
           busy={customStyleBusy}
-          disabled={disabled}
+          disabled={locked}
           onSave={async (style) => {
             const save = onSaveCustomParagraphStyleRef.current
             if (!save) return
@@ -2140,7 +2142,7 @@ export function Editor({
           hoverHtml={linkDialog.hoverHtml}
           bookmarks={linkDialog.bookmarks}
           selectedBookmarkId={linkDialog.selectedBookmarkId}
-          disabled={disabled}
+          disabled={locked}
           onTabChange={(tab) => setLinkDialog({ ...linkDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyLink(draft)}
           onClose={() => setLinkDialog({ ...linkDialog, open: false })}
@@ -2148,13 +2150,13 @@ export function Editor({
         <BookmarkDialog
           open={bookmarkDialog.open}
           existingIds={bookmarkDialog.existingIds}
-          disabled={disabled}
+          disabled={locked}
           onApply={(name) => commandContext.applyBookmark(name)}
           onClose={() => setBookmarkDialog({ ...bookmarkDialog, open: false })}
         />
         <ImageDialog
           open={imageDialog.open}
-          disabled={disabled}
+          disabled={locked}
           customImagePicker={customImagePicker}
           onApply={(draft) => commandContext.applyImage(draft)}
           onCustomPick={() => {
@@ -2168,39 +2170,39 @@ export function Editor({
           tab={imageProperties.tab}
           value={imageProperties.value}
           aspectRatio={imageProperties.aspectRatio}
-          disabled={disabled}
+          disabled={locked}
           onTabChange={(tab) => setImageProperties((prev) => ({ ...prev, tab }))}
           onApply={(draft) => commandContext.applyImageProperties(draft)}
           onClose={() => setImageProperties((prev) => ({ ...prev, open: false }))}
         />
         <TableDialog
           open={tableDialog.open}
-          disabled={disabled}
+          disabled={locked}
           onApply={(draft) => commandContext.applyTable(draft)}
           onClose={() => setTableDialog({ open: false })}
         />
         <TablePropertiesDialog
           open={tableProperties.open}
           value={tableProperties.value}
-          disabled={disabled}
+          disabled={locked}
           onApply={(draft) => commandContext.applyTableProperties(draft)}
           onClose={() => setTableProperties((prev) => ({ ...prev, open: false }))}
         />
         <CellPropertiesDialog
           open={cellProperties.open}
           value={cellProperties.value}
-          disabled={disabled}
+          disabled={locked}
           onApply={(draft) => commandContext.applyCellProperties(draft)}
           onClose={() => setCellProperties((prev) => ({ ...prev, open: false }))}
         />
         <RowPropertiesDialog
           open={rowProperties.open}
           value={rowProperties.value}
-          disabled={disabled}
+          disabled={locked}
           onApply={(draft) => commandContext.applyRowProperties(draft)}
           onClose={() => setRowProperties((prev) => ({ ...prev, open: false }))}
         />
-        {mode === 'visual' && !disabled && selectedImage?.isConnected ? (
+        {mode === 'visual' && !locked && selectedImage?.isConnected ? (
           <ImageResizeOverlay
             img={selectedImage}
             onResize={handleImageResize}

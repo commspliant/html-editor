@@ -69,6 +69,13 @@ export const Disabled: Story = {
   },
 }
 
+export const ReadOnly: Story = {
+  args: {
+    defaultValue: '<p>Read only</p>',
+    readOnly: true,
+  },
+}
+
 export const IsolatedFromHost: Story = {
   decorators: [
     (Story) => (

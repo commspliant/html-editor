@@ -135,6 +135,11 @@
   color: #888;
 }
 
+.root .visual[aria-disabled='true'] {
+  opacity: 0.6;
+  background: #f7f7f7;
+}
+
 .root .html {
   display: block;
   appearance: none;
