@@ -490,6 +490,103 @@ describe('Editor file commands', () => {
   })
 })
 
+function fileDataTransfer(files: File[]) {
+  return {
+    files,
+    types: files.length ? ['Files'] : [],
+    items: files.map((file) => ({
+      kind: 'file' as const,
+      type: file.type,
+      getAsFile: () => file,
+    })),
+    dropEffect: 'none',
+    effectAllowed: 'all',
+  }
+}
+
+function workspaceOf(name: 'Visual editor' | 'HTML editor') {
+  const surface = screen.getByRole('textbox', { name })
+  const workspace = surface.parentElement
+  if (!workspace) throw new Error('expected editor workspace')
+  return workspace
+}
+
+describe('Editor html file drop', () => {
+  it('replaces the visual document when an html file is dropped', async () => {
+    render(<Editor defaultValue="<p>Old</p>" />)
+    const file = new File(['<p>From drop</p>'], 'doc.html', { type: 'text/html' })
+
+    fireEvent.drop(workspaceOf('Visual editor'), { dataTransfer: fileDataTransfer([file]) })
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Visual editor' })).toContainHTML('<p>From drop</p>')
+    })
+  })
+
+  it('replaces the html surface when an html file is dropped', async () => {
+    render(<Editor defaultMode="html" defaultValue="<p>Old</p>" />)
+    const file = new File(['<p>From drop</p>'], 'notes.htm', { type: '' })
+
+    fireEvent.drop(workspaceOf('HTML editor'), { dataTransfer: fileDataTransfer([file]) })
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'HTML editor' })).toHaveValue('<p>From drop</p>')
+    })
+  })
+
+  it('ignores a dropped non-html file', async () => {
+    render(<Editor defaultValue="<p>Old</p>" />)
+    const file = new File(['png'], 'photo.png', { type: 'image/png' })
+
+    fireEvent.drop(workspaceOf('Visual editor'), { dataTransfer: fileDataTransfer([file]) })
+
+    expect(screen.getByRole('textbox', { name: 'Visual editor' })).toContainHTML('<p>Old</p>')
+  })
+
+  it('does not replace when disableHtmlFileDrop is set', async () => {
+    render(<Editor defaultValue="<p>Old</p>" disableHtmlFileDrop />)
+    const file = new File(['<p>From drop</p>'], 'doc.html', { type: 'text/html' })
+
+    fireEvent.drop(workspaceOf('Visual editor'), { dataTransfer: fileDataTransfer([file]) })
+
+    expect(screen.getByRole('textbox', { name: 'Visual editor' })).toContainHTML('<p>Old</p>')
+  })
+
+  it('does not replace when readOnly', async () => {
+    render(<Editor defaultValue="<p>Old</p>" readOnly />)
+    const file = new File(['<p>From drop</p>'], 'doc.html', { type: 'text/html' })
+
+    fireEvent.drop(workspaceOf('Visual editor'), { dataTransfer: fileDataTransfer([file]) })
+
+    expect(screen.getByRole('textbox', { name: 'Visual editor' })).toContainHTML('<p>Old</p>')
+  })
+
+  it('runs transformHtml on dropped html', async () => {
+    render(
+      <Editor
+        defaultValue="<p>Old</p>"
+        transformHtml={(html) => html.replace(/dirty/g, 'clean')}
+      />,
+    )
+    const file = new File(['<p>dirty</p>'], 'doc.html', { type: 'text/html' })
+
+    fireEvent.drop(workspaceOf('Visual editor'), { dataTransfer: fileDataTransfer([file]) })
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Visual editor' })).toContainHTML('<p>clean</p>')
+    })
+  })
+
+  it('shows a drop overlay while a file is dragged over the workspace', () => {
+    render(<Editor defaultValue="<p>Old</p>" />)
+    const file = new File(['<p>From drop</p>'], 'doc.html', { type: 'text/html' })
+
+    fireEvent.dragEnter(workspaceOf('Visual editor'), { dataTransfer: fileDataTransfer([file]) })
+
+    expect(screen.getByText('Drop HTML file to open')).toBeInTheDocument()
+  })
+})
+
 describe('Editor history', () => {
   it('starts with undo and redo disabled', () => {
     render(<Editor />)

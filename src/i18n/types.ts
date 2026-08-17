@@ -48,6 +48,7 @@ export type Messages = {
   commandSaveAria: string
   commandOpen: string
   commandOpenAria: string
+  htmlFileDropOverlay: string
   commandPrint: string
   commandPrintAria: string
   commandUndo: string

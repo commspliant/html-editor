@@ -156,6 +156,7 @@ import { CellPropertiesDialog } from '../modules/table/CellPropertiesDialog'
 import { RowPropertiesDialog } from '../modules/table/RowPropertiesDialog'
 import { DocumentPreviewDialog } from '../modules/view/DocumentPreviewDialog'
 import { ContextMenu, type ContextMenuKind } from '../modules/contextMenu'
+import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
 import { createDocumentHistory } from '../modules/history'
 import { defaultToolbarCatalog, defaultToolbarLayout, EditorToolbar } from '../toolbar'
 import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
@@ -209,6 +210,7 @@ export function Editor({
   onDeleteCustomParagraphStyle,
   customImagePicker,
   disableBuiltinImageInsert,
+  disableHtmlFileDrop = false,
   toolbarCustomization,
 }: EditorProps) {
   const locked = Boolean(disabled || readOnly)
@@ -556,6 +558,17 @@ export function Editor({
     },
     [commitHtml, history],
   )
+
+  const onHtmlFileDrop = useCallback(
+    (next: string) => {
+      recordHtml(next, false)
+    },
+    [recordHtml],
+  )
+  const htmlFileDrop = useHtmlFileDrop({
+    enabled: !locked && !disableHtmlFileDrop,
+    onHtml: onHtmlFileDrop,
+  })
 
   const recordVisualHtml = useCallback(
     (body: string, coalesce: boolean) => {
@@ -2004,7 +2017,13 @@ export function Editor({
             />
           </div>
         ) : null}
-        <div className={styles.workspace}>
+        <div
+          className={styles.workspace}
+          onDragEnter={htmlFileDrop.onDragEnter}
+          onDragOver={htmlFileDrop.onDragOver}
+          onDragLeave={htmlFileDrop.onDragLeave}
+          onDrop={htmlFileDrop.onDrop}
+        >
           {mode === 'visual' ? (
             <VisualSurface
               ref={visualRef}
@@ -2025,6 +2044,7 @@ export function Editor({
               disabled={locked}
             />
           )}
+          {htmlFileDrop.dragging ? <HtmlFileDropOverlay /> : null}
         </div>
         {fullscreen ? <ExitFullscreenButton onClick={() => setFullscreen(false)} /> : null}
         <CustomizeToolbarDialog
@@ -2280,5 +2300,14 @@ function ExitFullscreenButton({ onClick }: { onClick: () => void }) {
     >
       <CloseIcon className={styles.exitFullscreenIcon} />
     </button>
+  )
+}
+
+function HtmlFileDropOverlay() {
+  const t = useT()
+  return (
+    <div className={styles.htmlFileDropOverlay} aria-hidden="true">
+      {t('htmlFileDropOverlay')}
+    </div>
   )
 }

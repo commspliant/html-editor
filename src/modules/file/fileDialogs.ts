@@ -1,3 +1,5 @@
+import { readFileText } from './htmlFile'
+
 const HTML_FILE_TYPE = {
   description: 'HTML',
   accept: { 'text/html': ['.html', '.htm'] },
@@ -39,19 +41,6 @@ function pickerWindow(): PickerWindow {
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
-}
-
-function readFileText(file: Blob): Promise<string> {
-  if (typeof file.text === 'function') {
-    return file.text()
-  }
-
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ''))
-    reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'))
-    reader.readAsText(file)
-  })
 }
 
 function downloadHtml(html: string, filename: string): void {

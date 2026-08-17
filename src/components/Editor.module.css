@@ -103,6 +103,7 @@
 }
 
 .root .workspace {
+  position: relative;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -110,6 +111,20 @@
   overflow: auto;
   padding: 1rem;
   background: #f0f0f0;
+}
+
+.root .htmlFileDropOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgb(255 255 255 / 85%);
+  color: #111;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .root .surface {

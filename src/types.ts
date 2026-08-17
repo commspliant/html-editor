@@ -200,7 +200,7 @@ export type EditorProps = {
   customFonts?: CustomFont[]
   /**
    * Optional map over document HTML before it is stored and passed to `onChange`.
-   * Runs on every edit (visual, HTML source, open, insert, `setHtml`).
+   * Runs on every edit (visual, HTML source, open, file drop, insert, `setHtml`).
    * Does not run for the inbound `value` / `defaultValue`.
    */
   transformHtml?: (html: string) => string
@@ -223,6 +223,11 @@ export type EditorProps = {
    * toolbar or Insert menu. Has no effect unless `customImagePicker` is set.
    */
   disableBuiltinImageInsert?: boolean
+  /**
+   * When true, dropping an HTML file on the editor does not replace the document.
+   * File → Open is unchanged. Default `false` (drop is allowed).
+   */
+  disableHtmlFileDrop?: boolean
   /**
    * Host-owned toolbar layout persistence. When set (both `load` and `save`),
    * the library does not use localStorage. Omit to persist in the browser.

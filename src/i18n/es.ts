@@ -48,6 +48,7 @@ export const es: Messages = {
   commandSaveAria: 'Guardar como archivo HTML',
   commandOpen: 'Abrir',
   commandOpenAria: 'Abrir archivo HTML',
+  htmlFileDropOverlay: 'Suelte un archivo HTML para abrirlo',
   commandPrint: 'Imprimir',
   commandPrintAria: 'Imprimir documento',
   commandUndo: 'Deshacer',

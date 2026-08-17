@@ -19,6 +19,9 @@ export type PlaygroundMessages = {
   readOnlyAria: string
   readOnly: string
   readOnlyOff: string
+  htmlFileDropAria: string
+  htmlFileDropAllowed: string
+  htmlFileDropDisabled: string
   appearanceMenuAria: string
   menuDefault: string
   menuExample: string
@@ -55,6 +58,7 @@ export type PlaygroundMessages = {
   codeExamplesClose: string
   chromeExampleBody: string
   readOnlyExampleBody: string
+  htmlFileDropExampleBody: string
   menuExampleBody: string
   borderExampleBody: string
   fontsExampleBody: string
@@ -89,6 +93,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     readOnlyAria: 'Read only',
     readOnly: 'Read only',
     readOnlyOff: 'Editable',
+    htmlFileDropAria: 'HTML file drop',
+    htmlFileDropAllowed: 'Drop allowed',
+    htmlFileDropDisabled: 'Drop disabled',
     appearanceMenuAria: 'Menu appearance',
     menuDefault: 'Menu default',
     menuExample: 'Menu example',
@@ -127,6 +134,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host.',
     readOnlyExampleBody:
       'Lock both editing surfaces and all menus and toolbar buttons from the host. Default is false. Same lock as disabled.',
+    htmlFileDropExampleBody:
+      'Dropping an HTML file onto the document replaces it, the same as File → Open. Set disableHtmlFileDrop to ignore drops. File → Open is unchanged.',
     menuExampleBody:
       'Restyle the dropdown menu bar only — not the icon toolbar. Load any custom webfont on the host page before passing its family name.',
     borderExampleBody:
@@ -165,6 +174,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     readOnlyAria: 'Solo lectura',
     readOnly: 'Solo lectura',
     readOnlyOff: 'Editable',
+    htmlFileDropAria: 'Soltar archivo HTML',
+    htmlFileDropAllowed: 'Soltar permitido',
+    htmlFileDropDisabled: 'Soltar desactivado',
     appearanceMenuAria: 'Apariencia del menú',
     menuDefault: 'Menú predeterminado',
     menuExample: 'Menú de ejemplo',
@@ -203,6 +215,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Muestra u oculta la barra de menú y la barra de iconos, y controla la pantalla completa desde la aplicación anfitriona.',
     readOnlyExampleBody:
       'Bloquea ambas superficies de edición y todos los menús y botones de la barra desde la aplicación anfitriona. El valor predeterminado es false. El mismo bloqueo que disabled.',
+    htmlFileDropExampleBody:
+      'Soltar un archivo HTML sobre el documento lo reemplaza, igual que Archivo → Abrir. Con disableHtmlFileDrop se ignoran las sueltas. Archivo → Abrir no cambia.',
     menuExampleBody:
       'Cambia solo el estilo de la barra de menús desplegables, no la barra de iconos. Carga cualquier fuente web en la página anfitriona antes de pasar su familia.',
     borderExampleBody:

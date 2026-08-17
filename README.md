@@ -68,9 +68,10 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `transformHtml` | `(html: string) => string` | — | Optional map over document HTML before it is stored and passed to `onChange`. See [Transform HTML](#transform-html) |
 | `customImagePicker` | `CustomImagePicker` | — | Optional third Insert image source. See [Custom image picker](#custom-image-picker) |
 | `disableBuiltinImageInsert` | `boolean` | `false` | Skip the Insert image dialog and call `customImagePicker.onPick` from the toolbar or Insert menu |
+| `disableHtmlFileDrop` | `boolean` | `false` | When true, dropping an HTML file on the editor does not replace the document. File → Open is unchanged |
 | `toolbarCustomization` | `ToolbarCustomizationPersistence` | — | Host load/save for icon-toolbar layout. Omit to persist in `localStorage`. See [Customize toolbar](#customize-toolbar) |
 
-`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Table, and Horizontal line), a File icon group (Save and Load), a Print icon group, an Edit icon group (Undo and Redo), an Insert icon group (Link, Bookmark, Image, Table, and Horizontal line), and the Visual | HTML | Preview controls, with Full screen pinned last on the icon toolbar, unless `menuVisible` or `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. The icon toolbar wraps onto multiple rows when it cannot fit on one line; Full screen stays last, pinned to the right of the first row. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Horizontal line inserts an `<hr>` at the caret.
+`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Table, and Horizontal line), a File icon group (Save and Load), a Print icon group, an Edit icon group (Undo and Redo), an Insert icon group (Link, Bookmark, Image, Table, and Horizontal line), and the Visual | HTML | Preview controls, with Full screen pinned last on the icon toolbar, unless `menuVisible` or `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. The icon toolbar wraps onto multiple rows when it cannot fit on one line; Full screen stays last, pinned to the right of the first row. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Horizontal line inserts an `<hr>` at the caret.
 
 `menuColor`, `menuBackground`, `menuFontSize`, and `menuFontFamily` restyle the dropdown menu bar and panels only — not the icon toolbar. `border` is the outer editor box and is ignored in fullscreen. Custom menu fonts must already be available on the page.
 
@@ -112,6 +113,16 @@ Lock both editing surfaces and all menus and toolbar buttons from the host. Defa
 import { Editor } from 'commspliant-html-editor'
 
 <Editor readOnly defaultValue="<p>Hello</p>" />
+```
+
+### HTML file drop
+
+Dropping an HTML file onto the document (visual or HTML mode) replaces the current document, the same as File → Open. Default is allowed. Set `disableHtmlFileDrop` to ignore drops; Open is unchanged.
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor disableHtmlFileDrop />
 ```
 
 ### Menu appearance
@@ -186,7 +197,7 @@ Pass `customFonts` to append host faces after the built-in list. Duplicate `fami
 
 ### Transform HTML
 
-Pass `transformHtml` to sanitize or enhance the document on every write: visual typing and paste, HTML-source edits, Load, inserts, and `setHtml`. The result is what the editor stores and what `onChange` receives. Inbound `value` / `defaultValue` are not transformed — sanitize those before passing if needed.
+Pass `transformHtml` to sanitize or enhance the document on every write: visual typing and paste, HTML-source edits, Load, dropped HTML files, inserts, and `setHtml`. The result is what the editor stores and what `onChange` receives. Inbound `value` / `defaultValue` are not transformed — sanitize those before passing if needed.
 
 ```tsx
 <Editor

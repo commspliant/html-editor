@@ -48,6 +48,7 @@ export const en: Messages = {
   commandSaveAria: 'Save as HTML file',
   commandOpen: 'Open',
   commandOpenAria: 'Open HTML file',
+  htmlFileDropOverlay: 'Drop HTML file to open',
   commandPrint: 'Print',
   commandPrintAria: 'Print document',
   commandUndo: 'Undo',

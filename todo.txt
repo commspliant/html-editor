@@ -9,9 +9,9 @@ right click custom menu (DONE)
 edit toolbar settings (local storage, can reset) (DONE)
 add document preview button and menu (DONE)
 Readonly property, all button and menu disabled, and neather editor can be edited. (DONE)
-<hr> (IN PROGRESS)
+<hr> (DONE)
+Drag html file In (IN PROGRESS)
 
-Drag html file In
 dark mode
 custom menu hides as property
 auto save hooks, (check every second, if the document has changed, if yes call a callback, optional property), add to playgraoudn with visible auto saves
