@@ -164,6 +164,11 @@ export type EditorProps = {
   onFullscreenChange?: (fullscreen: boolean) => void
   placeholder?: string
   disabled?: boolean
+  /**
+   * When true, neither surface can be edited and menus, toolbar, and dialogs
+   * are grayed out. Same lock as `disabled`. Default `false`.
+   */
+  readOnly?: boolean
   className?: string
   locale?: Locale
   toolbarBackground?: string

@@ -51,7 +51,8 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `defaultFullscreen` | `boolean` | `false` | Initial overlay when uncontrolled |
 | `onFullscreenChange` | `(fullscreen: boolean) => void` | — | Fires when full screen is entered or exited |
 | `placeholder` | `string` | — | Empty-state hint |
-| `disabled` | `boolean` | — | Disables both surfaces, menus, toolbar commands, and the Visual / HTML / Full screen toggles |
+| `disabled` | `boolean` | `false` | Same lock as `readOnly`. Either prop being true locks the editor |
+| `readOnly` | `boolean` | `false` | When true, neither surface can be edited and both are grayed out; menus and toolbar are grayed out and not clickable |
 | `className` | `string` | — | Extra class on the editor root |
 | `locale` | `'en' \| 'es'` | `'en'` | Library chrome language. Document content is not translated |
 | `toolbarBackground` | `string` | `#f0f0f0` | CSS color for the icon toolbar row. Omit to use the default light gray |
@@ -101,6 +102,16 @@ export function App() {
 import { Editor } from 'commspliant-html-editor'
 
 <Editor menuVisible={false} toolbarVisible={false} />
+```
+
+### Read only
+
+Lock both editing surfaces and all menus and toolbar buttons from the host. Default is `false`. Same lock as `disabled`.
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor readOnly defaultValue="<p>Hello</p>" />
 ```
 
 ### Menu appearance

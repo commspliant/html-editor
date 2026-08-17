@@ -32,6 +32,24 @@ describe('Editor', () => {
     )
   })
 
+  it('locks both surfaces and chrome when readOnly', () => {
+    render(<Editor defaultValue="<p>Hello</p>" readOnly />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual).toHaveAttribute('contenteditable', 'false')
+    expect(visual).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('button', { name: 'File menu' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Bold' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Switch to visual mode' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Switch to HTML mode' })).toBeDisabled()
+  })
+
+  it('disables the HTML surface when readOnly', () => {
+    render(<Editor defaultValue="<p>Hello</p>" defaultMode="html" readOnly />)
+
+    expect(screen.getByRole('textbox', { name: 'HTML editor' })).toBeDisabled()
+  })
+
   it('loads customFonts stylesheets into the document head', () => {
     const href = 'https://example.com/roboto.css'
     const { unmount } = render(

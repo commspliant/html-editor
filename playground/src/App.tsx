@@ -142,6 +142,7 @@ export function App() {
   const [menuVisible, setMenuVisible] = useState(true)
   const [toolbarVisible, setToolbarVisible] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
+  const [readOnly, setReadOnly] = useState(false)
   const [menuAppearance, setMenuAppearance] = useState<MenuAppearance>('default')
   const [borderAppearance, setBorderAppearance] = useState<BorderAppearance>('default')
   const [googleFonts, setGoogleFonts] = useState(false)
@@ -344,6 +345,31 @@ export function App() {
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
+                    label={t.readOnlyAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('readOnly')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.readOnlyAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!readOnly}
+                      onClick={() => setReadOnly(false)}
+                    >
+                      {t.readOnlyOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={readOnly}
+                      onClick={() => setReadOnly(true)}
+                    >
+                      {t.readOnly}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
                     label={t.appearanceMenuAria}
                     examplesLabel={t.codeExamplesLink}
                     onOpenExamples={() => setExampleBlock('menu')}
@@ -538,6 +564,7 @@ export function App() {
               toolbarVisible={toolbarVisible}
               fullscreen={fullscreen}
               onFullscreenChange={setFullscreen}
+              readOnly={readOnly}
               {...(menuAppearance === 'example' ? exampleMenu : {})}
               border={
                 borderAppearance === 'none'
