@@ -1,5 +1,8 @@
 import { act, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { useState } from 'react'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { loadHtml, saveHtml } from '../modules/file/fileDialogs'
@@ -10,6 +13,7 @@ import { TOOLBAR_CUSTOMIZATION_STORAGE_KEY } from '../toolbar/toolbarCustomizati
 import { DARK_MODE_STORAGE_KEY } from '../modules/view/darkModePersistence'
 import { TOOLBAR_POSITION_STORAGE_KEY } from '../modules/view/toolbarPositionPersistence'
 import { Editor } from './Editor'
+import styles from './Editor.module.css'
 
 vi.mock('../modules/file/fileDialogs', () => ({
   saveHtml: vi.fn(async () => undefined),
@@ -1866,6 +1870,16 @@ describe('Editor toolbar position', () => {
     fireEvent.click(screen.getByRole('menuitemradio', { name }))
   }
 
+  const editorChromeCss = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), 'Editor.module.css'),
+    'utf8',
+  )
+
+  function declaredZIndex(block: string): number {
+    const match = editorChromeCss.match(new RegExp(`${block}\\s*\\{[^}]*z-index:\\s*(\\d+)`, 's'))
+    return match ? Number(match[1]) : 0
+  }
+
   it('docks the icon toolbar at the top by default', () => {
     const { container } = render(<Editor />)
     const toolbar = screen.getByRole('toolbar', { name: 'Formatting toolbar' })
@@ -1874,6 +1888,16 @@ describe('Editor toolbar position', () => {
     expect(container.firstElementChild).toHaveAttribute('data-toolbar-position', 'top')
     expect(container.querySelector('[data-icon-dock="top"]')).not.toBeNull()
     expect(toolbar.compareDocumentPosition(visual) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('stacks File/View menus above the icon toolbar', () => {
+    render(<Editor />)
+    const fileMenu = screen.getByRole('button', { name: 'File menu' })
+    const toolbar = screen.getByRole('toolbar', { name: 'Formatting toolbar' })
+
+    expect(fileMenu.closest(`.${styles.menuChrome}`)).not.toBeNull()
+    expect(toolbar.closest(`.${styles.iconChrome}`)).not.toBeNull()
+    expect(declaredZIndex('\\.menuChrome')).toBeGreaterThan(declaredZIndex('\\.iconChrome\\.iconChrome'))
   })
 
   it('uses toolbarPosition as the initial dock when nothing is persisted', () => {
