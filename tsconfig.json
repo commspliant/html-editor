@@ -21,7 +21,7 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["vite/client", "node"],
     "paths": {
-      "wysiwyg-editor": ["./src/index.ts"]
+      "commspliant-html-editor": ["./src/index.ts"]
     }
   },
   "include": ["src", "playground", ".storybook", "vite.config.ts", "vitest.config.ts"]

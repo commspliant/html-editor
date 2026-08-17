@@ -14,7 +14,7 @@ export const codeExampleBlocks: Record<ExampleBlockId, CodeExampleBlock> = {
     bodyKey: 'chromeExampleBody',
     snippets: [
       `import { useState } from 'react'
-import { Editor } from 'wysiwyg-editor'
+import { Editor } from 'commspliant-html-editor'
 
 export function App() {
   const [fullscreen, setFullscreen] = useState(false)
@@ -28,7 +28,7 @@ export function App() {
     />
   )
 }`,
-      `import { Editor } from 'wysiwyg-editor'
+      `import { Editor } from 'commspliant-html-editor'
 
 <Editor menuVisible={false} toolbarVisible={false} />`,
     ],
@@ -37,7 +37,7 @@ export function App() {
     titleKey: 'appearanceMenuAria',
     bodyKey: 'menuExampleBody',
     snippets: [
-      `import { Editor } from 'wysiwyg-editor'
+      `import { Editor } from 'commspliant-html-editor'
 
 <Editor
   menuColor="#1e3a5f"
@@ -51,10 +51,10 @@ export function App() {
     titleKey: 'appearanceBorderAria',
     bodyKey: 'borderExampleBody',
     snippets: [
-      `import { Editor } from 'wysiwyg-editor'
+      `import { Editor } from 'commspliant-html-editor'
 
 <Editor border="none" />`,
-      `import { Editor, type EditorBorder } from 'wysiwyg-editor'
+      `import { Editor, type EditorBorder } from 'commspliant-html-editor'
 
 const border: EditorBorder = {
   width: '2px',
@@ -70,7 +70,7 @@ const border: EditorBorder = {
     titleKey: 'appearanceFontsAria',
     bodyKey: 'fontsExampleBody',
     snippets: [
-      `import { Editor, type CustomFont } from 'wysiwyg-editor'
+      `import { Editor, type CustomFont } from 'commspliant-html-editor'
 
 const customFonts: CustomFont[] = [
   {
@@ -87,7 +87,7 @@ const customFonts: CustomFont[] = [
     titleKey: 'appearanceImageAria',
     bodyKey: 'imageExampleBody',
     snippets: [
-      `import { Editor, type CustomImagePicker } from 'wysiwyg-editor'
+      `import { Editor, type CustomImagePicker } from 'commspliant-html-editor'
 
 const gallery: CustomImagePicker = {
   text: 'Gallery',
@@ -103,7 +103,7 @@ const gallery: CustomImagePicker = {
 }
 
 <Editor customImagePicker={gallery} />`,
-      `import { Editor } from 'wysiwyg-editor'
+      `import { Editor } from 'commspliant-html-editor'
 
 <Editor customImagePicker={gallery} disableBuiltinImageInsert />`,
     ],
@@ -112,10 +112,10 @@ const gallery: CustomImagePicker = {
     titleKey: 'languageAria',
     bodyKey: 'languageExampleBody',
     snippets: [
-      `import { Editor } from 'wysiwyg-editor'
+      `import { Editor } from 'commspliant-html-editor'
 
 <Editor locale="en" />`,
-      `import { Editor } from 'wysiwyg-editor'
+      `import { Editor } from 'commspliant-html-editor'
 
 <Editor locale="es" />`,
     ],

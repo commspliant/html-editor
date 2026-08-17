@@ -9,7 +9,7 @@ import {
   type CustomParagraphStyle,
   type EditorBorder,
   type Locale,
-} from 'wysiwyg-editor'
+} from 'commspliant-html-editor'
 import { playgroundMessages } from './i18n/messages'
 import { CodeExampleDialog } from './CodeExampleDialog'
 import { DocumentationPage } from './DocumentationPage'
