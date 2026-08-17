@@ -1,4 +1,4 @@
-import type { Locale } from 'wysiwyg-editor'
+import type { Locale } from 'commspliant-html-editor'
 
 export type PlaygroundMessages = {
   brandWordmark: string

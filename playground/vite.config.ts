@@ -23,7 +23,7 @@ export default defineConfig({
   plugins: [react(), copyIndexTo404()],
   resolve: {
     alias: {
-      'wysiwyg-editor': path.resolve(__dirname, '../src/index.ts'),
+      'commspliant-html-editor': path.resolve(__dirname, '../src/index.ts'),
     },
   },
   build: {

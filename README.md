@@ -1,8 +1,14 @@
-# wysiwyg-editor
+# commspliant-html-editor
 
 **Try it out here:** [https://htmleditor.commspliant.com/](https://htmleditor.commspliant.com/)
 
 Reusable React + TypeScript editor with two base modes: **Visual** (`contenteditable`) and **HTML** (plain-text source). Downstream apps import the package; they do not copy source.
+
+## Install
+
+```bash
+npm install commspliant-html-editor
+```
 
 ## Usage
 
@@ -10,8 +16,8 @@ Peer dependencies: `react` and `react-dom` (^18).
 
 ```tsx
 import { useState } from 'react'
-import { Editor } from 'wysiwyg-editor'
-import 'wysiwyg-editor/styles.css'
+import { Editor } from 'commspliant-html-editor'
+import 'commspliant-html-editor/styles.css'
 
 export function App() {
   const [fullscreen, setFullscreen] = useState(false)
@@ -70,7 +76,7 @@ Show or hide the menu bar and icon toolbar, and control the full-screen overlay 
 
 ```tsx
 import { useState } from 'react'
-import { Editor } from 'wysiwyg-editor'
+import { Editor } from 'commspliant-html-editor'
 
 export function App() {
   const [fullscreen, setFullscreen] = useState(false)
@@ -87,7 +93,7 @@ export function App() {
 ```
 
 ```tsx
-import { Editor } from 'wysiwyg-editor'
+import { Editor } from 'commspliant-html-editor'
 
 <Editor menuVisible={false} toolbarVisible={false} />
 ```
@@ -97,7 +103,7 @@ import { Editor } from 'wysiwyg-editor'
 Restyle the dropdown menu bar only — not the icon toolbar. Load any custom webfont on the host page before passing its family name.
 
 ```tsx
-import { Editor } from 'wysiwyg-editor'
+import { Editor } from 'commspliant-html-editor'
 
 <Editor
   menuColor="#1e3a5f"
@@ -112,13 +118,13 @@ import { Editor } from 'wysiwyg-editor'
 Set the outer editor box. Use `"none"` to remove width, radius and shadow. Object fields are independent; omitted fields keep the defaults. Ignored in full screen.
 
 ```tsx
-import { Editor } from 'wysiwyg-editor'
+import { Editor } from 'commspliant-html-editor'
 
 <Editor border="none" />
 ```
 
 ```tsx
-import { Editor, type EditorBorder } from 'wysiwyg-editor'
+import { Editor, type EditorBorder } from 'commspliant-html-editor'
 
 const border: EditorBorder = {
   width: '2px',
@@ -135,13 +141,13 @@ const border: EditorBorder = {
 Pass `locale` to switch library chrome between English and Spanish. Document content is not translated.
 
 ```tsx
-import { Editor } from 'wysiwyg-editor'
+import { Editor } from 'commspliant-html-editor'
 
 <Editor locale="en" />
 ```
 
 ```tsx
-import { Editor } from 'wysiwyg-editor'
+import { Editor } from 'commspliant-html-editor'
 
 <Editor locale="es" />
 ```
@@ -180,7 +186,7 @@ Keep the callback idempotent. If it rewrites markup on every keystroke (pretty-p
 Pass a `customActions` array to add host buttons, menu items, or both. Labels and tooltips are your copy — the library does not translate them.
 
 ```tsx
-import { Editor, type CustomAction } from 'wysiwyg-editor'
+import { Editor, type CustomAction } from 'commspliant-html-editor'
 
 const insertStamp: CustomAction = {
   id: 'stamp',
@@ -236,7 +242,7 @@ Both modes share one HTML string. Switching Visual → HTML flushes the contente
 Pass `customImagePicker` to add a third Insert image source. Labels are your copy — the library does not translate them. When the host finishes picking, call the `insertImage` function received by `onPick`.
 
 ```tsx
-import { Editor, type CustomImagePicker } from 'wysiwyg-editor'
+import { Editor, type CustomImagePicker } from 'commspliant-html-editor'
 
 const gallery: CustomImagePicker = {
   text: 'Gallery',
@@ -291,7 +297,7 @@ make storybook          # Storybook on port 6006
 `make build` and `make build-lib` both write to `dist/` and overwrite each other. Use `make build` for the hosted demo; use `make build-lib` when packaging the library.
 
 - `src/` is the library. Public exports live in `src/index.ts`.
-- `playground/` is a consumer app: it imports `wysiwyg-editor` the same way other projects will. No editor logic belongs there.
+- `playground/` is a consumer app: it imports `commspliant-html-editor` the same way other projects will. No editor logic belongs there.
 - Stories (`*.stories.tsx`) sit next to public UI and are the visual contract.
 - Tests (`*.test.ts(x)`) sit next to modules.
 
@@ -303,7 +309,7 @@ The live demo is the playground static build. DigitalOcean App Platform defaults
 - **Node:** 18+ (this repo pins 20 via `.nvmrc`; set `NODE_VERSION=20` if the build image ignores it)
 
 ```tsx
-import { Editor } from 'wysiwyg-editor'
+import { Editor } from 'commspliant-html-editor'
 ```
 
 [Brought to you by CommsPliant Communication](https://commspliant.com/)

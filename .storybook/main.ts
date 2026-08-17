@@ -11,7 +11,7 @@ const config: StorybookConfig = {
     config.resolve = config.resolve ?? {}
     config.resolve.alias = {
       ...config.resolve.alias,
-      'wysiwyg-editor': path.resolve(__dirname, '../src/index.ts'),
+      'commspliant-html-editor': path.resolve(__dirname, '../src/index.ts'),
     }
     return config
   },

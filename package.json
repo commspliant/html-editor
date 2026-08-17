@@ -1,5 +1,5 @@
 {
-  "name": "wysiwyg-editor",
+  "name": "commspliant-html-editor",
   "version": "0.0.1",
   "description": "Reusable React WYSIWYG editor with visual and HTML modes",
   "type": "module",
@@ -12,7 +12,7 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./styles.css": "./dist/wysiwyg-editor.css"
+    "./styles.css": "./dist/commspliant-html-editor.css"
   },
   "files": ["dist"],
   "sideEffects": ["**/*.css"],
