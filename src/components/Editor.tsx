@@ -138,6 +138,7 @@ import {
   defaultRowPropertiesApply,
   queryRowAtSelection,
 } from '../core/rowProperties'
+import { useAutoSave } from '../hooks/useAutoSave'
 import { useControllableState } from '../hooks/useControllableState'
 import { ChromeThemeProvider, chromeThemeProps } from '../chrome/ChromeTheme'
 import { CloseIcon } from '../icons'
@@ -194,6 +195,7 @@ export function Editor({
   value,
   defaultValue = '',
   onChange,
+  onAutoSave,
   mode: modeProp,
   defaultMode = 'visual',
   onModeChange,
@@ -1429,6 +1431,8 @@ export function Editor({
     }
     return htmlRef.current
   }, [recordHtml])
+
+  useAutoSave({ onAutoSave, getHtml: getDocumentHtml })
 
   const commandContext: CommandContext = useMemo(
     () => ({

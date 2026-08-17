@@ -168,6 +168,12 @@ export type EditorProps = {
   value?: string
   defaultValue?: string
   onChange?: (html: string) => void
+  /**
+   * When set, polls every second. If the document HTML changed since the last
+   * auto-save, calls this with the current HTML (same as `onChange`, after
+   * `transformHtml`). Omit to disable. The callback is not awaited.
+   */
+  onAutoSave?: (html: string) => void | Promise<void>
   mode?: EditorMode
   defaultMode?: EditorMode
   onModeChange?: (mode: EditorMode) => void

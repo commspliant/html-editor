@@ -44,6 +44,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `value` | `string` | — | Controlled HTML document |
 | `defaultValue` | `string` | `''` | Initial HTML when uncontrolled |
 | `onChange` | `(html: string) => void` | — | Fires when either surface edits the document |
+| `onAutoSave` | `(html: string) => void` | — | Polls every 1s; calls only when the document HTML changed. See [Auto save](#auto-save) |
 | `mode` | `'visual' \| 'html'` | — | Controlled mode |
 | `defaultMode` | `'visual' \| 'html'` | `'visual'` | Initial mode when uncontrolled |
 | `onModeChange` | `(mode: EditorMode) => void` | — | Fires when the built-in Visual / HTML toggle is used |
@@ -242,6 +243,23 @@ Pass `transformHtml` to sanitize or enhance the document on every write: visual 
 ```
 
 Keep the callback idempotent. If it rewrites markup on every keystroke (pretty-print, wrap tags), the visual surface resyncs `innerHTML` and the caret may jump. Prefer stripping disallowed tags over format-on-type.
+
+### Auto save
+
+Pass `onAutoSave` to persist the document HTML from the host. The editor polls every second and calls the callback only when that HTML changed since the last auto-save. Omit the prop to disable (the default). The callback is not awaited, so a slow or failing save does not block editing.
+
+The HTML is the same string `onChange` receives (after `transformHtml`, with font stylesheet links when a custom face is used). The initial document is not treated as a change.
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor
+  defaultValue="<p>Hello</p>"
+  onAutoSave={(html) => {
+    void fetch('/save', { method: 'POST', body: html })
+  }}
+/>
+```
 
 ### Custom actions
 

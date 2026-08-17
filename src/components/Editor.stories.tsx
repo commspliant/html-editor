@@ -62,6 +62,15 @@ export const TransformHtml: Story = {
   },
 }
 
+export const AutoSave: Story = {
+  args: {
+    defaultValue: '<p>Edit to trigger auto save after one second.</p>',
+    onAutoSave: (html) => {
+      console.log('onAutoSave', html)
+    },
+  },
+}
+
 export const Disabled: Story = {
   args: {
     defaultValue: '<p>Read only</p>',

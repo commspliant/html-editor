@@ -1454,6 +1454,98 @@ describe('Editor transformHtml', () => {
   })
 })
 
+describe('Editor onAutoSave', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  async function advanceAutoSaveTick() {
+    await act(async () => {
+      vi.advanceTimersByTime(1000)
+      await Promise.resolve()
+    })
+  }
+
+  it('does not fire when the prop is omitted', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const setIntervalSpy = vi.spyOn(window, 'setInterval')
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    expect(setIntervalSpy).not.toHaveBeenCalled()
+    setIntervalSpy.mockRestore()
+  })
+
+  it('does not fire when the document is unchanged', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const onAutoSave = vi.fn()
+    render(<Editor defaultValue="<p>Hello</p>" onAutoSave={onAutoSave} />)
+
+    await advanceAutoSaveTick()
+
+    expect(onAutoSave).not.toHaveBeenCalled()
+  })
+
+  it('fires with visual edits after one second', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const onAutoSave = vi.fn()
+    render(<Editor defaultValue="<p>Hello</p>" onAutoSave={onAutoSave} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    visual.innerHTML = '<p>Edited</p>'
+    fireEvent.input(visual)
+    await advanceAutoSaveTick()
+
+    expect(onAutoSave).toHaveBeenCalledTimes(1)
+    expect(onAutoSave).toHaveBeenCalledWith('<p>Edited</p>')
+  })
+
+  it('fires with HTML-mode edits after one second', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const onAutoSave = vi.fn()
+    render(<Editor defaultMode="html" defaultValue="<p>Hello</p>" onAutoSave={onAutoSave} />)
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'HTML editor' }), {
+      target: { value: '<p>Source</p>' },
+    })
+    await advanceAutoSaveTick()
+
+    expect(onAutoSave).toHaveBeenCalledTimes(1)
+    expect(onAutoSave).toHaveBeenCalledWith('<p>Source</p>')
+  })
+
+  it('coalesces two changes within one second into the latest HTML', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const onAutoSave = vi.fn()
+    render(<Editor defaultMode="html" defaultValue="<p>One</p>" onAutoSave={onAutoSave} />)
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'HTML editor' }), {
+      target: { value: '<p>Two</p>' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'HTML editor' }), {
+      target: { value: '<p>Three</p>' },
+    })
+    await advanceAutoSaveTick()
+
+    expect(onAutoSave).toHaveBeenCalledTimes(1)
+    expect(onAutoSave).toHaveBeenCalledWith('<p>Three</p>')
+  })
+
+  it('does not fire again when nothing else changed', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const onAutoSave = vi.fn()
+    render(<Editor defaultMode="html" defaultValue="<p>Hello</p>" onAutoSave={onAutoSave} />)
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'HTML editor' }), {
+      target: { value: '<p>Saved</p>' },
+    })
+    await advanceAutoSaveTick()
+    await advanceAutoSaveTick()
+
+    expect(onAutoSave).toHaveBeenCalledTimes(1)
+    expect(onAutoSave).toHaveBeenCalledWith('<p>Saved</p>')
+  })
+})
+
 describe('Editor custom paragraph styles', () => {
   it('hides Add new when custom paragraph style hooks are not set', async () => {
     const user = userEvent.setup()
