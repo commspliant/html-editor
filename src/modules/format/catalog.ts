@@ -7,7 +7,11 @@ import {
   BoldIcon,
   BulletListIcon,
   ClearFormattingIcon,
+  FontColorIcon,
+  FontFamilyIcon,
   FontPropertiesIcon,
+  FontSizeIcon,
+  HighlightColorIcon,
   ImageIcon,
   IndentIcon,
   ItalicIcon,
@@ -15,6 +19,7 @@ import {
   OutdentIcon,
   PagePropertiesIcon,
   ParagraphPropertiesIcon,
+  ParagraphStyleIcon,
   StrikethroughIcon,
   UnderlineIcon,
 } from '../../icons'
@@ -81,6 +86,7 @@ export const formatCatalog: ToolbarCatalog = {
     fontFamily: {
       id: 'fontFamily',
       widget: FontFamilySelect,
+      icon: FontFamilyIcon,
       labelKey: 'commandFontFamily',
       ariaKey: 'commandFontFamilyAria',
       enabled: 'isVisualMode',
@@ -88,6 +94,7 @@ export const formatCatalog: ToolbarCatalog = {
     paragraphStyle: {
       id: 'paragraphStyle',
       widget: ParagraphStyleSelect,
+      icon: ParagraphStyleIcon,
       labelKey: 'commandParagraphStyle',
       ariaKey: 'commandParagraphStyleAria',
       enabled: 'isVisualMode',
@@ -95,6 +102,7 @@ export const formatCatalog: ToolbarCatalog = {
     fontSize: {
       id: 'fontSize',
       widget: FontSizeSelect,
+      icon: FontSizeIcon,
       labelKey: 'commandFontSize',
       ariaKey: 'commandFontSizeAria',
       enabled: 'isVisualMode',
@@ -134,6 +142,7 @@ export const formatCatalog: ToolbarCatalog = {
     fontColor: {
       id: 'fontColor',
       widget: FontColorSelect,
+      icon: FontColorIcon,
       labelKey: 'commandFontColor',
       ariaKey: 'commandFontColorAria',
       enabled: 'isVisualMode',
@@ -141,6 +150,7 @@ export const formatCatalog: ToolbarCatalog = {
     highlightColor: {
       id: 'highlightColor',
       widget: HighlightColorSelect,
+      icon: HighlightColorIcon,
       labelKey: 'commandHighlightColor',
       ariaKey: 'commandHighlightColorAria',
       enabled: 'isVisualMode',

@@ -18,6 +18,7 @@ function stubCommands(overrides: Partial<EditorCommands> = {}): EditorCommands {
     setVisualMode: noop,
     setHtmlMode: noop,
     toggleFullscreen: noop,
+    openCustomizeToolbar: noop,
     toggleBold: noop,
     toggleItalic: noop,
     toggleUnderline: noop,

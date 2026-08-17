@@ -20,6 +20,7 @@ export const BUILTIN_TOOLBAR_ITEM_IDS = new Set([
   'bookmark',
   'visual',
   'html',
+  'customizeToolbar',
   'fullscreen',
   'bold',
   'italic',

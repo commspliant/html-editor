@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'menu' | 'border' | 'fonts' | 'image' | 'language'
+export type ExampleBlockId = 'chrome' | 'menu' | 'border' | 'fonts' | 'image' | 'toolbar' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -106,6 +106,27 @@ const gallery: CustomImagePicker = {
       `import { Editor } from 'commspliant-html-editor'
 
 <Editor customImagePicker={gallery} disableBuiltinImageInsert />`,
+    ],
+  },
+  toolbar: {
+    titleKey: 'appearanceToolbarAria',
+    bodyKey: 'toolbarExampleBody',
+    snippets: [
+      `import { Editor, type ToolbarCustomizationPersistence } from 'commspliant-html-editor'
+
+let stored = null
+
+const toolbarCustomization: ToolbarCustomizationPersistence = {
+  load: async () => stored,
+  save: async (settings) => {
+    stored = settings
+  },
+}
+
+<Editor toolbarCustomization={toolbarCustomization} />`,
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor />`,
     ],
   },
   language: {

@@ -15,6 +15,7 @@ const meta = {
       setVisualMode: () => undefined,
       setHtmlMode: () => undefined,
       toggleFullscreen: () => undefined,
+      openCustomizeToolbar: () => undefined,
       toggleBold: () => undefined,
       toggleItalic: () => undefined,
       toggleUnderline: () => undefined,

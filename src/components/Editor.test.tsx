@@ -5,7 +5,8 @@ import { describe, expect, it, vi, afterEach } from 'vitest'
 import { loadHtml, saveHtml } from '../modules/file/fileDialogs'
 import { printHtml } from '../modules/file/printHtml'
 import { TOOLTIP_HOVER_DELAY_MS } from '../toolbar/Tooltip'
-import type { CustomAction, CustomActionApi, CustomImageInsert, CustomParagraphStyle, EditorMode } from '../types'
+import type { CustomAction, CustomActionApi, CustomImageInsert, CustomParagraphStyle, EditorMode, ToolbarCustomization } from '../types'
+import { TOOLBAR_CUSTOMIZATION_STORAGE_KEY } from '../toolbar/toolbarCustomization'
 import { Editor } from './Editor'
 
 vi.mock('../modules/file/fileDialogs', () => ({
@@ -1346,6 +1347,103 @@ describe('Editor custom paragraph styles', () => {
     await user.click(screen.getByRole('button', { name: 'Format menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Paragraph styles submenu' }))
     expect(screen.getByRole('menuitem', { name: 'Quote' })).toBeInTheDocument()
+  })
+})
+
+describe('Editor toolbar customization', () => {
+  afterEach(() => {
+    localStorage.removeItem(TOOLBAR_CUSTOMIZATION_STORAGE_KEY)
+  })
+
+  async function openCustomizeDialog(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Toolbar submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Customize toolbar' }))
+  }
+
+  it('opens the customize dialog from the View menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor />)
+
+    await openCustomizeDialog(user)
+
+    expect(screen.getByRole('dialog', { name: 'Customize toolbar' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Save: Show on toolbar' })).toBeChecked()
+  })
+
+  it('hides a toolbar icon when its checkbox is unchecked', async () => {
+    const user = userEvent.setup()
+    render(<Editor />)
+
+    expect(screen.getByRole('button', { name: 'Print document' })).toBeInTheDocument()
+    await openCustomizeDialog(user)
+    await user.click(screen.getByRole('checkbox', { name: 'Print: Show on toolbar' }))
+
+    expect(screen.queryByRole('button', { name: 'Print document' })).not.toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem(TOOLBAR_CUSTOMIZATION_STORAGE_KEY) ?? '{}').hiddenItemIds).toEqual([
+      'print',
+    ])
+  })
+
+  it('restores the default toolbar on reset', async () => {
+    const user = userEvent.setup()
+    render(<Editor />)
+
+    await openCustomizeDialog(user)
+    await user.click(screen.getByRole('checkbox', { name: 'Print: Show on toolbar' }))
+    expect(screen.queryByRole('button', { name: 'Print document' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+
+    expect(screen.getByRole('button', { name: 'Print document' })).toBeInTheDocument()
+    expect(localStorage.getItem(TOOLBAR_CUSTOMIZATION_STORAGE_KEY)).toBeNull()
+  })
+
+  it('loads host settings and saves changes back', async () => {
+    const user = userEvent.setup()
+    let stored: ToolbarCustomization | null = {
+      groupOrder: [],
+      hiddenItemIds: ['print'],
+    }
+    const load = vi.fn(async () => stored)
+    const save = vi.fn(async (next: ToolbarCustomization | null) => {
+      stored = next
+    })
+
+    render(<Editor toolbarCustomization={{ load, save }} />)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Print document' })).not.toBeInTheDocument()
+    })
+    expect(load).toHaveBeenCalledTimes(1)
+
+    await openCustomizeDialog(user)
+    await user.click(screen.getByRole('checkbox', { name: 'Print: Show on toolbar' }))
+
+    await waitFor(() => expect(save).toHaveBeenCalled())
+    expect(save.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ hiddenItemIds: [] }))
+    expect(screen.getByRole('button', { name: 'Print document' })).toBeInTheDocument()
+    expect(localStorage.getItem(TOOLBAR_CUSTOMIZATION_STORAGE_KEY)).toBeNull()
+  })
+
+  it('includes custom toolbar actions in the dialog', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor
+        customActions={[
+          {
+            id: 'ai',
+            label: 'AI',
+            showIn: 'toolbar',
+            onAction: () => undefined,
+          },
+        ]}
+      />,
+    )
+
+    await openCustomizeDialog(user)
+
+    expect(screen.getByRole('checkbox', { name: 'AI: Show on toolbar' })).toBeChecked()
   })
 })
 

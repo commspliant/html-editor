@@ -14,4 +14,6 @@ export type {
   EditorMode,
   EditorProps,
   Locale,
+  ToolbarCustomization,
+  ToolbarCustomizationPersistence,
 } from './types'

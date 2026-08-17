@@ -1,3 +1,5 @@
+export { CustomizeToolbarDialog } from './CustomizeToolbarDialog'
+export type { CustomizeToolbarDialogProps } from './CustomizeToolbarDialog'
 export { defaultToolbarCatalog } from './defaultCatalog'
 export { defaultToolbarLayout } from './defaultLayout'
 export { EditorToolbar } from './EditorToolbar'

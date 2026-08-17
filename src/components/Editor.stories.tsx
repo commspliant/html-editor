@@ -168,6 +168,23 @@ export const HiddenChrome: Story = {
   },
 }
 
+let storyToolbarSettings: { groupOrder: string[]; hiddenItemIds: string[] } | null = {
+  groupOrder: [],
+  hiddenItemIds: ['print'],
+}
+
+export const HostToolbarCustomization: Story = {
+  args: {
+    defaultValue: '<p>View → Toolbar → Customize toolbar. Print starts hidden; host load/save is in memory.</p>',
+    toolbarCustomization: {
+      load: async () => storyToolbarSettings,
+      save: async (settings) => {
+        storyToolbarSettings = settings
+      },
+    },
+  },
+}
+
 export const Fullscreen: Story = {
   args: {
     defaultFullscreen: true,

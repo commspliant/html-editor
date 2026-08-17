@@ -156,6 +156,12 @@ import { RowPropertiesDialog } from '../modules/table/RowPropertiesDialog'
 import { ContextMenu, type ContextMenuKind } from '../modules/contextMenu'
 import { createDocumentHistory } from '../modules/history'
 import { defaultToolbarCatalog, defaultToolbarLayout, EditorToolbar } from '../toolbar'
+import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
+import {
+  applyToolbarCustomization,
+  readToolbarCustomizationFromStorage,
+  writeToolbarCustomizationToStorage,
+} from '../toolbar/toolbarCustomization'
 import type {
   CustomActionApi,
   CustomImageInsert,
@@ -164,6 +170,7 @@ import type {
   CustomParagraphStyleParagraph,
   EditorMode,
   EditorProps,
+  ToolbarCustomization,
 } from '../types'
 import { HtmlSurface } from './HtmlSurface'
 import { VisualSurface } from './VisualSurface'
@@ -199,6 +206,7 @@ export function Editor({
   onDeleteCustomParagraphStyle,
   customImagePicker,
   disableBuiltinImageInsert,
+  toolbarCustomization,
 }: EditorProps) {
   const [html, setHtml] = useControllableState({
     value,
@@ -294,6 +302,10 @@ export function Editor({
     open: false,
     tab: 'general',
   })
+  const [customizeToolbarOpen, setCustomizeToolbarOpen] = useState(false)
+  const [toolbarSettings, setToolbarSettings] = useState<ToolbarCustomization | null>(null)
+  const [toolbarSettingsLoading, setToolbarSettingsLoading] = useState(false)
+  const [toolbarSettingsBusy, setToolbarSettingsBusy] = useState(false)
   const [paragraphDialog, setParagraphDialog] = useState<{
     open: boolean
     tab: ParagraphDialogTab
@@ -416,9 +428,13 @@ export function Editor({
   onDeleteCustomParagraphStyleRef.current = onDeleteCustomParagraphStyle
   const customImagePickerRef = useRef(customImagePicker)
   customImagePickerRef.current = customImagePicker
+  const toolbarCustomizationRef = useRef(toolbarCustomization)
+  toolbarCustomizationRef.current = toolbarCustomization
   const disableBuiltinImageInsertRef = useRef(disableBuiltinImageInsert)
   disableBuiltinImageInsertRef.current = disableBuiltinImageInsert
   const customStyleLoadGenerationRef = useRef(0)
+  const toolbarLoadGenerationRef = useRef(0)
+  const toolbarSaveGenerationRef = useRef(0)
   const fontFaces = useMemo(() => mergeFontFaces(customFonts), [customFonts])
   const fontFacesRef = useRef(fontFaces)
   fontFacesRef.current = fontFaces
@@ -468,6 +484,55 @@ export function Editor({
     }
     void reloadCustomStyles()
   }, [loadCustomParagraphStyles, onSaveCustomParagraphStyle, reloadCustomStyles])
+
+  const persistToolbarSettings = useCallback(async (next: ToolbarCustomization | null) => {
+    setToolbarSettings(next)
+    const host = toolbarCustomizationRef.current
+    if (host?.load && host.save) {
+      const generation = ++toolbarSaveGenerationRef.current
+      setToolbarSettingsBusy(true)
+      try {
+        await host.save(next)
+      } catch {
+        /* keep local settings */
+      } finally {
+        if (generation === toolbarSaveGenerationRef.current) {
+          setToolbarSettingsBusy(false)
+        }
+      }
+      return
+    }
+    writeToolbarCustomizationToStorage(next)
+  }, [])
+
+  useEffect(() => {
+    const host = toolbarCustomization
+    if (!host?.load || !host.save) {
+      setToolbarSettings(readToolbarCustomizationFromStorage())
+      setToolbarSettingsLoading(false)
+      setToolbarSettingsBusy(false)
+      return
+    }
+    const generation = ++toolbarLoadGenerationRef.current
+    setToolbarSettingsLoading(true)
+    void (async () => {
+      try {
+        const next = await host.load()
+        if (generation !== toolbarLoadGenerationRef.current) return
+        setToolbarSettings(next)
+      } catch {
+        if (generation !== toolbarLoadGenerationRef.current) return
+        setToolbarSettings(null)
+      } finally {
+        if (generation === toolbarLoadGenerationRef.current) {
+          setToolbarSettingsLoading(false)
+        }
+      }
+    })()
+    return () => {
+      toolbarLoadGenerationRef.current += 1
+    }
+  }, [toolbarCustomization])
 
   const commitHtml = useCallback(
     (next: string) => {
@@ -752,13 +817,13 @@ export function Editor({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       if (event.defaultPrevented) return
-      if (fontDialog.open || paragraphDialog.open || pageDialog.open || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open) return
+      if (fontDialog.open || paragraphDialog.open || pageDialog.open || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen) return
       event.preventDefault()
       setFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [fullscreen, setFullscreen, fontDialog.open, paragraphDialog.open, pageDialog.open, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open])
+  }, [fullscreen, setFullscreen, fontDialog.open, paragraphDialog.open, pageDialog.open, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen])
 
   useEffect(() => {
     const onSelectionChange = () => {
@@ -1242,6 +1307,9 @@ export function Editor({
       setMode: handleModeChange,
       getFullscreen: () => fullscreenRef.current,
       setFullscreen,
+      openCustomizeToolbar: () => {
+        setCustomizeToolbarOpen(true)
+      },
       undo,
       redo,
       canUndo: () => history.canUndo(),
@@ -1693,9 +1761,16 @@ export function Editor({
     }
   }, [applyInsert, commandContext.getHtml, recordHtml])
 
-  const { catalog, layout } = useMemo(
+  const { catalog, layout: baseLayout } = useMemo(
     () => mergeCustomActions(customActions, defaultToolbarCatalog, defaultToolbarLayout),
     [customActions],
+  )
+  const layout = useMemo(
+    () => ({
+      ...baseLayout,
+      iconGroups: applyToolbarCustomization(baseLayout.iconGroups, toolbarSettings),
+    }),
+    [baseLayout, toolbarSettings],
   )
 
   const commands = useMemo(
@@ -1932,6 +2007,22 @@ export function Editor({
           )}
         </div>
         {fullscreen ? <ExitFullscreenButton onClick={() => setFullscreen(false)} /> : null}
+        <CustomizeToolbarDialog
+          open={customizeToolbarOpen}
+          catalog={catalog}
+          groups={baseLayout.iconGroups}
+          settings={toolbarSettings}
+          loading={toolbarSettingsLoading}
+          busy={toolbarSettingsBusy}
+          disabled={disabled}
+          onChange={(next) => {
+            void persistToolbarSettings(next)
+          }}
+          onReset={() => {
+            void persistToolbarSettings(null)
+          }}
+          onClose={() => setCustomizeToolbarOpen(false)}
+        />
         <FontPropertiesDialog
           open={fontDialog.open}
           tab={fontDialog.tab}

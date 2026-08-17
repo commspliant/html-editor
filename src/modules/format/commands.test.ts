@@ -12,6 +12,7 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     setMode: vi.fn(),
     getFullscreen: () => false,
     setFullscreen: vi.fn(),
+    openCustomizeToolbar: vi.fn(),
     getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),
     insertText: vi.fn(),
     insertHtml: vi.fn(),

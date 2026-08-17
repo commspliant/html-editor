@@ -140,6 +140,18 @@ export type CustomImagePicker = {
   onPick: (insertImage: (image: CustomImageInsert) => void) => void
 }
 
+export type ToolbarCustomization = {
+  /** Icon group ids in display order. Full screen is always pinned last. */
+  groupOrder: string[]
+  /** Toolbar item ids that should be hidden from the icon toolbar. */
+  hiddenItemIds: string[]
+}
+
+export type ToolbarCustomizationPersistence = {
+  load: () => ToolbarCustomization | null | Promise<ToolbarCustomization | null>
+  save: (settings: ToolbarCustomization | null) => void | Promise<void>
+}
+
 export type EditorProps = {
   value?: string
   defaultValue?: string
@@ -206,4 +218,9 @@ export type EditorProps = {
    * toolbar or Insert menu. Has no effect unless `customImagePicker` is set.
    */
   disableBuiltinImageInsert?: boolean
+  /**
+   * Host-owned toolbar layout persistence. When set (both `load` and `save`),
+   * the library does not use localStorage. Omit to persist in the browser.
+   */
+  toolbarCustomization?: ToolbarCustomizationPersistence
 }
