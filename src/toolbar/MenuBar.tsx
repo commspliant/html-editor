@@ -1,10 +1,13 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
+import { ChromePortal } from '../chrome/ChromeTheme'
 import { useT } from '../i18n/LocaleProvider'
 import { CloseIcon, CommspliantShieldIcon, MenuIcon } from '../icons'
 import type { EditorCommands, EditorQueries } from '../core/commandTypes'
@@ -23,6 +26,34 @@ import {
 import styles from './Toolbar.module.css'
 
 type MenuVariant = 'dropdown' | 'overlay'
+
+const MENU_CUSTOM_VARS = [
+  '--wysiwyg-menu-color',
+  '--wysiwyg-menu-background',
+  '--wysiwyg-menu-font-size',
+  '--wysiwyg-menu-font-family',
+] as const
+
+function readMenuCustomVars(from: HTMLElement): CSSProperties {
+  const style: Record<string, string> = {}
+  for (const name of MENU_CUSTOM_VARS) {
+    const computed = getComputedStyle(from).getPropertyValue(name).trim()
+    if (computed) {
+      style[name] = computed
+      continue
+    }
+    let node: HTMLElement | null = from
+    while (node) {
+      const inline = node.style.getPropertyValue(name).trim()
+      if (inline) {
+        style[name] = inline
+        break
+      }
+      node = node.parentElement
+    }
+  }
+  return style
+}
 
 type MenuBarProps = {
   menus: { id: string; items: ToolbarMenuEntry[] }[]
@@ -47,6 +78,8 @@ export function MenuBar({
 }: MenuBarProps) {
   const t = useT()
   const [overlayOpen, setOverlayOpen] = useState(false)
+  const [overlayMenuStyle, setOverlayMenuStyle] = useState<CSSProperties>({})
+  const menuBarRef = useRef<HTMLDivElement>(null)
   const hamburgerRef = useRef<HTMLButtonElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -55,6 +88,11 @@ export function MenuBar({
     setOverlayOpen(false)
     onOpenMenuIdChange(null)
   }, [onOpenMenuIdChange])
+
+  useLayoutEffect(() => {
+    if (!overlayOpen || !menuBarRef.current) return
+    setOverlayMenuStyle(readMenuCustomVars(menuBarRef.current))
+  }, [overlayOpen])
 
   useEffect(() => {
     if (!overlayOpen) return
@@ -129,7 +167,7 @@ export function MenuBar({
     })
 
   return (
-    <div className={styles.menuBar}>
+    <div className={styles.menuBar} ref={menuBarRef}>
       <Tooltip label={t('brandMarkAria')}>
         <span className={styles.brandMark} role="img" aria-label={t('brandMarkAria')}>
           <CommspliantShieldIcon className={styles.brandMarkIcon} />
@@ -168,30 +206,34 @@ export function MenuBar({
         {renderMenus('dropdown')}
       </div>
       {overlayOpen ? (
-        <div
-          ref={overlayRef}
-          className={styles.menuOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('menuOverlayAria')}
-        >
-          <div className={styles.menuOverlayHeader}>
-            <span className={styles.menuOverlayTitle}>{t('menuOverlayAria')}</span>
-            <button
-              ref={closeButtonRef}
-              type="button"
-              className={styles.iconButton}
-              aria-label={t('menuCloseAria')}
-              onClick={() => {
-                closeOverlay()
-                hamburgerRef.current?.focus()
-              }}
+        <ChromePortal>
+          <div className={styles.toolbar} data-menu-overlay-portal="" style={overlayMenuStyle}>
+            <div
+              ref={overlayRef}
+              className={styles.menuOverlay}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('menuOverlayAria')}
             >
-              <CloseIcon className={styles.icon} />
-            </button>
+              <div className={styles.menuOverlayHeader}>
+                <span className={styles.menuOverlayTitle}>{t('menuOverlayAria')}</span>
+                <button
+                  ref={closeButtonRef}
+                  type="button"
+                  className={styles.iconButton}
+                  aria-label={t('menuCloseAria')}
+                  onClick={() => {
+                    closeOverlay()
+                    hamburgerRef.current?.focus()
+                  }}
+                >
+                  <CloseIcon className={styles.icon} />
+                </button>
+              </div>
+              <div className={styles.menuOverlayBody}>{renderMenus('overlay')}</div>
+            </div>
           </div>
-          <div className={styles.menuOverlayBody}>{renderMenus('overlay')}</div>
-        </div>
+        </ChromePortal>
       ) : null}
     </div>
   )

@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'menu' | 'border' | 'fonts' | 'image' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -82,6 +82,25 @@ const allowedChrome: AllowedChrome = {
 />`,
     ],
   },
+  customActions: {
+    titleKey: 'customActionsAria',
+    bodyKey: 'customActionsExampleBody',
+    snippets: [
+      `import { Editor, type CustomAction } from 'commspliant-html-editor'
+
+const insertStamp: CustomAction = {
+  id: 'stamp',
+  label: 'Stamp',
+  showIn: 'both',
+  menu: { id: 'tools', label: 'Tools' },
+  onAction: (api) => {
+    api.insertHtml('<p>[stamp]</p>')
+  },
+}
+
+<Editor customActions={[insertStamp]} />`,
+    ],
+  },
   menu: {
     titleKey: 'appearanceMenuAria',
     bodyKey: 'menuExampleBody',
@@ -130,6 +149,27 @@ const customFonts: CustomFont[] = [
 ]
 
 <Editor customFonts={customFonts} />`,
+    ],
+  },
+  customParagraphStyles: {
+    titleKey: 'customParagraphStylesAria',
+    bodyKey: 'customParagraphStylesExampleBody',
+    snippets: [
+      `import { Editor, type CustomParagraphStyle } from 'commspliant-html-editor'
+
+let stored: CustomParagraphStyle[] = []
+
+<Editor
+  loadCustomParagraphStyles={async () => stored.map((style) => ({ ...style }))}
+  onSaveCustomParagraphStyle={async (style) => {
+    const index = stored.findIndex((item) => item.id === style.id)
+    if (index >= 0) stored[index] = style
+    else stored = [...stored, style]
+  }}
+  onDeleteCustomParagraphStyle={async (id) => {
+    stored = stored.filter((style) => style.id !== id)
+  }}
+/>`,
     ],
   },
   image: {

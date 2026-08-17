@@ -207,6 +207,8 @@ export function App() {
   const [disableHtmlFileDrop, setDisableHtmlFileDrop] = useState(false)
   const [autoSave, setAutoSave] = useState(false)
   const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
+  const [customActionsEnabled, setCustomActionsEnabled] = useState(true)
+  const [customParagraphStylesEnabled, setCustomParagraphStylesEnabled] = useState(true)
   const [menuAppearance, setMenuAppearance] = useState<MenuAppearance>('default')
   const [borderAppearance, setBorderAppearance] = useState<BorderAppearance>('default')
   const [googleFonts, setGoogleFonts] = useState(false)
@@ -559,6 +561,31 @@ export function App() {
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
+                    label={t.customActionsAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('customActions')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.customActionsAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!customActionsEnabled}
+                      onClick={() => setCustomActionsEnabled(false)}
+                    >
+                      {t.customActionsOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={customActionsEnabled}
+                      onClick={() => setCustomActionsEnabled(true)}
+                    >
+                      {t.customActionsOn}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
                     label={t.appearanceMenuAria}
                     examplesLabel={t.codeExamplesLink}
                     onOpenExamples={() => setExampleBlock('menu')}
@@ -637,6 +664,31 @@ export function App() {
                       onClick={() => setGoogleFonts(true)}
                     >
                       {t.fontsGoogle}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.customParagraphStylesAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('customParagraphStyles')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.customParagraphStylesAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!customParagraphStylesEnabled}
+                      onClick={() => setCustomParagraphStylesEnabled(false)}
+                    >
+                      {t.customParagraphStylesOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={customParagraphStylesEnabled}
+                      onClick={() => setCustomParagraphStylesEnabled(true)}
+                    >
+                      {t.customParagraphStylesOn}
                     </button>
                   </div>
                 </div>
@@ -869,7 +921,7 @@ export function App() {
               }
               defaultValue="<p>Hello <strong>world</strong></p>"
               placeholder={t.placeholder}
-              customActions={customActions}
+              customActions={customActionsEnabled ? customActions : undefined}
               customFonts={googleFonts ? playgroundGoogleFonts : undefined}
               customImagePicker={customImagePicker}
               disableBuiltinImageInsert={imagePickerMode === 'direct'}
@@ -878,9 +930,15 @@ export function App() {
               darkModePersistence={darkModePersistence}
               toolbarPosition={initialToolbarPosition}
               toolbarPositionPersistence={toolbarPositionPersistence}
-              loadCustomParagraphStyles={loadPlaygroundCustomStyles}
-              onSaveCustomParagraphStyle={savePlaygroundCustomStyle}
-              onDeleteCustomParagraphStyle={deletePlaygroundCustomStyle}
+              loadCustomParagraphStyles={
+                customParagraphStylesEnabled ? loadPlaygroundCustomStyles : undefined
+              }
+              onSaveCustomParagraphStyle={
+                customParagraphStylesEnabled ? savePlaygroundCustomStyle : undefined
+              }
+              onDeleteCustomParagraphStyle={
+                customParagraphStylesEnabled ? deletePlaygroundCustomStyle : undefined
+              }
             />
           </div>
         </section>

@@ -31,6 +31,9 @@ export type PlaygroundMessages = {
   autoSaveOff: string
   autoSaveLast: string
   autoSaveNever: string
+  customActionsAria: string
+  customActionsOn: string
+  customActionsOff: string
   appearanceMenuAria: string
   menuDefault: string
   menuExample: string
@@ -41,6 +44,9 @@ export type PlaygroundMessages = {
   appearanceFontsAria: string
   fontsDefault: string
   fontsGoogle: string
+  customParagraphStylesAria: string
+  customParagraphStylesOn: string
+  customParagraphStylesOff: string
   appearanceImageAria: string
   imagePickerDefault: string
   imagePickerCustom: string
@@ -84,9 +90,11 @@ export type PlaygroundMessages = {
   readOnlyExampleBody: string
   htmlFileDropExampleBody: string
   autoSaveExampleBody: string
+  customActionsExampleBody: string
   menuExampleBody: string
   borderExampleBody: string
   fontsExampleBody: string
+  customParagraphStylesExampleBody: string
   imageExampleBody: string
   toolbarExampleBody: string
   darkModeExampleBody: string
@@ -132,6 +140,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     autoSaveOff: 'Off',
     autoSaveLast: 'Last auto save',
     autoSaveNever: 'Never',
+    customActionsAria: 'Custom actions',
+    customActionsOn: 'On',
+    customActionsOff: 'Off',
     appearanceMenuAria: 'Menu appearance',
     menuDefault: 'Menu default',
     menuExample: 'Menu example',
@@ -142,6 +153,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     appearanceFontsAria: 'Document fonts',
     fontsDefault: 'Web-safe fonts',
     fontsGoogle: 'Google fonts',
+    customParagraphStylesAria: 'Custom paragraph styles',
+    customParagraphStylesOn: 'On',
+    customParagraphStylesOff: 'Off',
     appearanceImageAria: 'Image picker',
     imagePickerDefault: 'Built-in insert',
     imagePickerCustom: 'Custom picker tab',
@@ -190,12 +204,16 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Dropping an HTML file onto the document replaces it, the same as File → Open. Set disableHtmlFileDrop to ignore drops. File → Open is unchanged.',
     autoSaveExampleBody:
       'Pass onAutoSave to persist the document HTML. The editor polls every second and calls the callback only when the HTML changed. Omit the prop to disable. The callback is not awaited, so editing is not blocked.',
+    customActionsExampleBody:
+      'Pass a customActions array to add host buttons, menu items, or both. Labels and tooltips are your copy — the library does not translate them.',
     menuExampleBody:
       'Restyle the dropdown menu bar only — not the icon toolbar. Load any custom webfont on the host page before passing its family name.',
     borderExampleBody:
       'Set the outer editor box. Use “none” to remove width, radius and shadow. Object fields are independent; omitted fields keep the defaults. Ignored in full screen.',
     fontsExampleBody:
       'Pass customFonts to append host faces after the built-in web-safe list. Optional css is a stylesheet URL. When a webfont is used, its stylesheet link is prepended to exported HTML.',
+    customParagraphStylesExampleBody:
+      'Pass loadCustomParagraphStyles and onSaveCustomParagraphStyle to persist host-defined styles under Format → Paragraph styles and the toolbar style dropdown. Custom styles and Add new stay hidden unless both callbacks are set. The Delete button is shown only when onDeleteCustomParagraphStyle is set.',
     imageExampleBody:
       'Pass customImagePicker to add a third Insert image source. Set disableBuiltinImageInsert to skip the built-in dialog and open your picker immediately.',
     toolbarExampleBody:
@@ -244,6 +262,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     autoSaveOff: 'Desactivado',
     autoSaveLast: 'Último autoguardado',
     autoSaveNever: 'Nunca',
+    customActionsAria: 'Acciones personalizadas',
+    customActionsOn: 'Activado',
+    customActionsOff: 'Desactivado',
     appearanceMenuAria: 'Apariencia del menú',
     menuDefault: 'Menú predeterminado',
     menuExample: 'Menú de ejemplo',
@@ -254,6 +275,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     appearanceFontsAria: 'Fuentes del documento',
     fontsDefault: 'Fuentes web',
     fontsGoogle: 'Fuentes de Google',
+    customParagraphStylesAria: 'Estilos de párrafo personalizados',
+    customParagraphStylesOn: 'Activado',
+    customParagraphStylesOff: 'Desactivado',
     appearanceImageAria: 'Selector de imagen',
     imagePickerDefault: 'Inserción integrada',
     imagePickerCustom: 'Pestaña de selector',
@@ -302,12 +326,16 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Soltar un archivo HTML sobre el documento lo reemplaza, igual que Archivo → Abrir. Con disableHtmlFileDrop se ignoran las sueltas. Archivo → Abrir no cambia.',
     autoSaveExampleBody:
       'Pasa onAutoSave para persistir el HTML del documento. El editor consulta cada segundo y llama al callback solo si el HTML cambió. Omite la propiedad para desactivarlo. El callback no se espera, así que la edición no se bloquea.',
+    customActionsExampleBody:
+      'Pasa un array customActions para añadir botones y elementos de menú de la aplicación. Las etiquetas y descripciones emergentes son tu texto: la biblioteca no las traduce.',
     menuExampleBody:
       'Cambia solo el estilo de la barra de menús desplegables, no la barra de iconos. Carga cualquier fuente web en la página anfitriona antes de pasar su familia.',
     borderExampleBody:
       'Define el recuadro exterior del editor. Usa “none” para quitar grosor, radio y sombra. Los campos del objeto son independientes; los omitidos conservan los valores predeterminados. Se ignora en pantalla completa.',
     fontsExampleBody:
       'Pasa customFonts para añadir fuentes de la aplicación después de la lista web segura. El css opcional es una URL de hoja de estilos. Si se usa una webfont, su enlace se antepone al HTML exportado.',
+    customParagraphStylesExampleBody:
+      'Pasa loadCustomParagraphStyles y onSaveCustomParagraphStyle para persistir estilos definidos por el anfitrión en Formato → Estilos de párrafo y el desplegable de estilo. Los estilos personalizados y Añadir nuevo se ocultan salvo que ambos callbacks estén definidos. El botón Eliminar solo aparece si se pasa onDeleteCustomParagraphStyle.',
     imageExampleBody:
       'Pasa customImagePicker para añadir una tercera fuente de inserción de imágenes. Con disableBuiltinImageInsert se omite el diálogo integrado y se abre tu selector de inmediato.',
     toolbarExampleBody:
