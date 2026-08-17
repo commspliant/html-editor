@@ -76,6 +76,13 @@ export const ReadOnly: Story = {
   },
 }
 
+export const HtmlFileDropDisabled: Story = {
+  args: {
+    defaultValue: '<p>Drop is off</p>',
+    disableHtmlFileDrop: true,
+  },
+}
+
 export const IsolatedFromHost: Story = {
   decorators: [
     (Story) => (

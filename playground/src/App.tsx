@@ -143,6 +143,7 @@ export function App() {
   const [toolbarVisible, setToolbarVisible] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
   const [readOnly, setReadOnly] = useState(false)
+  const [disableHtmlFileDrop, setDisableHtmlFileDrop] = useState(false)
   const [menuAppearance, setMenuAppearance] = useState<MenuAppearance>('default')
   const [borderAppearance, setBorderAppearance] = useState<BorderAppearance>('default')
   const [googleFonts, setGoogleFonts] = useState(false)
@@ -370,6 +371,31 @@ export function App() {
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
+                    label={t.htmlFileDropAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('htmlFileDrop')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.htmlFileDropAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!disableHtmlFileDrop}
+                      onClick={() => setDisableHtmlFileDrop(false)}
+                    >
+                      {t.htmlFileDropAllowed}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={disableHtmlFileDrop}
+                      onClick={() => setDisableHtmlFileDrop(true)}
+                    >
+                      {t.htmlFileDropDisabled}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
                     label={t.appearanceMenuAria}
                     examplesLabel={t.codeExamplesLink}
                     onOpenExamples={() => setExampleBlock('menu')}
@@ -565,6 +591,7 @@ export function App() {
               fullscreen={fullscreen}
               onFullscreenChange={setFullscreen}
               readOnly={readOnly}
+              disableHtmlFileDrop={disableHtmlFileDrop}
               {...(menuAppearance === 'example' ? exampleMenu : {})}
               border={
                 borderAppearance === 'none'
