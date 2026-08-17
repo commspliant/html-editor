@@ -45,6 +45,14 @@ export type PlaygroundMessages = {
   darkModeInitialDark: string
   darkModePersistBrowser: string
   darkModePersistApi: string
+  appearanceToolbarPositionAria: string
+  appearanceToolbarPositionInitialAria: string
+  toolbarPositionTop: string
+  toolbarPositionLeft: string
+  toolbarPositionRight: string
+  toolbarPositionBottom: string
+  toolbarPositionPersistBrowser: string
+  toolbarPositionPersistApi: string
   imagePickerTab: string
   imagePickerDescription: string
   imagePickerButton: string
@@ -71,6 +79,7 @@ export type PlaygroundMessages = {
   imageExampleBody: string
   toolbarExampleBody: string
   darkModeExampleBody: string
+  toolbarPositionExampleBody: string
   languageExampleBody: string
   footerGithub: string
   footerGithubLink: string
@@ -126,6 +135,14 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     darkModeInitialDark: 'Start dark',
     darkModePersistBrowser: 'Browser storage',
     darkModePersistApi: 'API storage',
+    appearanceToolbarPositionAria: 'Toolbar position',
+    appearanceToolbarPositionInitialAria: 'Initial toolbar dock',
+    toolbarPositionTop: 'Top',
+    toolbarPositionLeft: 'Left',
+    toolbarPositionRight: 'Right',
+    toolbarPositionBottom: 'Bottom',
+    toolbarPositionPersistBrowser: 'Browser storage',
+    toolbarPositionPersistApi: 'API storage',
     imagePickerTab: 'Gallery',
     imagePickerDescription: 'Choose an image from the sample gallery.',
     imagePickerButton: 'Open gallery',
@@ -161,6 +178,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Omit toolbarCustomization to persist layout in localStorage. Pass load and save to store it on the host, including async APIs.',
     darkModeExampleBody:
       'darkMode is the initial chrome theme when nothing is persisted (default false, light). Omit darkModePersistence to persist View → Light mode / Dark mode in localStorage. Pass load and save to store it on the host. Visual and HTML surfaces stay unchanged.',
+    toolbarPositionExampleBody:
+      'toolbarPosition is the initial icon-toolbar dock when nothing is persisted (default top). The menu bar stays at the top. Omit toolbarPositionPersistence to persist View → Toolbar → Position in localStorage. Pass load and save to store it on the host. Top and bottom wrap; left and right stay a single column.',
     languageExampleBody:
       'Pass locale to switch library chrome between English and Spanish. Document content is not translated.',
     footerGithub: 'GitHub:',
@@ -215,6 +234,14 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     darkModeInitialDark: 'Iniciar oscuro',
     darkModePersistBrowser: 'Almacenamiento del navegador',
     darkModePersistApi: 'Almacenamiento API',
+    appearanceToolbarPositionAria: 'Posición de la barra',
+    appearanceToolbarPositionInitialAria: 'Acoplamiento inicial de la barra',
+    toolbarPositionTop: 'Arriba',
+    toolbarPositionLeft: 'Izquierda',
+    toolbarPositionRight: 'Derecha',
+    toolbarPositionBottom: 'Abajo',
+    toolbarPositionPersistBrowser: 'Almacenamiento del navegador',
+    toolbarPositionPersistApi: 'Almacenamiento API',
     imagePickerTab: 'Galería',
     imagePickerDescription: 'Elige una imagen de la galería de ejemplo.',
     imagePickerButton: 'Abrir galería',
@@ -250,6 +277,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Omite toolbarCustomization para guardar el diseño en localStorage. Pasa load y save para almacenarlo en el anfitrión, incluidas las APIs asíncronas.',
     darkModeExampleBody:
       'darkMode es el tema inicial del chrome cuando no hay nada persistido (false por defecto, claro). Omite darkModePersistence para guardar Vista → Modo claro / Modo oscuro en localStorage. Pasa load y save para almacenarlo en el anfitrión. Las superficies Visual y HTML no cambian.',
+    toolbarPositionExampleBody:
+      'toolbarPosition es el acoplamiento inicial de la barra de iconos cuando no hay nada persistido (arriba por defecto). La barra de menú se queda arriba. Omite toolbarPositionPersistence para guardar Vista → Barra de herramientas → Posición en localStorage. Pasa load y save para almacenarlo en el anfitrión. Arriba y abajo envuelven; izquierda y derecha se quedan en una sola columna.',
     languageExampleBody:
       'Pasa locale para cambiar el chrome de la biblioteca entre inglés y español. El contenido del documento no se traduce.',
     footerGithub: 'GitHub:',

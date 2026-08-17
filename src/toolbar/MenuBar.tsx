@@ -205,7 +205,7 @@ function isRenderableMenuEntry(entry: ToolbarMenuEntry, catalog: ToolbarCatalog)
     if (def.panel) return true
     return entry.items.some((child) => isRenderableMenuEntry(child, catalog))
   }
-  return Boolean(catalog.items[entry]?.command && catalog.items[entry]?.icon)
+  return Boolean(catalog.items[entry]?.command)
 }
 
 function shouldRenderMenuSeparator(
@@ -380,7 +380,7 @@ function MenuEntries({
           )
         }
         const item = catalog.items[entry]
-        if (!item || !item.command || !item.icon) return null
+        if (!item || !item.command) return null
         return (
           <MenuItemButton
             key={entry}
@@ -406,7 +406,7 @@ type MenuItemButtonProps = {
 
 function MenuItemButton({ item, commands, queries, disabled, onClose }: MenuItemButtonProps) {
   const t = useT()
-  if (!item.icon || !item.command) return null
+  if (!item.command) return null
   const Icon = item.icon
   const command = item.command
   const checked = item.active ? queries[item.active]() : undefined
@@ -424,7 +424,7 @@ function MenuItemButton({ item, commands, queries, disabled, onClose }: MenuItem
         runEditorCommand(commands, command)
       }}
     >
-      <Icon className={styles.icon} />
+      {Icon ? <Icon className={styles.icon} /> : null}
       {resolveChromeLabel(t, item)}
     </button>
   )

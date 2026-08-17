@@ -214,6 +214,28 @@ export const DarkMode: Story = {
   },
 }
 
+let storyToolbarPosition: 'top' | 'left' | 'right' | 'bottom' = 'left'
+
+export const ToolbarLeft: Story = {
+  args: {
+    defaultValue: '<p>View → Toolbar → Position docks the icon toolbar. Left and right stay one column.</p>',
+    toolbarPosition: 'left',
+    toolbarPositionPersistence: {
+      load: async () => storyToolbarPosition,
+      save: async (position) => {
+        storyToolbarPosition = position
+      },
+    },
+  },
+}
+
+export const ToolbarBottom: Story = {
+  args: {
+    defaultValue: '<p>The icon toolbar wraps under the document when docked at the bottom.</p>',
+    toolbarPosition: 'bottom',
+  },
+}
+
 export const Fullscreen: Story = {
   args: {
     defaultFullscreen: true,

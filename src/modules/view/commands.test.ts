@@ -12,6 +12,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     setFullscreen: vi.fn(),
     getDarkMode: () => false,
     setDarkMode: vi.fn(),
+    getToolbarPosition: () => 'top',
+    setToolbarPosition: vi.fn(),
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
     getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),
@@ -157,6 +159,20 @@ describe('createViewCommands', () => {
     commands.setLightMode()
     expect(setDarkMode).toHaveBeenCalledWith(false)
   })
+
+  it('sets toolbar dock position', () => {
+    const setToolbarPosition = vi.fn()
+    const commands = createViewCommands(context({ setToolbarPosition }))
+
+    commands.setToolbarPositionTop()
+    expect(setToolbarPosition).toHaveBeenCalledWith('top')
+    commands.setToolbarPositionLeft()
+    expect(setToolbarPosition).toHaveBeenCalledWith('left')
+    commands.setToolbarPositionRight()
+    expect(setToolbarPosition).toHaveBeenCalledWith('right')
+    commands.setToolbarPositionBottom()
+    expect(setToolbarPosition).toHaveBeenCalledWith('bottom')
+  })
 })
 
 describe('createViewQueries', () => {
@@ -177,5 +193,13 @@ describe('createViewQueries', () => {
     expect(createViewQueries(context({ getDarkMode: () => false })).isDarkMode()).toBe(false)
     expect(createViewQueries(context({ getDarkMode: () => true })).isLightMode()).toBe(false)
     expect(createViewQueries(context({ getDarkMode: () => true })).isDarkMode()).toBe(true)
+  })
+
+  it('reports toolbar dock position', () => {
+    expect(createViewQueries(context({ getToolbarPosition: () => 'top' })).isToolbarPositionTop()).toBe(true)
+    expect(createViewQueries(context({ getToolbarPosition: () => 'left' })).isToolbarPositionLeft()).toBe(true)
+    expect(createViewQueries(context({ getToolbarPosition: () => 'right' })).isToolbarPositionRight()).toBe(true)
+    expect(createViewQueries(context({ getToolbarPosition: () => 'bottom' })).isToolbarPositionBottom()).toBe(true)
+    expect(createViewQueries(context({ getToolbarPosition: () => 'left' })).isToolbarPositionTop()).toBe(false)
   })
 })

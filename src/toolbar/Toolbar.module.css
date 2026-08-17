@@ -6,9 +6,21 @@
   min-width: 0;
 }
 
-/* Duplicate class beats Editor `.root * { all: revert }` so container queries apply. */
+/* Duplicate class beats Editor `.root * { all: revert }` so flex and container queries apply. */
 .toolbar.toolbar {
+  display: flex;
+  flex-direction: column;
   container-type: inline-size;
+}
+
+.toolbar.toolbar[data-toolbar-position='left'],
+.toolbar.toolbar[data-toolbar-position='right'] {
+  /* inline-size containment reports 0 intrinsic width and collapses side docks. */
+  container-type: normal;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 100%;
 }
 
 .toolbar .menuBar {
@@ -171,6 +183,65 @@
 
 .toolbar .iconNavEnd .iconGroup {
   flex-wrap: nowrap;
+}
+
+.toolbar[data-toolbar-position='left'] .iconNav,
+.toolbar[data-toolbar-position='right'] .iconNav {
+  flex: 1 0 auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: 100%;
+}
+
+.toolbar[data-toolbar-position='left'] .iconNavMain,
+.toolbar[data-toolbar-position='right'] .iconNavMain {
+  flex: 1 0 auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.toolbar[data-toolbar-position='left'] .iconNavEnd,
+.toolbar[data-toolbar-position='right'] .iconNavEnd {
+  flex-direction: column;
+  margin-top: auto;
+  align-self: stretch;
+}
+
+.toolbar[data-toolbar-position='left'] .iconGroup,
+.toolbar[data-toolbar-position='right'] .iconGroup {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.toolbar[data-toolbar-position='left'] .iconGroup:not(:last-child)::after,
+.toolbar[data-toolbar-position='right'] .iconGroup:not(:last-child)::after {
+  width: auto;
+  height: 1px;
+  margin: 0.15rem 0.35rem;
+}
+
+.toolbar[data-toolbar-position='left'] .iconNavMain + .iconNavEnd::before,
+.toolbar[data-toolbar-position='right'] .iconNavMain + .iconNavEnd::before {
+  width: auto;
+  height: 1px;
+  align-self: stretch;
+  margin: 0.15rem 0.35rem;
+}
+
+.toolbar[data-toolbar-position='left'] .iconButton[aria-pressed='true'],
+.toolbar[data-toolbar-position='right'] .iconButton[aria-pressed='true'] {
+  box-shadow: inset -2px 0 0 var(--wysiwyg-chrome-text-strong, #111);
 }
 
 .toolbar .iconGroup:not(:last-child)::after {

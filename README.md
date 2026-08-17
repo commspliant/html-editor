@@ -63,6 +63,8 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `border` | `'none' \| EditorBorder` | `1px` `#d0d0d0`, radius `6px` | Outer editor box. `'none'` removes width, radius, and shadow. Object fields (`width`, `color`, `radius`, `shadow`) are independent; omitted fields keep the defaults |
 | `menuVisible` | `boolean` | `true` | Show the dropdown menu bar. Set `false` to hide it |
 | `toolbarVisible` | `boolean` | `true` | Show the icon toolbar. Set `false` to hide it |
+| `toolbarPosition` | `'top' \| 'left' \| 'right' \| 'bottom'` | `'top'` | Initial icon-toolbar dock when nothing is persisted. See [Toolbar position](#toolbar-position) |
+| `toolbarPositionPersistence` | `ToolbarPositionPersistence` | — | Host load/save for the icon-toolbar dock. Omit to persist in `localStorage`. See [Toolbar position](#toolbar-position) |
 | `customActions` | `CustomAction[]` | — | Host-defined menu items and/or toolbar buttons. See [Custom actions](#custom-actions) |
 | `customFonts` | `CustomFont[]` | — | Extra document font faces after the built-in web-safe list. See [Custom fonts](#custom-fonts) |
 | `transformHtml` | `(html: string) => string` | — | Optional map over document HTML before it is stored and passed to `onChange`. See [Transform HTML](#transform-html) |
@@ -73,7 +75,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `darkMode` | `boolean` | `false` | Initial chrome theme when nothing is persisted (`true` = dark). See [Dark mode](#dark-mode) |
 | `darkModePersistence` | `DarkModePersistence` | — | Host load/save for the chrome theme. Omit to persist in `localStorage`. See [Dark mode](#dark-mode) |
 
-`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Table, and Horizontal line), a File icon group (Save and Load), a Print icon group, an Edit icon group (Undo and Redo), an Insert icon group (Link, Bookmark, Image, Table, and Horizontal line), and the Visual | HTML | Preview controls, with Full screen pinned last on the icon toolbar, unless `menuVisible` or `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. The icon toolbar wraps onto multiple rows when it cannot fit on one line; Full screen stays last, pinned to the right of the first row. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Horizontal line inserts an `<hr>` at the caret.
+`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Table, and Horizontal line), a File icon group (Save and Load), a Print icon group, an Edit icon group (Undo and Redo), an Insert icon group (Link, Bookmark, Image, Table, and Horizontal line), and the Visual | HTML | Preview controls, with Full screen pinned last on the icon toolbar, unless `menuVisible` or `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Horizontal line inserts an `<hr>` at the caret.
 
 `menuColor`, `menuBackground`, `menuFontSize`, and `menuFontFamily` restyle the dropdown menu bar and panels only — not the icon toolbar. `border` is the outer editor box and is ignored in fullscreen. Custom menu fonts must already be available on the page.
 
@@ -81,7 +83,7 @@ The toolbar Font dropdown lists web-safe faces (Arial, Georgia, Times New Roman,
 
 ### Editor chrome
 
-Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host. The icon toolbar wraps onto multiple rows when it cannot fit on one line; Full screen stays last, pinned to the right of the first row.
+Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host. View → Toolbar → Position docks the icon toolbar; the menu bar stays at the top. Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column.
 
 ```tsx
 import { useState } from 'react'
@@ -105,6 +107,37 @@ export function App() {
 import { Editor } from 'commspliant-html-editor'
 
 <Editor menuVisible={false} toolbarVisible={false} />
+```
+
+### Toolbar position
+
+View → Toolbar → Position docks the **icon toolbar** (Top, Left, Right, or Bottom). The dropdown menu bar stays at the top.
+
+`toolbarPosition` is the initial dock when nothing is persisted. Default `'top'`. Choosing a position in the menu updates the live layout and persistence.
+
+Top and bottom wrap onto extra rows when the icons cannot fit on one line. Left and right stay a **single column**: extra icons grow the editor instead of wrapping into a second column.
+
+Omit `toolbarPositionPersistence` to persist that choice in the browser (`localStorage`). Pass `load` and `save` to store it on the host. Both may be async. `load` may return `null` to fall back to `toolbarPosition`.
+
+```tsx
+import { Editor, type ToolbarPositionPersistence } from 'commspliant-html-editor'
+
+let stored = null
+
+const toolbarPositionPersistence: ToolbarPositionPersistence = {
+  load: async () => stored,
+  save: async (position) => {
+    stored = position
+  },
+}
+
+<Editor toolbarPosition="top" toolbarPositionPersistence={toolbarPositionPersistence} />
+```
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor toolbarPosition="left" />
 ```
 
 ### Read only

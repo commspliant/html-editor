@@ -11,6 +11,10 @@ export function createViewCommands(
   | 'openDocumentPreview'
   | 'setLightMode'
   | 'setDarkMode'
+  | 'setToolbarPositionTop'
+  | 'setToolbarPositionLeft'
+  | 'setToolbarPositionRight'
+  | 'setToolbarPositionBottom'
 > {
   return {
     setVisualMode: () => {
@@ -34,17 +38,44 @@ export function createViewCommands(
     setDarkMode: () => {
       ctx.setDarkMode(true)
     },
+    setToolbarPositionTop: () => {
+      ctx.setToolbarPosition('top')
+    },
+    setToolbarPositionLeft: () => {
+      ctx.setToolbarPosition('left')
+    },
+    setToolbarPositionRight: () => {
+      ctx.setToolbarPosition('right')
+    },
+    setToolbarPositionBottom: () => {
+      ctx.setToolbarPosition('bottom')
+    },
   }
 }
 
 export function createViewQueries(
   ctx: CommandContext,
-): Pick<EditorQueries, 'isVisualMode' | 'isHtmlMode' | 'isFullscreen' | 'isLightMode' | 'isDarkMode'> {
+): Pick<
+  EditorQueries,
+  | 'isVisualMode'
+  | 'isHtmlMode'
+  | 'isFullscreen'
+  | 'isLightMode'
+  | 'isDarkMode'
+  | 'isToolbarPositionTop'
+  | 'isToolbarPositionLeft'
+  | 'isToolbarPositionRight'
+  | 'isToolbarPositionBottom'
+> {
   return {
     isVisualMode: () => ctx.getMode() === 'visual',
     isHtmlMode: () => ctx.getMode() === 'html',
     isFullscreen: () => ctx.getFullscreen(),
     isLightMode: () => !ctx.getDarkMode(),
     isDarkMode: () => ctx.getDarkMode(),
+    isToolbarPositionTop: () => ctx.getToolbarPosition() === 'top',
+    isToolbarPositionLeft: () => ctx.getToolbarPosition() === 'left',
+    isToolbarPositionRight: () => ctx.getToolbarPosition() === 'right',
+    isToolbarPositionBottom: () => ctx.getToolbarPosition() === 'bottom',
   }
 }

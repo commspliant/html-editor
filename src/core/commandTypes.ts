@@ -1,4 +1,4 @@
-import type { CustomActionSelection, CustomParagraphStyle, EditorMode } from '../types'
+import type { CustomActionSelection, CustomParagraphStyle, EditorMode, ToolbarPosition } from '../types'
 import type { LinkAttrs } from './link'
 import type { ImageAttrs } from './image'
 import type { ImagePropertiesApply } from './imageProperties'
@@ -60,6 +60,10 @@ export type CommandName =
   | 'openDocumentPreview'
   | 'setLightMode'
   | 'setDarkMode'
+  | 'setToolbarPositionTop'
+  | 'setToolbarPositionLeft'
+  | 'setToolbarPositionRight'
+  | 'setToolbarPositionBottom'
   | 'toggleBold'
   | 'toggleItalic'
   | 'toggleUnderline'
@@ -103,6 +107,10 @@ export type QueryName =
   | 'isFullscreen'
   | 'isLightMode'
   | 'isDarkMode'
+  | 'isToolbarPositionTop'
+  | 'isToolbarPositionLeft'
+  | 'isToolbarPositionRight'
+  | 'isToolbarPositionBottom'
   | 'canUndo'
   | 'canRedo'
   | 'isBold'
@@ -130,6 +138,8 @@ export type CommandContext = {
   setFullscreen: (fullscreen: boolean) => void
   getDarkMode: () => boolean
   setDarkMode: (dark: boolean) => void
+  getToolbarPosition: () => ToolbarPosition
+  setToolbarPosition: (position: ToolbarPosition) => void
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
   getSelection: () => CustomActionSelection
@@ -227,6 +237,10 @@ export type EditorCommands = {
   openDocumentPreview: () => void
   setLightMode: () => void
   setDarkMode: () => void
+  setToolbarPositionTop: () => void
+  setToolbarPositionLeft: () => void
+  setToolbarPositionRight: () => void
+  setToolbarPositionBottom: () => void
   toggleBold: () => void
   toggleItalic: () => void
   toggleUnderline: () => void
@@ -293,6 +307,10 @@ export type EditorQueries = {
   isFullscreen: () => boolean
   isLightMode: () => boolean
   isDarkMode: () => boolean
+  isToolbarPositionTop: () => boolean
+  isToolbarPositionLeft: () => boolean
+  isToolbarPositionRight: () => boolean
+  isToolbarPositionBottom: () => boolean
   canUndo: () => boolean
   canRedo: () => boolean
   isBold: () => boolean

@@ -10,13 +10,13 @@ edit toolbar settings (local storage, can reset) (DONE)
 add document preview button and menu (DONE)
 Readonly property, all button and menu disabled, and neather editor can be edited. (DONE)
 <hr> (DONE)
-Drag html file In (IN PROGRESS)
+Drag html file In (DONE)
+dark mode (DONE)
+config where to show the toolbar (In progress)
 
-dark mode
-custom menu hides as property
 auto save hooks, (check every second, if the document has changed, if yes call a callback, optional property), add to playgraoudn with visible auto saves
-config where to show  the toolbar
-
+custom menu hides as property
+Cannot mark text on mobile devices
 
 insert
  -video
@@ -29,8 +29,6 @@ read aloud by browser?
 zoom?
 ruler?
 Pages?
-
-
 customizable auto sanitize Javascipt, including javascript: in tags
 backround image
 backround image position, crop
@@ -51,4 +49,6 @@ possibiltity to detach main menu only and main menu and toolbar together
 Not only add table, but add responsive grid system, editable properties for mobile devices.
 Add table column with and row heiht property editor
 Add merge cells, colspan, rowspan (right click property, or optionally mark the cells, and press the merge cells, and unmerge cells)
-Cannot mark text on mobile devices
+
+Add header, footer and body possibilities for commspiant, so this will not be separate partial and tab. Better user experience. This means we can edit totally separate pages, with separate html, and may add @page properties as well for printing as properities panel
+
