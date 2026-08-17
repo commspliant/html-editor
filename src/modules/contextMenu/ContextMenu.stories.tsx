@@ -16,6 +16,7 @@ const commands: EditorCommands = {
   setHtmlMode: noop,
   toggleFullscreen: noop,
   openCustomizeToolbar: noop,
+  openDocumentPreview: noop,
   toggleBold: noop,
   toggleItalic: noop,
   toggleUnderline: noop,

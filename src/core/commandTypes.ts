@@ -57,6 +57,7 @@ export type CommandName =
   | 'setHtmlMode'
   | 'toggleFullscreen'
   | 'openCustomizeToolbar'
+  | 'openDocumentPreview'
   | 'toggleBold'
   | 'toggleItalic'
   | 'toggleUnderline'
@@ -123,6 +124,7 @@ export type CommandContext = {
   getFullscreen: () => boolean
   setFullscreen: (fullscreen: boolean) => void
   openCustomizeToolbar: () => void
+  openDocumentPreview: () => void
   getSelection: () => CustomActionSelection
   insertText: (text: string) => void
   insertHtml: (html: string, formattedText?: string) => void
@@ -214,6 +216,7 @@ export type EditorCommands = {
   setHtmlMode: () => void
   toggleFullscreen: () => void
   openCustomizeToolbar: () => void
+  openDocumentPreview: () => void
   toggleBold: () => void
   toggleItalic: () => void
   toggleUnderline: () => void

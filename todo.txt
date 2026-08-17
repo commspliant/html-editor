@@ -6,11 +6,11 @@ tables (DONE)
 -image (DONE)
 bookmark manager (DONE)
 right click custom menu (DONE)
-edit toolbar settings (local storage, can reset) (IN PROGRESS)
-
+edit toolbar settings (local storage, can reset) (DONE)
+add document preview button and menu (IN PROGRESS)
 
 Readonly property, all button and menu disabled, and neather editor can be edited.
-add document preview button and menu 
+ 
 <hr>
 Drag html file In
 dark mode

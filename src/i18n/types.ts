@@ -134,6 +134,8 @@ export type Messages = {
   commandNumberedListAria: string
   commandCustomizeToolbar: string
   commandCustomizeToolbarAria: string
+  commandPreview: string
+  commandPreviewAria: string
   styleParagraph: string
   styleHeading1: string
   styleHeading2: string
@@ -341,6 +343,9 @@ export type Messages = {
   customizeToolbarDragHandle: string
   customizeToolbarMoveUp: string
   customizeToolbarMoveDown: string
+  previewDialogTitle: string
+  previewDialogClose: string
+  previewDialogCloseAria: string
 }
 
 export type MessageKey = keyof Messages

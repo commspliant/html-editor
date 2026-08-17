@@ -21,6 +21,7 @@ const meta = {
       setHtmlMode: () => undefined,
       toggleFullscreen: () => undefined,
       openCustomizeToolbar: () => undefined,
+      openDocumentPreview: () => undefined,
       toggleBold: () => undefined,
       toggleItalic: () => undefined,
       toggleUnderline: () => undefined,

@@ -11,6 +11,7 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     getFullscreen: () => false,
     setFullscreen: vi.fn(),
     openCustomizeToolbar: vi.fn(),
+    openDocumentPreview: vi.fn(),
     getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),
     insertText: vi.fn(),
     insertHtml: vi.fn(),
@@ -132,6 +133,15 @@ describe('createViewCommands', () => {
     commands.openCustomizeToolbar()
 
     expect(openCustomizeToolbar).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens the document preview dialog', () => {
+    const openDocumentPreview = vi.fn()
+    const commands = createViewCommands(context({ openDocumentPreview }))
+
+    commands.openDocumentPreview()
+
+    expect(openDocumentPreview).toHaveBeenCalledTimes(1)
   })
 })
 

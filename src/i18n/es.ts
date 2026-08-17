@@ -134,6 +134,8 @@ export const es: Messages = {
   commandNumberedListAria: 'Lista numerada',
   commandCustomizeToolbar: 'Personalizar barra de herramientas',
   commandCustomizeToolbarAria: 'Personalizar barra de herramientas',
+  commandPreview: 'Vista previa',
+  commandPreviewAria: 'Vista previa del documento',
   styleParagraph: 'Párrafo',
   styleHeading1: 'Encabezado 1',
   styleHeading2: 'Encabezado 2',
@@ -343,4 +345,7 @@ export const es: Messages = {
   customizeToolbarDragHandle: 'Arrastrar para reordenar el grupo',
   customizeToolbarMoveUp: 'Mover el grupo hacia arriba',
   customizeToolbarMoveDown: 'Mover el grupo hacia abajo',
+  previewDialogTitle: 'Vista previa del documento',
+  previewDialogClose: 'Cerrar',
+  previewDialogCloseAria: 'Cerrar',
 }

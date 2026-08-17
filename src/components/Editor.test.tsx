@@ -376,6 +376,35 @@ describe('Editor fullscreen', () => {
   })
 })
 
+describe('Editor document preview', () => {
+  it('opens a scrollable preview of the current document from the toolbar', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Preview me</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'Preview document' }))
+
+    expect(screen.getByRole('dialog', { name: 'Document preview' })).toBeInTheDocument()
+    const frame = screen.getByTitle('Document preview') as HTMLIFrameElement
+    await waitFor(() => {
+      expect(frame.contentDocument?.body.innerHTML).toContain('Preview me')
+    })
+  })
+
+  it('opens the preview from the View menu and closes from Close', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Menu preview</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Preview' }))
+
+    expect(screen.getByRole('dialog', { name: 'Document preview' })).toBeInTheDocument()
+    const closeButtons = screen.getAllByRole('button', { name: 'Close' })
+    await user.click(closeButtons[closeButtons.length - 1])
+
+    expect(screen.queryByRole('dialog', { name: 'Document preview' })).not.toBeInTheDocument()
+  })
+})
+
 describe('Editor controlled harness', () => {
   it('lets a parent drive mode through onModeChange', async () => {
     const user = userEvent.setup()
