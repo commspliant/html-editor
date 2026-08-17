@@ -10,6 +10,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     setMode: vi.fn(),
     getFullscreen: () => false,
     setFullscreen: vi.fn(),
+    getDarkMode: () => false,
+    setDarkMode: vi.fn(),
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
     getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),

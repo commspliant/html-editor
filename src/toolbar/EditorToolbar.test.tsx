@@ -31,6 +31,8 @@ function renderToolbar(
     toggleFullscreen: vi.fn(),
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
+    setLightMode: vi.fn(),
+    setDarkMode: vi.fn(),
     toggleBold: vi.fn(),
     toggleItalic: vi.fn(),
     toggleUnderline: vi.fn(),
@@ -90,6 +92,8 @@ function renderToolbar(
     isVisualMode: () => true,
     isHtmlMode: () => false,
     isFullscreen: () => false,
+    isLightMode: () => true,
+    isDarkMode: () => false,
     canUndo: () => false,
     canRedo: () => false,
     isBold: () => false,
@@ -488,6 +492,14 @@ describe('EditorToolbar', () => {
     expect(commands.setHtmlMode).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitemradio', { name: 'Dark mode' }))
+    expect(commands.setDarkMode).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitemradio', { name: 'Light mode' }))
+    expect(commands.setLightMode).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Preview' }))
     expect(commands.openDocumentPreview).toHaveBeenCalledTimes(1)
 
@@ -509,6 +521,8 @@ describe('EditorToolbar', () => {
 
     expect(screen.getByRole('menuitemradio', { name: 'Visual' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByRole('menuitemradio', { name: 'HTML' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('menuitemradio', { name: 'Light mode' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('menuitemradio', { name: 'Dark mode' })).toHaveAttribute('aria-checked', 'false')
     expect(screen.getByRole('menuitemcheckbox', { name: 'Full screen' })).toHaveAttribute(
       'aria-checked',
       'false',
@@ -529,6 +543,10 @@ describe('EditorToolbar', () => {
     expect(screen.getByRole('button', { name: 'Preview document' }).querySelector('[data-icon="preview"]')).not.toBeNull()
     expect(screen.getByRole('menuitemcheckbox', { name: 'Full screen' }).querySelector('[data-icon="fullscreen"]')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Toggle full screen' }).querySelector('[data-icon="fullscreen"]')).not.toBeNull()
+    expect(screen.getByRole('menuitemradio', { name: 'Light mode' }).querySelector('[data-icon="light-mode"]')).not.toBeNull()
+    expect(screen.getByRole('menuitemradio', { name: 'Dark mode' }).querySelector('[data-icon="dark-mode"]')).not.toBeNull()
+    expect(screen.queryByRole('button', { name: 'Switch to light mode' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Switch to dark mode' })).not.toBeInTheDocument()
   })
 
   it('separates HTML and Full screen in the View menu', async () => {
@@ -538,8 +556,19 @@ describe('EditorToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'View menu' }))
 
     const entries = [...screen.getByRole('menu').children].map((el) => el.getAttribute('role'))
-    expect(entries).toEqual(['menuitemradio', 'menuitemradio', 'separator', null, 'separator', 'menuitem', 'menuitemcheckbox'])
-    expect(screen.getAllByRole('separator')).toHaveLength(2)
+    expect(entries).toEqual([
+      'menuitemradio',
+      'menuitemradio',
+      'separator',
+      null,
+      'separator',
+      'menuitemradio',
+      'menuitemradio',
+      'separator',
+      'menuitem',
+      'menuitemcheckbox',
+    ])
+    expect(screen.getAllByRole('separator')).toHaveLength(3)
   })
 
   it('separates print from save and open in the File menu', async () => {
@@ -1193,6 +1222,8 @@ describe('EditorToolbar', () => {
 
     expect(screen.getByRole('menuitemradio', { name: 'Visual' })).toBeInTheDocument()
     expect(screen.getByRole('menuitemradio', { name: 'HTML' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitemradio', { name: 'Modo claro' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitemradio', { name: 'Modo oscuro' })).toBeInTheDocument()
     expect(screen.getByRole('menuitemcheckbox', { name: 'Pantalla completa' })).toBeInTheDocument()
 
     await user.keyboard('{Escape}')

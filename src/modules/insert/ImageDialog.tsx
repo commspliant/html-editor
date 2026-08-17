@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import {
   IMAGE_ACCEPT,
   readImageFileAsDataUrl,
@@ -164,7 +164,9 @@ export function ImageDialog({
     )
   }
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -326,7 +328,7 @@ export function ImageDialog({
           ) : null}
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

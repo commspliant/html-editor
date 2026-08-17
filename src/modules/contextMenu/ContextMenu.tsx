@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { EditorCommands } from '../../core/commandTypes'
 import { runEditorCommand } from '../../core/commandTypes'
 import { useT } from '../../i18n/LocaleProvider'
@@ -188,7 +188,9 @@ export function ContextMenu({ open, x, y, kind, inTable = false, commands, onClo
     next?.focus()
   }
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div
       ref={menuRef}
       className={styles.menu}
@@ -224,7 +226,7 @@ export function ContextMenu({ open, x, y, kind, inTable = false, commands, onClo
           </button>
         )
       })}
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

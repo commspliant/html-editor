@@ -6,11 +6,11 @@
   min-width: 12rem;
   margin: 0;
   padding: 0.25rem 0;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--wysiwyg-chrome-divider, #d0d0d0);
   border-radius: 4px;
-  background: #fff;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
-  color: #444;
+  background: var(--wysiwyg-chrome-menu, #fff);
+  box-shadow: 0 4px 12px var(--wysiwyg-chrome-menu-shadow, rgb(0 0 0 / 8%));
+  color: var(--wysiwyg-chrome-text, #444);
   font: 0.875rem / 1.4 system-ui, sans-serif;
 }
 
@@ -34,12 +34,12 @@
 
 .item:hover,
 .item:focus-visible {
-  background: #f0f0f0;
-  color: #111;
+  background: var(--wysiwyg-chrome-hover, #f0f0f0);
+  color: var(--wysiwyg-chrome-text-strong, #111);
 }
 
 .item:focus-visible {
-  outline: 2px solid #8ab4ff;
+  outline: 2px solid var(--wysiwyg-chrome-focus, #8ab4ff);
   outline-offset: -2px;
 }
 
@@ -57,6 +57,6 @@
 .separator {
   height: 1px;
   margin: 0.25rem 0.5rem;
-  background: #d0d0d0;
+  background: var(--wysiwyg-chrome-divider, #d0d0d0);
   border: 0;
 }

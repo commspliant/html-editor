@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import {
   DEFAULT_IMAGE_SIZE_UNIT,
   IMAGE_SIZE_PRESETS,
@@ -128,7 +128,9 @@ export function ImageSizeField({
   const size = value?.value ?? null
 
   const list = open
-    ? createPortal(
+    ? (
+      <ChromePortal>
+
         <ul
           ref={listRef}
           className={styles.list}
@@ -154,9 +156,9 @@ export function ImageSizeField({
               </button>
             </li>
           ))}
-        </ul>,
-        document.body,
-      )
+        </ul>
+      </ChromePortal>
+    )
     : null
 
   return (

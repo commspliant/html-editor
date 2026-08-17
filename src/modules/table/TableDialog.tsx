@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import {
   TABLE_GRID_MAX,
   TABLE_SIZE_MAX,
@@ -120,7 +120,9 @@ export function TableDialog({ open, disabled, onApply, onClose }: TableDialogPro
     }
   }
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={dialogStyles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -238,7 +240,7 @@ export function TableDialog({ open, disabled, onApply, onClose }: TableDialogPro
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

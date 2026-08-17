@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../chrome/ChromeTheme'
 import { useT } from '../i18n/LocaleProvider'
 import type { ToolbarCustomization } from '../types'
 import { resolveChromeLabel } from './resolveChrome'
@@ -146,7 +146,9 @@ export function CustomizeToolbarDialog({
     setDropTargetId(null)
   }
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -276,7 +278,7 @@ export function CustomizeToolbarDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

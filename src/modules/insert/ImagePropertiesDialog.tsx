@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { ImageDialogTab, ImagePropertiesApply } from '../../core/commandTypes'
 import { CloseIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
@@ -74,7 +74,9 @@ export function ImagePropertiesDialog({
 
   if (!open) return null
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -119,7 +121,7 @@ export function ImagePropertiesDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

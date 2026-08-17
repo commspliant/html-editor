@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type {
   FontDialogTab,
   FontPropertiesApply,
@@ -115,7 +115,9 @@ export function PagePropertiesDialog({
 
   const title = t('pageDialogTitle')
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -189,7 +191,7 @@ export function PagePropertiesDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

@@ -18,9 +18,9 @@
   height: 1.5rem;
   margin: 0;
   padding: 0.15rem;
-  border: 1px solid #c8c8c8;
+  border: 1px solid var(--wysiwyg-chrome-dialog-border, #c8c8c8);
   border-radius: 3px;
-  background: #fff;
+  background: var(--wysiwyg-chrome-input, #fff);
   cursor: pointer;
 }
 
@@ -30,7 +30,7 @@
 }
 
 .button:focus-visible {
-  outline: 2px solid #8ab4ff;
+  outline: 2px solid var(--wysiwyg-chrome-focus, #8ab4ff);
   outline-offset: 1px;
 }
 
@@ -44,8 +44,8 @@
 .swatchEmpty {
   background: repeating-linear-gradient(
     -45deg,
-    #ddd,
-    #ddd 1px,
+    var(--wysiwyg-chrome-empty, #ddd),
+    var(--wysiwyg-chrome-empty, #ddd) 1px,
     transparent 1px,
     transparent 3px
   );

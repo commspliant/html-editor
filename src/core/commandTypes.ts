@@ -58,6 +58,8 @@ export type CommandName =
   | 'toggleFullscreen'
   | 'openCustomizeToolbar'
   | 'openDocumentPreview'
+  | 'setLightMode'
+  | 'setDarkMode'
   | 'toggleBold'
   | 'toggleItalic'
   | 'toggleUnderline'
@@ -99,6 +101,8 @@ export type QueryName =
   | 'isVisualMode'
   | 'isHtmlMode'
   | 'isFullscreen'
+  | 'isLightMode'
+  | 'isDarkMode'
   | 'canUndo'
   | 'canRedo'
   | 'isBold'
@@ -124,6 +128,8 @@ export type CommandContext = {
   setMode: (mode: EditorMode) => void
   getFullscreen: () => boolean
   setFullscreen: (fullscreen: boolean) => void
+  getDarkMode: () => boolean
+  setDarkMode: (dark: boolean) => void
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
   getSelection: () => CustomActionSelection
@@ -219,6 +225,8 @@ export type EditorCommands = {
   toggleFullscreen: () => void
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
+  setLightMode: () => void
+  setDarkMode: () => void
   toggleBold: () => void
   toggleItalic: () => void
   toggleUnderline: () => void
@@ -283,6 +291,8 @@ export type EditorQueries = {
   isVisualMode: () => boolean
   isHtmlMode: () => boolean
   isFullscreen: () => boolean
+  isLightMode: () => boolean
+  isDarkMode: () => boolean
   canUndo: () => boolean
   canRedo: () => boolean
   isBold: () => boolean

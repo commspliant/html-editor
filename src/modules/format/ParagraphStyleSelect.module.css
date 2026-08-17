@@ -24,17 +24,17 @@
   height: 100%;
   margin: 0;
   padding: 0 1.35rem 0 0.45rem;
-  border: 1px solid #c8c8c8;
+  border: 1px solid var(--wysiwyg-chrome-dialog-border, #c8c8c8);
   border-radius: 3px;
-  background: #fff;
-  color: #222;
+  background: var(--wysiwyg-chrome-input, #fff);
+  color: var(--wysiwyg-chrome-dialog-text, #222);
   font: 0.75rem / 1.2 system-ui, sans-serif;
   text-align: start;
   cursor: pointer;
 }
 
 .wrap .trigger:focus {
-  outline: 2px solid #8ab4ff;
+  outline: 2px solid var(--wysiwyg-chrome-focus, #8ab4ff);
   outline-offset: -1px;
 }
 
@@ -53,7 +53,7 @@
   justify-content: center;
   width: 1.15rem;
   pointer-events: none;
-  color: #444;
+  color: var(--wysiwyg-chrome-text, #444);
 }
 
 .wrap .chevron::after {
@@ -74,10 +74,10 @@
   margin: 0;
   padding: 0.15rem 0;
   overflow: auto;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--wysiwyg-chrome-divider, #d0d0d0);
   border-radius: 3px;
-  background: #fff;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+  background: var(--wysiwyg-chrome-input, #fff);
+  box-shadow: 0 4px 12px var(--wysiwyg-chrome-menu-shadow, rgb(0 0 0 / 12%));
   list-style: none;
 }
 
@@ -88,7 +88,7 @@
   padding: 0.25rem 0.75rem;
   border: 0;
   background: transparent;
-  color: #222;
+  color: var(--wysiwyg-chrome-dialog-text, #222);
   font-family: system-ui, sans-serif;
   line-height: 1.25;
   text-align: start;
@@ -97,7 +97,7 @@
 
 .option:hover,
 .option:focus-visible {
-  background: #e8f0fe;
+  background: var(--wysiwyg-chrome-selected, #e8f0fe);
   outline: none;
 }
 
@@ -114,7 +114,7 @@
   height: 1px;
   margin: 0.25rem 0.5rem;
   padding: 0;
-  background: #d0d0d0;
+  background: var(--wysiwyg-chrome-divider, #d0d0d0);
   border: 0;
   list-style: none;
 }

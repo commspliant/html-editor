@@ -15,8 +15,8 @@
   display: flex;
   align-items: stretch;
   width: 100%;
-  background: var(--wysiwyg-menu-background, #fff);
-  border-bottom: 1px solid #e5e5e5;
+  background: var(--wysiwyg-menu-background, var(--wysiwyg-chrome-menu, #fff));
+  border-bottom: 1px solid var(--wysiwyg-chrome-border, #e5e5e5);
 }
 
 .toolbar .menuBarDesktop {
@@ -87,14 +87,14 @@
   letter-spacing: inherit;
   text-transform: none;
   text-decoration: none;
-  color: #444;
+  color: var(--wysiwyg-chrome-text, #444);
   cursor: pointer;
   box-shadow: none;
 }
 
 .toolbar .menuButton,
 .toolbar .menuItem {
-  color: var(--wysiwyg-menu-color, #444);
+  color: var(--wysiwyg-menu-color, var(--wysiwyg-chrome-text, #444));
   font-size: var(--wysiwyg-menu-font-size, 0.875rem);
   font-family: var(--wysiwyg-menu-font-family, inherit);
 }
@@ -133,7 +133,7 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  background: var(--wysiwyg-toolbar-background, #f0f0f0);
+  background: var(--wysiwyg-toolbar-background, var(--wysiwyg-chrome-toolbar, #f0f0f0));
 }
 
 .toolbar .iconNavMain {
@@ -158,7 +158,7 @@
   width: 1px;
   align-self: stretch;
   margin: 0.35rem 0.15rem;
-  background: #d0d0d0;
+  background: var(--wysiwyg-chrome-divider, #d0d0d0);
 }
 
 .toolbar .iconGroup {
@@ -178,7 +178,7 @@
   width: 1px;
   align-self: stretch;
   margin: 0.35rem 0.15rem;
-  background: #d0d0d0;
+  background: var(--wysiwyg-chrome-divider, #d0d0d0);
 }
 
 .toolbar .iconButton {
@@ -200,9 +200,9 @@
 }
 
 .toolbar .iconButton[aria-pressed='true'] {
-  color: #111;
-  background: #ececec;
-  box-shadow: inset 0 -2px 0 #111;
+  color: var(--wysiwyg-chrome-text-strong, #111);
+  background: var(--wysiwyg-chrome-pressed, #ececec);
+  box-shadow: inset 0 -2px 0 var(--wysiwyg-chrome-text-strong, #111);
 }
 
 .toolbar .menu {
@@ -215,10 +215,10 @@
   min-width: 10rem;
   margin: 0;
   padding: 0.25rem 0;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--wysiwyg-chrome-divider, #d0d0d0);
   border-radius: 4px;
-  background: var(--wysiwyg-menu-background, #fff);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+  background: var(--wysiwyg-menu-background, var(--wysiwyg-chrome-menu, #fff));
+  box-shadow: 0 4px 12px var(--wysiwyg-chrome-menu-shadow, rgb(0 0 0 / 8%));
 }
 
 .toolbar .submenuWrap {
@@ -252,8 +252,8 @@
   z-index: 1100;
   display: flex;
   flex-direction: column;
-  background: var(--wysiwyg-menu-background, #fff);
-  color: var(--wysiwyg-menu-color, #444);
+  background: var(--wysiwyg-menu-background, var(--wysiwyg-chrome-menu, #fff));
+  color: var(--wysiwyg-menu-color, var(--wysiwyg-chrome-text, #444));
   font-size: var(--wysiwyg-menu-font-size, 0.875rem);
   font-family: var(--wysiwyg-menu-font-family, inherit);
 }
@@ -265,7 +265,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.15rem 0.15rem 0.15rem 0.9rem;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--wysiwyg-chrome-border, #e5e5e5);
 }
 
 .toolbar .menuOverlayTitle {
@@ -328,7 +328,7 @@
 .toolbar .menuSeparator {
   height: 1px;
   margin: 0.25rem 0.5rem;
-  background: #d0d0d0;
+  background: var(--wysiwyg-chrome-divider, #d0d0d0);
   border: 0;
 }
 
@@ -344,12 +344,12 @@
 
 .toolbar .menuItem:hover,
 .toolbar .menuItem:focus-visible {
-  background: #f0f0f0;
-  color: #111;
+  background: var(--wysiwyg-chrome-hover, #f0f0f0);
+  color: var(--wysiwyg-chrome-text-strong, #111);
 }
 
 .toolbar .menuItem[aria-checked='true'] {
-  color: #111;
+  color: var(--wysiwyg-chrome-text-strong, #111);
   font-weight: 600;
 }
 
@@ -357,14 +357,14 @@
 .toolbar .iconButton:hover,
 .toolbar .menuButton:focus-visible,
 .toolbar .iconButton:focus-visible {
-  color: #111;
-  background: #f0f0f0;
+  color: var(--wysiwyg-chrome-text-strong, #111);
+  background: var(--wysiwyg-chrome-hover, #f0f0f0);
 }
 
 .toolbar .menuButton:focus-visible,
 .toolbar .iconButton:focus-visible,
 .toolbar .menuItem:focus-visible {
-  outline: 2px solid #8ab4ff;
+  outline: 2px solid var(--wysiwyg-chrome-focus, #8ab4ff);
   outline-offset: -2px;
 }
 
@@ -403,8 +403,8 @@
   z-index: 1100;
   padding: 0.2rem 0.45rem;
   border-radius: 3px;
-  background: #222;
-  color: #fff;
+  background: var(--wysiwyg-chrome-tooltip-bg, #222);
+  color: var(--wysiwyg-chrome-tooltip-fg, #fff);
   font: 0.75rem / 1.2 system-ui, sans-serif;
   white-space: nowrap;
   pointer-events: none;

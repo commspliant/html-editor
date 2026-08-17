@@ -152,6 +152,11 @@ export type ToolbarCustomizationPersistence = {
   save: (settings: ToolbarCustomization | null) => void | Promise<void>
 }
 
+export type DarkModePersistence = {
+  load: () => boolean | null | Promise<boolean | null>
+  save: (darkMode: boolean) => void | Promise<void>
+}
+
 export type EditorProps = {
   value?: string
   defaultValue?: string
@@ -233,4 +238,14 @@ export type EditorProps = {
    * the library does not use localStorage. Omit to persist in the browser.
    */
   toolbarCustomization?: ToolbarCustomizationPersistence
+  /**
+   * Initial chrome theme when nothing is persisted. Default `false` (light).
+   * View → Light mode / Dark mode updates the live theme and persistence.
+   */
+  darkMode?: boolean
+  /**
+   * Host-owned dark-mode persistence. When set (both `load` and `save`),
+   * the library does not use localStorage. Omit to persist in the browser.
+   */
+  darkModePersistence?: DarkModePersistence
 }

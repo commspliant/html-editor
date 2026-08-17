@@ -7,6 +7,7 @@ import { printHtml } from '../modules/file/printHtml'
 import { TOOLTIP_HOVER_DELAY_MS } from '../toolbar/Tooltip'
 import type { CustomAction, CustomActionApi, CustomImageInsert, CustomParagraphStyle, EditorMode, ToolbarCustomization } from '../types'
 import { TOOLBAR_CUSTOMIZATION_STORAGE_KEY } from '../toolbar/toolbarCustomization'
+import { DARK_MODE_STORAGE_KEY } from '../modules/view/darkModePersistence'
 import { Editor } from './Editor'
 
 vi.mock('../modules/file/fileDialogs', () => ({
@@ -1588,6 +1589,80 @@ describe('Editor toolbar customization', () => {
     await openCustomizeDialog(user)
 
     expect(screen.getByRole('checkbox', { name: 'AI: Show on toolbar' })).toBeChecked()
+  })
+})
+
+describe('Editor dark mode', () => {
+  afterEach(() => {
+    localStorage.removeItem(DARK_MODE_STORAGE_KEY)
+  })
+
+  async function chooseViewTheme(user: ReturnType<typeof userEvent.setup>, name: 'Light mode' | 'Dark mode') {
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitemradio', { name }))
+  }
+
+  it('starts in light mode by default', () => {
+    const { container } = render(<Editor />)
+
+    expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'light')
+    expect(screen.getByRole('textbox', { name: 'Visual editor' })).not.toHaveAttribute('data-wysiwyg-theme')
+  })
+
+  it('uses darkMode as the initial theme when nothing is persisted', () => {
+    const { container } = render(<Editor darkMode />)
+
+    expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'dark')
+  })
+
+  it('applies a persisted localStorage theme and keeps document surfaces light', async () => {
+    localStorage.setItem(DARK_MODE_STORAGE_KEY, 'true')
+    const user = userEvent.setup()
+    const { container } = render(<Editor darkMode={false} defaultValue="<p>Hello</p>" />)
+
+    expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'dark')
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual).toHaveAttribute('contenteditable', 'true')
+    expect(visual).not.toHaveAttribute('data-wysiwyg-theme')
+    expect(visual.className).toMatch(/surface/)
+    expect(visual.className).toMatch(/visual/)
+
+    await chooseViewTheme(user, 'Light mode')
+
+    expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'light')
+    expect(JSON.parse(localStorage.getItem(DARK_MODE_STORAGE_KEY) ?? '')).toBe(false)
+  })
+
+  it('persists View menu dark mode in localStorage', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<Editor />)
+
+    await chooseViewTheme(user, 'Dark mode')
+
+    expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'dark')
+    expect(JSON.parse(localStorage.getItem(DARK_MODE_STORAGE_KEY) ?? '')).toBe(true)
+  })
+
+  it('loads host settings and saves changes back without localStorage', async () => {
+    const user = userEvent.setup()
+    let stored: boolean | null = true
+    const load = vi.fn(async () => stored)
+    const save = vi.fn(async (next: boolean) => {
+      stored = next
+    })
+
+    const { container } = render(<Editor darkModePersistence={{ load, save }} />)
+
+    await waitFor(() => {
+      expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'dark')
+    })
+    expect(load).toHaveBeenCalledTimes(1)
+
+    await chooseViewTheme(user, 'Light mode')
+
+    await waitFor(() => expect(save).toHaveBeenCalledWith(false))
+    expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'light')
+    expect(localStorage.getItem(DARK_MODE_STORAGE_KEY)).toBeNull()
   })
 })
 

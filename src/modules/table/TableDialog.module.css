@@ -9,24 +9,24 @@
   width: 1.15rem;
   height: 1.15rem;
   padding: 0;
-  border: 1px solid #c8c8c8;
-  background: #fff;
+  border: 1px solid var(--wysiwyg-chrome-dialog-border, #c8c8c8);
+  background: var(--wysiwyg-chrome-input, #fff);
   cursor: pointer;
 }
 
 .cell[data-active='true'] {
-  background: #cfe3ff;
-  border-color: #4a90d9;
+  background: var(--wysiwyg-chrome-selected, #cfe3ff);
+  border-color: var(--wysiwyg-chrome-primary, #4a90d9);
 }
 
 .cell:focus-visible {
-  outline: 2px solid #4a90d9;
+  outline: 2px solid var(--wysiwyg-chrome-primary, #4a90d9);
   outline-offset: 1px;
 }
 
 .sizeLabel {
   margin: 0.35rem 0 0;
-  color: #444;
+  color: var(--wysiwyg-chrome-text, #444);
   font-variant-numeric: tabular-nums;
 }
 
@@ -39,14 +39,14 @@
   width: 4.5rem;
   margin: 0;
   padding: 0.35rem 0.4rem;
-  border: 1px solid #c8c8c8;
+  border: 1px solid var(--wysiwyg-chrome-dialog-border, #c8c8c8);
   border-radius: 4px;
-  background: #fff;
+  background: var(--wysiwyg-chrome-input, #fff);
   color: inherit;
   font: inherit;
 }
 
 .numberInput:focus-visible {
-  outline: 2px solid #8ab4ff;
+  outline: 2px solid var(--wysiwyg-chrome-focus, #8ab4ff);
   outline-offset: 1px;
 }

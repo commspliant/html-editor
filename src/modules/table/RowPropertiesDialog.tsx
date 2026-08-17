@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { RowPropertiesApply } from '../../core/rowProperties'
 import { CloseIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
@@ -68,7 +68,9 @@ export function RowPropertiesDialog({
 
   if (!open) return null
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -106,7 +108,7 @@ export function RowPropertiesDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }
