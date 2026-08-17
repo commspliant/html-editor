@@ -77,6 +77,7 @@ export function IconNav({ groups, catalog, commands, queries, disabled }: IconNa
                 aria-label={resolveChromeAria(t, item)}
                 aria-pressed={pressed}
                 disabled={disabled || unavailable}
+                onPointerDown={(event) => event.preventDefault()}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => {
                   runEditorCommand(commands, command)

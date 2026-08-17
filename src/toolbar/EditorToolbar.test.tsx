@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TOOLTIP_HOVER_DELAY_MS } from './Tooltip'
@@ -788,6 +788,14 @@ describe('EditorToolbar', () => {
     expect(commands.toggleItalic).toHaveBeenCalledTimes(1)
     expect(commands.toggleUnderline).toHaveBeenCalledTimes(1)
     expect(commands.toggleStrikethrough).toHaveBeenCalledTimes(1)
+  })
+
+  it('prevents pointerdown default on icon buttons so the visual selection is kept', () => {
+    renderToolbar()
+    const bold = screen.getByRole('button', { name: 'Bold' })
+    const event = createEvent.pointerDown(bold)
+    fireEvent(bold, event)
+    expect(event.defaultPrevented).toBe(true)
   })
 
   it('does not list Font color in the Fonts submenu', async () => {

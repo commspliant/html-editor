@@ -86,6 +86,8 @@ The toolbar Font dropdown lists web-safe faces (Arial, Georgia, Times New Roman,
 
 Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host. View → Toolbar → Position docks the icon toolbar; the menu bar stays at the top. Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column.
 
+On the visual surface, a mouse right-click opens the editor context menu (cut, copy, font and paragraph properties, and table items when the caret is in a table). A touch or pen long-press does not; phones keep the native selection handles and OS Copy / Paste callout so text can be selected.
+
 ```tsx
 import { useState } from 'react'
 import { Editor } from 'commspliant-html-editor'

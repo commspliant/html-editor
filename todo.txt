@@ -13,10 +13,12 @@ Readonly property, all button and menu disabled, and neather editor can be edite
 Drag html file In (DONE)
 dark mode (DONE)
 config where to show the toolbar (DONE)
-auto save hooks, (check every second, if the document has changed, if yes call a callback, optional property), add to playgraoudn with visible auto saves (IN PROGRESS)
+auto save hooks, (check every second, if the document has changed, if yes call a callback, optional property), add to playgraoudn with visible auto saves (DONE)
+Cannot mark text on mobile devices (IN PROGRESS)
+
 
 custom menu hides as property
-Cannot mark text on mobile devices
+
 
 insert
  -video
