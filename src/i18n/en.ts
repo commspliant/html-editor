@@ -70,6 +70,8 @@ export const en: Messages = {
   commandImagePropertiesAria: 'Image properties',
   commandTable: 'Table',
   commandTableAria: 'Insert table',
+  commandHorizontalRule: 'Horizontal line',
+  commandHorizontalRuleAria: 'Insert horizontal line',
   commandTableProperties: 'Table properties…',
   commandTablePropertiesAria: 'Table properties',
   commandCellProperties: 'Cell properties…',

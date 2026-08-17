@@ -70,6 +70,7 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     applyImage: vi.fn(),
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
+    insertHorizontalRule: vi.fn(),
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),

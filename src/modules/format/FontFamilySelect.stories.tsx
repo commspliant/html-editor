@@ -54,6 +54,7 @@ const meta = {
       applyImage: () => undefined,
       openImageProperties: () => undefined,
       applyImageProperties: () => undefined,
+      insertHorizontalRule: () => undefined,
       openTableDialog: () => undefined,
       applyTable: () => undefined,
       openTableProperties: () => undefined,

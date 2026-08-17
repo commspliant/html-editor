@@ -16,7 +16,7 @@ export const ALIGNABLE_TAGS = new Set([
 ])
 
 const TABLE_STRUCTURE_TAGS = new Set(['table', 'thead', 'tbody', 'tr', 'td', 'th'])
-const SKIP_WRAP_TAGS = new Set([...TABLE_STRUCTURE_TAGS, 'ul', 'ol', 'li', 'pre'])
+const SKIP_WRAP_TAGS = new Set([...TABLE_STRUCTURE_TAGS, 'ul', 'ol', 'li', 'pre', 'hr'])
 
 export function tagName(el: Element): string {
   return el.tagName.toLowerCase()

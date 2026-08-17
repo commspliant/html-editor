@@ -1677,6 +1677,33 @@ describe('Editor context menu', () => {
     expect(visual.querySelectorAll('td')).toHaveLength(9)
   })
 
+  it('inserts a horizontal rule from the toolbar', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>HelloWorld</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    selectVisualText(visual, 5, 5)
+
+    await user.click(screen.getByRole('button', { name: 'Insert horizontal line' }))
+
+    const hr = visual.querySelector('hr')
+    expect(hr).not.toBeNull()
+    expect(visual.querySelectorAll('p')).toHaveLength(2)
+    expect(visual.querySelectorAll('p')[0]?.textContent).toBe('Hello')
+    expect(visual.querySelectorAll('p')[1]?.textContent).toBe('World')
+  })
+
+  it('inserts a horizontal rule from the Insert menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    selectVisualText(visual, 5, 5)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Horizontal line' }))
+
+    expect(visual.querySelector('hr')).not.toBeNull()
+  })
+
   it('enables table properties from the context menu inside a table', async () => {
     const user = userEvent.setup()
     render(

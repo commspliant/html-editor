@@ -65,6 +65,7 @@ function renderToolbar(
     applyImage: vi.fn(),
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
+    insertHorizontalRule: vi.fn(),
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -330,7 +331,7 @@ describe('EditorToolbar', () => {
     expect(screen.getByRole('button', { name: 'Redo' }).querySelector('[data-icon="redo"]')).not.toBeNull()
   })
 
-  it('runs link, bookmark, and image from Insert menu items', async () => {
+  it('runs link, bookmark, image, table, and horizontal rule from Insert menu items', async () => {
     const user = userEvent.setup()
     const { commands } = renderToolbar()
 
@@ -349,9 +350,13 @@ describe('EditorToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'Insert menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Table' }))
     expect(commands.openTableDialog).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Horizontal line' }))
+    expect(commands.insertHorizontalRule).toHaveBeenCalledTimes(1)
   })
 
-  it('runs link, bookmark, and image from matching toolbar icons', async () => {
+  it('runs link, bookmark, image, table, and horizontal rule from matching toolbar icons', async () => {
     const user = userEvent.setup()
     const { commands } = renderToolbar()
 
@@ -359,14 +364,16 @@ describe('EditorToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'Bookmark' }))
     await user.click(screen.getByRole('button', { name: 'Insert image' }))
     await user.click(screen.getByRole('button', { name: 'Insert table' }))
+    await user.click(screen.getByRole('button', { name: 'Insert horizontal line' }))
 
     expect(commands.openLinkDialog).toHaveBeenCalledTimes(1)
     expect(commands.openBookmarkDialog).toHaveBeenCalledTimes(1)
     expect(commands.openImageDialog).toHaveBeenCalledTimes(1)
     expect(commands.openTableDialog).toHaveBeenCalledTimes(1)
+    expect(commands.insertHorizontalRule).toHaveBeenCalledTimes(1)
   })
 
-  it('places link, bookmark, and image in an insert icon group', () => {
+  it('places link, bookmark, image, table, and horizontal rule in an insert icon group', () => {
     renderToolbar()
 
     const group = screen.getByRole('group', { name: 'Insert' })
@@ -374,6 +381,8 @@ describe('EditorToolbar', () => {
     expect(group.querySelector('[data-icon="link"]')).not.toBeNull()
     expect(group.querySelector('[data-icon="bookmark"]')).not.toBeNull()
     expect(group.querySelector('[data-icon="image"]')).not.toBeNull()
+    expect(group.querySelector('[data-icon="table"]')).not.toBeNull()
+    expect(group.querySelector('[data-icon="horizontalRule"]')).not.toBeNull()
   })
 
   it('runs view commands from matching toolbar icons', async () => {
@@ -1177,6 +1186,7 @@ describe('EditorToolbar', () => {
 
     expect(screen.getByRole('menuitemcheckbox', { name: 'Enlace' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Marcador' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Línea horizontal' })).toBeInTheDocument()
 
     await user.keyboard('{Escape}')
     await user.click(screen.getByRole('button', { name: 'Menú Vista' }))
