@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import {
   Editor,
+  type AllowedChrome,
   type CustomAction,
   type CustomActionApi,
   type CustomFont,
@@ -27,6 +28,36 @@ type ImagePickerMode = 'default' | 'custom' | 'direct'
 type ToolbarPersistMode = 'browser' | 'api'
 type DarkModePersistMode = 'browser' | 'api'
 type ToolbarPositionPersistMode = 'browser' | 'api'
+type AllowedChromePreset = 'all' | 'fileEdit' | 'format'
+
+const FILE_EDIT_CHROME: AllowedChrome = {
+  menus: ['file', 'edit'],
+  toolbar: ['save', 'open', 'print', 'undo', 'redo'],
+}
+
+const FORMAT_CHROME: AllowedChrome = {
+  menus: ['format'],
+  toolbar: [
+    'fontFamily',
+    'paragraphStyle',
+    'fontSize',
+    'fontColor',
+    'highlightColor',
+    'bold',
+    'italic',
+    'underline',
+    'strikethrough',
+    'clearFormatting',
+    'alignLeft',
+    'alignCenter',
+    'alignRight',
+    'alignJustify',
+    'indent',
+    'outdent',
+    'bulletList',
+    'numberedList',
+  ],
+}
 
 const PLAYGROUND_GALLERY: { src: string; altKey: 'imageGalleryMountain' | 'imageGalleryLake' }[] = [
   { src: 'https://picsum.photos/id/1015/400/300', altKey: 'imageGalleryMountain' },
@@ -170,6 +201,7 @@ export function App() {
   const [locale, setLocale] = useState<Locale>('en')
   const [menuVisible, setMenuVisible] = useState(true)
   const [toolbarVisible, setToolbarVisible] = useState(true)
+  const [allowedChromePreset, setAllowedChromePreset] = useState<AllowedChromePreset>('all')
   const [fullscreen, setFullscreen] = useState(false)
   const [readOnly, setReadOnly] = useState(false)
   const [disableHtmlFileDrop, setDisableHtmlFileDrop] = useState(false)
@@ -243,6 +275,12 @@ export function App() {
       setSidebarWidth(clampSidebarWidth(width * 0.5, width))
     }
   }
+
+  const allowedChrome = useMemo<AllowedChrome | undefined>(() => {
+    if (allowedChromePreset === 'fileEdit') return FILE_EDIT_CHROME
+    if (allowedChromePreset === 'format') return FORMAT_CHROME
+    return undefined
+  }, [allowedChromePreset])
 
   const customActions = useMemo<CustomAction[]>(
     () => [
@@ -405,6 +443,39 @@ export function App() {
                       onClick={() => setFullscreen((open) => !open)}
                     >
                       {t.fullscreen}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.allowedChromeAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('allowedChrome')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.allowedChromeAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={allowedChromePreset === 'all'}
+                      onClick={() => setAllowedChromePreset('all')}
+                    >
+                      {t.allowedChromeAll}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={allowedChromePreset === 'fileEdit'}
+                      onClick={() => setAllowedChromePreset('fileEdit')}
+                    >
+                      {t.allowedChromeFileEdit}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={allowedChromePreset === 'format'}
+                      onClick={() => setAllowedChromePreset('format')}
+                    >
+                      {t.allowedChromeFormat}
                     </button>
                   </div>
                 </div>
@@ -782,6 +853,7 @@ export function App() {
               locale={locale}
               menuVisible={menuVisible}
               toolbarVisible={toolbarVisible}
+              allowedChrome={allowedChrome}
               fullscreen={fullscreen}
               onFullscreenChange={setFullscreen}
               readOnly={readOnly}

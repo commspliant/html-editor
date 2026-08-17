@@ -1,5 +1,6 @@
 export { Editor } from './components/Editor'
 export type {
+  AllowedChrome,
   CustomAction,
   CustomActionApi,
   CustomActionSelection,

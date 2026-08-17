@@ -191,6 +191,16 @@ export const HiddenChrome: Story = {
   },
 }
 
+export const AllowedChrome: Story = {
+  args: {
+    defaultValue: '<p>Only File and Edit menus, with Save, Open, Print, Undo, and Redo on the toolbar.</p>',
+    allowedChrome: {
+      menus: ['file', 'edit'],
+      toolbar: ['save', 'open', 'print', 'undo', 'redo'],
+    },
+  },
+}
+
 let storyToolbarSettings: { groupOrder: string[]; hiddenItemIds: string[] } | null = {
   groupOrder: [],
   hiddenItemIds: ['print'],

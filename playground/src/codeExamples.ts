@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'menu' | 'border' | 'fonts' | 'image' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'menu' | 'border' | 'fonts' | 'image' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -31,6 +31,23 @@ export function App() {
       `import { Editor } from 'commspliant-html-editor'
 
 <Editor menuVisible={false} toolbarVisible={false} />`,
+    ],
+  },
+  allowedChrome: {
+    titleKey: 'allowedChromeAria',
+    bodyKey: 'allowedChromeExampleBody',
+    snippets: [
+      `import { Editor, type AllowedChrome } from 'commspliant-html-editor'
+
+const allowedChrome: AllowedChrome = {
+  menus: ['file', 'edit'],
+  toolbar: ['save', 'open', 'print', 'undo', 'redo'],
+}
+
+<Editor allowedChrome={allowedChrome} />`,
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor />`,
     ],
   },
   readOnly: {
