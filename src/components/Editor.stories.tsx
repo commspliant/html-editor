@@ -42,6 +42,18 @@ export const SeededHtml: Story = {
   },
 }
 
+const longDocumentHtml = Array.from(
+  { length: 24 },
+  (_, index) =>
+    `<p>Paragraph ${index + 1}. The document well scrolls; the menu and toolbar stay visible.</p>`,
+).join('')
+
+export const LongDocument: Story = {
+  args: {
+    defaultValue: longDocumentHtml,
+  },
+}
+
 export const TransformHtml: Story = {
   args: {
     defaultMode: 'html',

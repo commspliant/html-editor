@@ -23,15 +23,19 @@ export function App() {
   const [fullscreen, setFullscreen] = useState(false)
 
   return (
-    <Editor
-      defaultValue="<p>Hello <strong>world</strong></p>"
-      placeholder="Start writing…"
-      fullscreen={fullscreen}
-      onFullscreenChange={setFullscreen}
-    />
+    <div style={{ height: '100%' }}>
+      <Editor
+        defaultValue="<p>Hello <strong>world</strong></p>"
+        placeholder="Start writing…"
+        fullscreen={fullscreen}
+        onFullscreenChange={setFullscreen}
+      />
+    </div>
   )
 }
 ```
+
+Give the editor a parent with a definite height (`height: 100%` on a sized ancestor, or `flex: 1; min-height: 0` in a column flex). The in-page editor fills that height: the document well scrolls and the menu and toolbar stay visible. Full screen does not need a sized parent; it covers the viewport.
 
 ### Props
 
