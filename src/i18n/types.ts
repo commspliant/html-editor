@@ -70,6 +70,8 @@ export type Messages = {
   commandImagePropertiesAria: string
   commandTable: string
   commandTableAria: string
+  commandHorizontalRule: string
+  commandHorizontalRuleAria: string
   commandTableProperties: string
   commandTablePropertiesAria: string
   commandCellProperties: string

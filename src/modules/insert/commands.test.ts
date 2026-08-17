@@ -69,6 +69,7 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     applyImage: vi.fn(),
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
+    insertHorizontalRule: vi.fn(),
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -163,6 +164,15 @@ describe('createInsertCommands', () => {
     commands.applyImageProperties(draft)
 
     expect(applyImageProperties).toHaveBeenCalledWith(draft)
+  })
+
+  it('inserts a horizontal rule', () => {
+    const insertHorizontalRule = vi.fn()
+    const commands = createInsertCommands(context({ insertHorizontalRule }))
+
+    commands.insertHorizontalRule()
+
+    expect(insertHorizontalRule).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -102,6 +102,7 @@ import {
 } from '../core/clipboard'
 import { clearFormattingInDocument } from '../core/clearFormatting'
 import { closestImage, insertImageInDocument, selectImageInDocument } from '../core/image'
+import { insertHorizontalRuleInDocument } from '../core/horizontalRule'
 import { writeImagePixelSize } from '../core/imageResize'
 import {
   applyImagePropertiesInDocument,
@@ -1649,6 +1650,16 @@ export function Editor({
       },
       applyImageProperties: (draft: ImagePropertiesApply) => {
         applyImageProperties(draft)
+      },
+      insertHorizontalRule: () => {
+        if (modeRef.current !== 'visual') return
+        const root = visualRef.current
+        if (!root) return
+        restoreVisualRange(root)
+        if (!insertHorizontalRuleInDocument(root)) return
+        recordVisualHtml(root.innerHTML, false)
+        captureSelection()
+        refreshMarkState()
       },
       openTableDialog: () => {
         if (modeRef.current !== 'visual') return

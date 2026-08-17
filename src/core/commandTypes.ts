@@ -71,6 +71,7 @@ export type CommandName =
   | 'openBookmarkDialog'
   | 'openImageDialog'
   | 'openImageProperties'
+  | 'insertHorizontalRule'
   | 'openTableDialog'
   | 'openTableProperties'
   | 'openCellProperties'
@@ -180,6 +181,7 @@ export type CommandContext = {
   applyImage: (draft: ImageApply) => void
   openImageProperties: (tab?: ImageDialogTab) => void
   applyImageProperties: (draft: ImagePropertiesApply) => void
+  insertHorizontalRule: () => void
   openTableDialog: () => void
   applyTable: (draft: TableApply) => void
   openTableProperties: () => void
@@ -251,6 +253,7 @@ export type EditorCommands = {
   applyImage: (draft: ImageApply) => void
   openImageProperties: (tab?: ImageDialogTab) => void
   applyImageProperties: (draft: ImagePropertiesApply) => void
+  insertHorizontalRule: () => void
   openTableDialog: () => void
   applyTable: (draft: TableApply) => void
   openTableProperties: () => void

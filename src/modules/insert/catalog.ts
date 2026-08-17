@@ -1,5 +1,5 @@
 import type { ToolbarCatalog } from '../../toolbar/types'
-import { BookmarkIcon, ImageIcon, LinkIcon } from '../../icons'
+import { BookmarkIcon, HorizontalRuleIcon, ImageIcon, LinkIcon } from '../../icons'
 
 export const insertCatalog: ToolbarCatalog = {
   menus: {
@@ -40,6 +40,14 @@ export const insertCatalog: ToolbarCatalog = {
       icon: ImageIcon,
       labelKey: 'commandImage',
       ariaKey: 'commandImageAria',
+      enabled: 'isVisualMode',
+    },
+    horizontalRule: {
+      id: 'horizontalRule',
+      command: 'insertHorizontalRule',
+      icon: HorizontalRuleIcon,
+      labelKey: 'commandHorizontalRule',
+      ariaKey: 'commandHorizontalRuleAria',
       enabled: 'isVisualMode',
     },
   },

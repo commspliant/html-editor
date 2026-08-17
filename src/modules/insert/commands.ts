@@ -12,6 +12,7 @@ export function createInsertCommands(
   | 'applyImage'
   | 'openImageProperties'
   | 'applyImageProperties'
+  | 'insertHorizontalRule'
 > {
   return {
     openLinkDialog: (tab?: LinkDialogTab) => {
@@ -37,6 +38,9 @@ export function createInsertCommands(
     },
     applyImageProperties: (draft) => {
       ctx.applyImageProperties(draft)
+    },
+    insertHorizontalRule: () => {
+      ctx.insertHorizontalRule()
     },
   }
 }

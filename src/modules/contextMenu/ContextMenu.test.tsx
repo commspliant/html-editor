@@ -54,6 +54,7 @@ function stubCommands(overrides: Partial<EditorCommands> = {}): EditorCommands {
     applyImage: noop,
     openImageProperties: noop,
     applyImageProperties: noop,
+    insertHorizontalRule: noop,
     openTableDialog: noop,
     applyTable: noop,
     openTableProperties: noop,

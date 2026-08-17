@@ -18,6 +18,7 @@ export const BUILTIN_TOOLBAR_ITEM_IDS = new Set([
   'redo',
   'link',
   'bookmark',
+  'horizontalRule',
   'visual',
   'html',
   'customizeToolbar',
