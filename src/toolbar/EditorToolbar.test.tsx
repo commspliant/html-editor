@@ -1,6 +1,8 @@
 import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { CSSProperties } from 'react'
+import { ChromeThemeProvider } from '../chrome/ChromeTheme'
 import { TOOLTIP_HOVER_DELAY_MS } from './Tooltip'
 import { LocaleProvider } from '../i18n/LocaleProvider'
 import type { Locale } from '../i18n/types'
@@ -17,6 +19,7 @@ function renderToolbar(
   overrides: Omit<Partial<EditorToolbarProps>, 'commands' | 'queries'> & {
     commands?: Partial<EditorCommands>
     queries?: Partial<EditorQueries>
+    wrapperStyle?: CSSProperties
   } = {},
   locale: Locale = 'en',
 ) {
@@ -136,19 +139,24 @@ function renderToolbar(
     hasTextSelection: () => true,
     ...overrides.queries,
   }
+  const toolbar = (
+    <ChromeThemeProvider dark={false}>
+      <LocaleProvider locale={locale}>
+        <EditorToolbar
+          catalog={overrides.catalog ?? defaultToolbarCatalog}
+          layout={overrides.layout ?? defaultToolbarLayout}
+          commands={commands}
+          queries={queries}
+          disabled={overrides.disabled}
+          menuVisible={overrides.menuVisible}
+          toolbarVisible={overrides.toolbarVisible}
+          compact={overrides.compact}
+        />
+      </LocaleProvider>
+    </ChromeThemeProvider>
+  )
   const view = render(
-    <LocaleProvider locale={locale}>
-      <EditorToolbar
-        catalog={overrides.catalog ?? defaultToolbarCatalog}
-        layout={overrides.layout ?? defaultToolbarLayout}
-        commands={commands}
-        queries={queries}
-        disabled={overrides.disabled}
-        menuVisible={overrides.menuVisible}
-        toolbarVisible={overrides.toolbarVisible}
-        compact={overrides.compact}
-      />
-    </LocaleProvider>,
+    overrides.wrapperStyle ? <div style={overrides.wrapperStyle}>{toolbar}</div> : toolbar,
   )
   return { ...view, commands }
 }
@@ -1449,6 +1457,42 @@ describe('EditorToolbar', () => {
       expect(screen.getByRole('button', { name: 'File menu' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Edit menu' })).toBeInTheDocument()
       expect(document.body.style.overflow).toBe('hidden')
+    })
+
+    it('portals the overlay to document.body above the icon toolbar', async () => {
+      const user = userEvent.setup()
+      const { container } = renderToolbar({ compact: true })
+
+      await user.click(screen.getByRole('button', { name: 'Open menu' }))
+
+      const overlay = screen.getByRole('dialog', { name: 'Editor menu' })
+      const iconToolbar = screen.getByRole('toolbar', { name: 'Formatting toolbar' })
+      expect(container.contains(overlay)).toBe(false)
+      expect(document.body.contains(overlay)).toBe(true)
+      expect(iconToolbar.contains(overlay)).toBe(false)
+      expect(overlay.closest('[data-wysiwyg-theme]')).not.toBeNull()
+    })
+
+    it('copies host menu custom properties onto the portaled overlay', async () => {
+      const user = userEvent.setup()
+      renderToolbar({
+        compact: true,
+        wrapperStyle: {
+          '--wysiwyg-menu-color': '#1e3a5f',
+          '--wysiwyg-menu-background': '#fef3c7',
+          '--wysiwyg-menu-font-size': '1.125rem',
+          '--wysiwyg-menu-font-family': 'Georgia, serif',
+        } as CSSProperties,
+      })
+
+      await user.click(screen.getByRole('button', { name: 'Open menu' }))
+
+      const overlay = screen.getByRole('dialog', { name: 'Editor menu' })
+      const portal = overlay.parentElement
+      expect(portal?.style.getPropertyValue('--wysiwyg-menu-color')).toBe('#1e3a5f')
+      expect(portal?.style.getPropertyValue('--wysiwyg-menu-background')).toBe('#fef3c7')
+      expect(portal?.style.getPropertyValue('--wysiwyg-menu-font-size')).toBe('1.125rem')
+      expect(portal?.style.getPropertyValue('--wysiwyg-menu-font-family')).toBe('Georgia, serif')
     })
 
     it('runs File save from the overlay', async () => {

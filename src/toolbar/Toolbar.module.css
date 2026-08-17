@@ -23,6 +23,15 @@
   min-height: 100%;
 }
 
+.toolbar.toolbar[data-menu-overlay-portal] {
+  /* Portaled overlay must not inherit layout containment, or inset:0 covers this box. */
+  container-type: normal;
+  width: 0;
+  height: 0;
+  min-width: 0;
+  overflow: visible;
+}
+
 .toolbar .menuBar {
   display: flex;
   align-items: stretch;

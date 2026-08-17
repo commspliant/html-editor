@@ -69,6 +69,9 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `toolbarPositionPersistence` | `ToolbarPositionPersistence` | — | Host load/save for the icon-toolbar dock. Omit to persist in `localStorage`. See [Toolbar position](#toolbar-position) |
 | `customActions` | `CustomAction[]` | — | Host-defined menu items and/or toolbar buttons. See [Custom actions](#custom-actions) |
 | `customFonts` | `CustomFont[]` | — | Extra document font faces after the built-in web-safe list. See [Custom fonts](#custom-fonts) |
+| `loadCustomParagraphStyles` | `() => CustomParagraphStyle[] \| Promise<…>` | — | Load host-persisted custom paragraph styles. See [Custom paragraph styles](#custom-paragraph-styles) |
+| `onSaveCustomParagraphStyle` | `(style: CustomParagraphStyle) => void` | — | Persist a created or edited custom paragraph style. Custom styles stay hidden unless this and `loadCustomParagraphStyles` are both set |
+| `onDeleteCustomParagraphStyle` | `(id: string) => void` | — | Persist deletion of a custom paragraph style. The Delete button is shown only when this is set |
 | `transformHtml` | `(html: string) => string` | — | Optional map over document HTML before it is stored and passed to `onChange`. See [Transform HTML](#transform-html) |
 | `customImagePicker` | `CustomImagePicker` | — | Optional third Insert image source. See [Custom image picker](#custom-image-picker) |
 | `disableBuiltinImageInsert` | `boolean` | `false` | Skip the Insert image dialog and call `customImagePicker.onPick` from the toolbar or Insert menu |
@@ -77,7 +80,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `darkMode` | `boolean` | `false` | Initial chrome theme when nothing is persisted (`true` = dark). See [Dark mode](#dark-mode) |
 | `darkModePersistence` | `DarkModePersistence` | — | Host load/save for the chrome theme. Omit to persist in `localStorage`. See [Dark mode](#dark-mode) |
 
-`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Table, and Horizontal line), a File icon group (Save and Load), a Print icon group, an Edit icon group (Undo and Redo), an Insert icon group (Link, Bookmark, Image, Table, and Horizontal line), and the Visual | HTML | Preview controls, with Full screen pinned last on the icon toolbar, unless `menuVisible` or `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Horizontal line inserts an `<hr>` at the caret.
+`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Table, Horizontal line, and table row/column items), a View menu (Visual, HTML, Toolbar customize and position, Light/Dark mode, Preview, and Full screen), and a Format menu (paragraph styles, font, clear formatting, paragraph, page, image properties, and table/cell/row properties), unless `menuVisible` is `false`. The icon toolbar has File (Save and Load), Print, Edit (Undo and Redo), Insert (Link, Bookmark, Image, Table, and Horizontal line), Font, Align, Paragraph, and View (Visual | HTML | Preview) groups, with Full screen pinned last, unless `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Horizontal line inserts an `<hr>` at the caret.
 
 `menuColor`, `menuBackground`, `menuFontSize`, and `menuFontFamily` restyle the dropdown menu bar and panels only — not the icon toolbar. `border` is the outer editor box and is ignored in fullscreen. Custom menu fonts must already be available on the page.
 
@@ -117,7 +120,11 @@ import { Editor } from 'commspliant-html-editor'
 
 Pass `allowedChrome` to show only the menus and icon-toolbar buttons the host allows. Omit the prop (or either field) to leave that surface unfiltered.
 
-The two lists are independent: hiding the File menu does not hide Save on the toolbar, and hiding the Print button does not hide File → Print. Built-in menu ids are `file`, `edit`, `insert`, `view`, and `format` (plus any custom menu id from `customActions`). Toolbar ids are catalog item ids (`save`, `bold`, `print`, …). If `toolbar` is set, custom action ids must be listed to appear on the icon bar.
+The two lists are independent: hiding the File menu does not hide Save on the toolbar, and hiding the Print button does not hide File → Print. `menus` is top-level menu ids only: `file`, `edit`, `insert`, `view`, and `format` (plus any custom menu id from `customActions`). `toolbar` is icon-toolbar item ids:
+
+`save`, `open`, `print`, `undo`, `redo`, `link`, `bookmark`, `image`, `table`, `horizontalRule`, `fontFamily`, `paragraphStyle`, `fontSize`, `fontColor`, `highlightColor`, `bold`, `italic`, `underline`, `strikethrough`, `clearFormatting`, `alignLeft`, `alignCenter`, `alignRight`, `alignJustify`, `indent`, `outdent`, `bulletList`, `numberedList`, `visual`, `html`, `preview`, `fullscreen`
+
+If `toolbar` is set, custom action ids must be listed to appear on the icon bar.
 
 Empty arrays hide that surface (`menus: []` shows no dropdowns; `toolbar: []` shows no icons). The right-click context menu is not filtered. Commands stay registered; this only hides chrome.
 
@@ -261,6 +268,37 @@ Pass `customFonts` to append host faces after the built-in list. Duplicate `fami
 />
 ```
 
+### Custom paragraph styles
+
+Pass `loadCustomParagraphStyles` and `onSaveCustomParagraphStyle` to persist host-defined styles under Format → Paragraph styles and the toolbar style dropdown. Built-in Paragraph and H1–H6 stay available either way. Custom styles and **Add new** stay hidden unless both callbacks are set. `load` runs on mount and again after save or delete (it may be async; the UI shows a spinner). The Delete button is shown only when `onDeleteCustomParagraphStyle` is set. Hosts usually persist what the dialog saves rather than hand-authoring styles.
+
+```tsx
+import { Editor, type CustomParagraphStyle } from 'commspliant-html-editor'
+
+let stored: CustomParagraphStyle[] = []
+
+<Editor
+  loadCustomParagraphStyles={async () => stored.map((style) => ({ ...style }))}
+  onSaveCustomParagraphStyle={async (style) => {
+    const index = stored.findIndex((item) => item.id === style.id)
+    if (index >= 0) stored[index] = style
+    else stored = [...stored, style]
+  }}
+  onDeleteCustomParagraphStyle={async (id) => {
+    stored = stored.filter((style) => style.id !== id)
+  }}
+/>
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | Stable id. The dialog assigns one on create |
+| `name` | `string` | Visible name. Always trimmed and non-empty on save |
+| `font` | `CustomParagraphStyleFont` | Size, unit, marks, family, and colors captured by the dialog |
+| `paragraph` | `CustomParagraphStyleParagraph` | Optional paragraph box: align, list, margin, padding, line-height, border, radius, shadow, background, opacity |
+
+Omit all three props to keep only the built-in styles.
+
 ### Transform HTML
 
 Pass `transformHtml` to sanitize or enhance the document on every write: visual typing and paste, HTML-source edits, Load, dropped HTML files, inserts, and `setHtml`. The result is what the editor stores and what `onChange` receives. Inbound `value` / `defaultValue` are not transformed — sanitize those before passing if needed.
@@ -315,7 +353,7 @@ Each object:
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `id` | `string` | Stable id. Must not collide with built-ins (`save`, `open`, `undo`, `redo`, `visual`, `html`, `preview`, `fullscreen`) |
+| `id` | `string` | Stable id. Must not collide with catalog item ids (see [Allowed chrome](#allowed-chrome)) |
 | `label` | `string` | Menu item text; also the toolbar tooltip and accessible name when those are omitted |
 | `tooltip` | `string` | Toolbar tooltip. Defaults to `label` |
 | `icon` | React component | Optional 16×16 icon. Omit to use the built-in custom-action icon |
