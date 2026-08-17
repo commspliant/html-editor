@@ -111,6 +111,7 @@ export function ColorSelect({
         aria-haspopup="listbox"
         aria-controls={open ? listId : undefined}
         disabled={disabled}
+        onMouseDown={(event) => event.preventDefault()}
         onClick={() => setOpen((next) => !next)}
       >
         <Icon className={`${toolbarStyles.icon} ${styles.icon}`} />

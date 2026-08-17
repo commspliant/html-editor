@@ -328,7 +328,6 @@ export const es: Messages = {
   toolbarGroupAlign: 'Alinear',
   toolbarGroupParagraph: 'Párrafo',
   toolbarGroupView: 'Vista',
+  toolbarGroupFullscreen: 'Pantalla completa',
   toolbarGroupCustom: 'Personalizado',
-  toolbarScrollLeftAria: 'Desplazar la barra a la izquierda',
-  toolbarScrollRightAria: 'Desplazar la barra a la derecha',
 }

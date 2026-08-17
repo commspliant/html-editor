@@ -71,7 +71,7 @@ export type CustomAction = {
   menu?: { id?: string; label?: string }
   /**
    * Toolbar group. Ignored when `showIn` is `'menu'`.
-   * Built-in ids: `'file'` | `'edit'` | `'view'`. Other ids create a group at the end.
+   * Built-in ids: `'file'` | `'edit'` | `'view'`. Other ids create a group before Full screen.
    * Default: `'custom'`.
    */
   toolbarGroup?: string

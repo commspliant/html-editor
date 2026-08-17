@@ -14,6 +14,10 @@ export const viewCatalog: ToolbarCatalog = {
       id: 'view',
       labelKey: 'toolbarGroupView',
     },
+    fullscreen: {
+      id: 'fullscreen',
+      labelKey: 'toolbarGroupFullscreen',
+    },
   },
   items: {
     visual: {

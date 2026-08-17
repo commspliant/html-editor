@@ -88,6 +88,8 @@ import {
 import {
   describeSelection,
   insertAtSelection,
+  rangeToRestore,
+  shouldKeepStoredVisualSelection,
   snapshotSelection,
   type SelectionSnapshot,
 } from '../core/selection'
@@ -531,15 +533,7 @@ export function Editor({
       htmlEl: htmlAreaRef.current,
     })
     const prev = selectionRef.current
-    if (
-      prev &&
-      prev.mode === 'visual' &&
-      prev.visualRange &&
-      !prev.collapsed &&
-      (next.collapsed || !next.visualRange)
-    ) {
-      return
-    }
+    if (shouldKeepStoredVisualSelection(prev, next)) return
     selectionRef.current = next
   }, [])
 
@@ -820,29 +814,26 @@ export function Editor({
       htmlEl: htmlAreaRef.current,
     })
     const stored = selectionRef.current
-    const snapshot =
-      stored &&
-      stored.mode === 'visual' &&
-      stored.visualRange &&
-      !stored.collapsed &&
-      (live.collapsed || !live.visualRange)
-        ? stored
-        : live.visualRange
-          ? live
-          : stored ?? live
+    const snapshot = shouldKeepStoredVisualSelection(stored, live)
+      ? stored
+      : live.visualRange
+        ? live
+        : stored ?? live
 
     selectionRef.current = snapshot
     root.focus()
-    if (snapshot.visualRange) {
+    const range = rangeToRestore(root, snapshot)
+    if (range) {
       const sel = window.getSelection()
       try {
         sel?.removeAllRanges()
-        sel?.addRange(snapshot.visualRange)
+        sel?.addRange(range)
+        selectionRef.current = { ...snapshot, visualRange: range }
       } catch {
         /* range may have been detached */
       }
     }
-    return snapshot
+    return selectionRef.current ?? snapshot
   }, [])
 
   const applyFontSize = useCallback(
@@ -1722,7 +1713,12 @@ export function Editor({
   const handleVisualBeforeInput = useCallback(
     (event: InputEvent) => {
       if (disabled) return
-      if (event.inputType !== 'insertText' || !event.data) return
+      if (
+        (event.inputType !== 'insertText' && event.inputType !== 'insertReplacementText') ||
+        !event.data
+      ) {
+        return
+      }
       if (
         !hasPendingFontMarks(pendingMarksRef.current) &&
         !pendingFontSizeRef.current &&

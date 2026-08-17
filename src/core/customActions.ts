@@ -146,7 +146,13 @@ function ensureGroup(catalog: ToolbarCatalog, layout: ToolbarLayout, groupId: st
   }
 
   if (!layout.iconGroups.some((group) => group.id === groupId)) {
-    layout.iconGroups.push({ id: groupId, items: [] })
+    const group = { id: groupId, items: [] }
+    const fullscreenIndex = layout.iconGroups.findIndex((entry) => entry.items.includes('fullscreen'))
+    if (fullscreenIndex === -1) {
+      layout.iconGroups.push(group)
+    } else {
+      layout.iconGroups.splice(fullscreenIndex, 0, group)
+    }
   }
 }
 

@@ -35,7 +35,7 @@ describe('mergeCustomActions', () => {
       MENU_SEPARATOR,
       'ai',
     ])
-    expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'font', 'align', 'paragraph', 'view', 'custom'])
+    expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'font', 'align', 'paragraph', 'view', 'custom', 'fullscreen'])
     expect(layout.iconGroups.find((group) => group.id === 'custom')?.items).toEqual(['ai'])
     expect(catalog.items.ai?.label).toBe('AI')
     expect(catalog.items.ai?.command).toBe('custom:ai')
@@ -52,7 +52,7 @@ describe('mergeCustomActions', () => {
     expect(layout.menus.map((menu) => menu.id)).toEqual(['file', 'edit', 'insert', 'view', 'format', 'tools'])
     expect(layout.menus.find((menu) => menu.id === 'tools')?.items).toEqual(['ai'])
     expect(catalog.menus.tools?.label).toBe('Tools')
-    expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'font', 'align', 'paragraph', 'view'])
+    expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'font', 'align', 'paragraph', 'view', 'fullscreen'])
   })
 
   it('uses the default custom menu when menu placement is omitted', () => {

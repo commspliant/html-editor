@@ -6,6 +6,7 @@ import { LocaleProvider } from '../i18n/LocaleProvider'
 import type { Locale } from '../i18n/types'
 import type { EditorCommands, EditorQueries } from '../core/commandTypes'
 import { mergeFontFaces } from '../core/fontFamily'
+import { mergeCustomActions } from '../core/customActions'
 import { defaultToolbarCatalog } from './defaultCatalog'
 import { defaultToolbarLayout } from './defaultLayout'
 import { EditorToolbar } from './EditorToolbar'
@@ -135,28 +136,6 @@ function renderToolbar(
     </LocaleProvider>,
   )
   return { ...view, commands }
-}
-
-function setTrackOverflow(
-  track: HTMLElement,
-  metrics: { clientWidth: number; scrollWidth: number; scrollLeft: number },
-) {
-  Object.defineProperty(track, 'clientWidth', {
-    configurable: true,
-    get: () => metrics.clientWidth,
-  })
-  Object.defineProperty(track, 'scrollWidth', {
-    configurable: true,
-    get: () => metrics.scrollWidth,
-  })
-  Object.defineProperty(track, 'scrollLeft', {
-    configurable: true,
-    get: () => metrics.scrollLeft,
-    set: (value: number) => {
-      metrics.scrollLeft = value
-    },
-  })
-  fireEvent.scroll(track)
 }
 
 describe('EditorToolbar', () => {
@@ -408,14 +387,61 @@ describe('EditorToolbar', () => {
     expect(commands.toggleFullscreen).toHaveBeenCalledTimes(1)
   })
 
-  it('places visual, html, and fullscreen in a view icon group', () => {
+  it('places visual and html in a view icon group', () => {
     renderToolbar()
 
     const group = screen.getByRole('group', { name: 'View' })
     expect(group).toHaveAttribute('data-toolbar-group', 'view')
     expect(group.querySelector('[data-icon="visual"]')).not.toBeNull()
     expect(group.querySelector('[data-icon="html"]')).not.toBeNull()
+    expect(group.querySelector('[data-icon="fullscreen"]')).toBeNull()
+  })
+
+  it('places fullscreen in its own last icon group', () => {
+    renderToolbar()
+
+    const group = screen.getByRole('group', { name: 'Full screen' })
+    expect(group).toHaveAttribute('data-toolbar-group', 'fullscreen')
     expect(group.querySelector('[data-icon="fullscreen"]')).not.toBeNull()
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Formatting toolbar' })
+    const buttons = toolbar.querySelectorAll('button')
+    expect(buttons[buttons.length - 1]).toHaveAccessibleName('Toggle full screen')
+  })
+
+  it('pins fullscreen last even when the layout lists it in the view group', () => {
+    renderToolbar({
+      layout: {
+        ...defaultToolbarLayout,
+        iconGroups: [
+          { id: 'view', items: ['visual', 'html', 'fullscreen'] },
+          { id: 'file', items: ['save'] },
+        ],
+      },
+    })
+
+    expect(screen.getByRole('group', { name: 'View' }).querySelector('[data-icon="fullscreen"]')).toBeNull()
+    expect(screen.getByRole('group', { name: 'Full screen' }).querySelector('[data-icon="fullscreen"]')).not.toBeNull()
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Formatting toolbar' })
+    const buttons = toolbar.querySelectorAll('button')
+    expect(buttons[buttons.length - 1]).toHaveAccessibleName('Toggle full screen')
+  })
+
+  it('keeps fullscreen last when a custom toolbar action is present', () => {
+    const { catalog, layout } = mergeCustomActions(
+      [{ id: 'ai', label: 'AI', showIn: 'toolbar', onAction: vi.fn() }],
+      defaultToolbarCatalog,
+      defaultToolbarLayout,
+    )
+    renderToolbar({ catalog, layout })
+
+    expect(screen.getByRole('button', { name: 'AI' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Custom' })).toHaveAttribute('data-toolbar-group', 'custom')
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Formatting toolbar' })
+    const buttons = toolbar.querySelectorAll('button')
+    expect(buttons[buttons.length - 1]).toHaveAccessibleName('Toggle full screen')
   })
 
   it('marks the active view icon as pressed', () => {
@@ -1154,55 +1180,11 @@ describe('EditorToolbar', () => {
     expect(screen.getByRole('menuitemcheckbox', { name: 'Tachado' })).toBeInTheDocument()
   })
 
-  it('hides overflow controls when icons fit', () => {
-    const { container } = renderToolbar()
-    const track = container.querySelector('[data-icon-track]') as HTMLElement
-    setTrackOverflow(track, { clientWidth: 400, scrollWidth: 200, scrollLeft: 0 })
+  it('does not expose overflow wrap controls', () => {
+    renderToolbar()
 
-    expect(screen.queryByRole('button', { name: 'Scroll toolbar left' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Scroll toolbar right' })).not.toBeInTheDocument()
-  })
-
-  it('shows a next control when the icon row overflows to the right', () => {
-    const { container } = renderToolbar()
-    const track = container.querySelector('[data-icon-track]') as HTMLElement
-    setTrackOverflow(track, { clientWidth: 80, scrollWidth: 240, scrollLeft: 0 })
-
-    expect(screen.queryByRole('button', { name: 'Scroll toolbar left' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Scroll toolbar right' })).toBeInTheDocument()
-  })
-
-  it('shows a previous control at the end of the overflow', () => {
-    const { container } = renderToolbar()
-    const track = container.querySelector('[data-icon-track]') as HTMLElement
-    setTrackOverflow(track, { clientWidth: 80, scrollWidth: 240, scrollLeft: 160 })
-
-    expect(screen.getByRole('button', { name: 'Scroll toolbar left' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Scroll toolbar right' })).not.toBeInTheDocument()
-  })
-
-  it('scrolls the icon row from overflow controls', async () => {
-    const user = userEvent.setup()
-    const { container } = renderToolbar()
-    const track = container.querySelector('[data-icon-track]') as HTMLElement
-    const scrollBy = vi.fn()
-    track.scrollBy = scrollBy
-    setTrackOverflow(track, { clientWidth: 80, scrollWidth: 240, scrollLeft: 40 })
-
-    await user.click(screen.getByRole('button', { name: 'Scroll toolbar right' }))
-    expect(scrollBy).toHaveBeenCalledWith({ left: 40, behavior: 'smooth' })
-
-    await user.click(screen.getByRole('button', { name: 'Scroll toolbar left' }))
-    expect(scrollBy).toHaveBeenCalledWith({ left: -40, behavior: 'smooth' })
-  })
-
-  it('labels overflow controls in Spanish', () => {
-    const { container } = renderToolbar({}, 'es')
-    const track = container.querySelector('[data-icon-track]') as HTMLElement
-    setTrackOverflow(track, { clientWidth: 80, scrollWidth: 240, scrollLeft: 40 })
-
-    expect(screen.getByRole('button', { name: 'Desplazar la barra a la izquierda' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Desplazar la barra a la derecha' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Show more toolbar items' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Show fewer toolbar items' })).not.toBeInTheDocument()
   })
 
   it('closes the File menu on Escape', async () => {
@@ -1321,20 +1303,6 @@ describe('EditorToolbar', () => {
       })
 
       expect(tooltip('Guardar')).toBeInTheDocument()
-    })
-
-    it('shows a tooltip on overflow scroll controls', () => {
-      vi.useFakeTimers()
-      const { container } = renderToolbar()
-      const track = container.querySelector('[data-icon-track]') as HTMLElement
-      setTrackOverflow(track, { clientWidth: 80, scrollWidth: 240, scrollLeft: 0 })
-
-      fireEvent.mouseEnter(triggerFor('Scroll toolbar right'))
-      act(() => {
-        vi.advanceTimersByTime(TOOLTIP_HOVER_DELAY_MS)
-      })
-
-      expect(tooltip('Scroll toolbar right')).toBeInTheDocument()
     })
   })
 

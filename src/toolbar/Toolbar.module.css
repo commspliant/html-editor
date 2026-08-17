@@ -128,37 +128,49 @@
 .toolbar .iconNav {
   position: relative;
   display: flex;
-  align-items: stretch;
+  flex-wrap: nowrap;
+  align-items: flex-start;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   background: var(--wysiwyg-toolbar-background, #f0f0f0);
 }
 
-.toolbar .iconTrack {
+.toolbar .iconNavMain {
   display: flex;
   flex: 1 1 auto;
+  flex-wrap: wrap;
   align-items: stretch;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
+  max-width: 100%;
 }
 
-.toolbar .iconTrack::-webkit-scrollbar {
-  display: none;
-}
-
-.toolbar .iconTrackInner {
+.toolbar .iconNavEnd {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: nowrap;
   align-items: stretch;
+  align-self: flex-start;
+}
+
+.toolbar .iconNavMain + .iconNavEnd::before {
+  content: '';
+  width: 1px;
+  align-self: stretch;
+  margin: 0.35rem 0.15rem;
+  background: #d0d0d0;
 }
 
 .toolbar .iconGroup {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
   align-items: stretch;
+  max-width: 100%;
+}
+
+.toolbar .iconNavEnd .iconGroup {
+  flex-wrap: nowrap;
 }
 
 .toolbar .iconGroup:not(:last-child)::after {
@@ -177,37 +189,14 @@
   padding: 0.5rem 0.65rem;
 }
 
+.toolbar .iconNav .iconButton {
+  padding: calc(0.5rem + 2px) 0.65rem calc(0.5rem - 2px);
+}
+
 .tooltipTrigger {
   display: inline-flex;
   flex-shrink: 0;
   align-items: stretch;
-}
-
-.toolbar .scrollButton {
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  bottom: 0;
-  background: var(--wysiwyg-toolbar-background, #f0f0f0);
-}
-
-.toolbar .scrollButton .iconButton {
-  height: 100%;
-}
-
-.toolbar .scrollButton:hover,
-.toolbar .scrollButton:focus-within {
-  background: var(--wysiwyg-toolbar-background, #f0f0f0);
-}
-
-.toolbar .scrollButtonLeft {
-  left: 0;
-  box-shadow: 6px 0 8px -4px rgb(0 0 0 / 16%);
-}
-
-.toolbar .scrollButtonRight {
-  right: 0;
-  box-shadow: -6px 0 8px -4px rgb(0 0 0 / 16%);
 }
 
 .toolbar .iconButton[aria-pressed='true'] {

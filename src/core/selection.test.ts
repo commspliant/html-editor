@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { insertAtSelection, snapshotSelection } from './selection'
+import { insertAtSelection, shouldKeepStoredVisualSelection, snapshotSelection } from './selection'
 
 function mountVisual(html: string) {
   const el = document.createElement('div')
@@ -57,6 +57,38 @@ describe('snapshotSelection', () => {
       end: 11,
     })
     expect(snapshot.visualRange).not.toBeNull()
+  })
+})
+
+describe('shouldKeepStoredVisualSelection', () => {
+  it('keeps a collapsed caret when the live selection left the surface', () => {
+    const visualEl = mountVisual('<p>Hello</p>')
+    selectTextNode(visualEl, 2, 2)
+    const stored = snapshotSelection({ mode: 'visual', visualEl, htmlEl: null })
+    const live = snapshotSelection({ mode: 'visual', visualEl, htmlEl: null })
+    live.visualRange = null
+
+    expect(shouldKeepStoredVisualSelection(stored, live)).toBe(true)
+  })
+
+  it('does not keep a collapsed caret when the live selection is still in the surface', () => {
+    const visualEl = mountVisual('<p>Hello</p>')
+    selectTextNode(visualEl, 2, 2)
+    const stored = snapshotSelection({ mode: 'visual', visualEl, htmlEl: null })
+    selectTextNode(visualEl, 4, 4)
+    const live = snapshotSelection({ mode: 'visual', visualEl, htmlEl: null })
+
+    expect(shouldKeepStoredVisualSelection(stored, live)).toBe(false)
+  })
+
+  it('keeps a non-collapsed range when chrome collapses the live selection', () => {
+    const visualEl = mountVisual('<p>Hello</p>')
+    selectTextNode(visualEl, 0, 5)
+    const stored = snapshotSelection({ mode: 'visual', visualEl, htmlEl: null })
+    selectTextNode(visualEl, 5, 5)
+    const live = snapshotSelection({ mode: 'visual', visualEl, htmlEl: null })
+
+    expect(shouldKeepStoredVisualSelection(stored, live)).toBe(true)
   })
 })
 

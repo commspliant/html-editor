@@ -78,6 +78,7 @@ export const defaultToolbarLayout: ToolbarLayout = {
     { id: 'font', items: ['fontFamily', 'paragraphStyle', 'fontSize', 'fontColor', 'highlightColor', 'bold', 'italic', 'underline', 'strikethrough', 'clearFormatting'] },
     { id: 'align', items: ['alignLeft', 'alignCenter', 'alignRight', 'alignJustify'] },
     { id: 'paragraph', items: ['indent', 'outdent', 'bulletList', 'numberedList'] },
-    { id: 'view', items: ['visual', 'html', 'fullscreen'] },
+    { id: 'view', items: ['visual', 'html'] },
+    { id: 'fullscreen', items: ['fullscreen'] },
   ],
 }
