@@ -12,6 +12,8 @@ import {
   type ToolbarCustomization,
   type ToolbarCustomizationPersistence,
   type DarkModePersistence,
+  type ToolbarPosition,
+  type ToolbarPositionPersistence,
 } from 'commspliant-html-editor'
 import { playgroundMessages } from './i18n/messages'
 import { CodeExampleDialog } from './CodeExampleDialog'
@@ -24,6 +26,7 @@ type BorderAppearance = 'default' | 'none' | 'rounded'
 type ImagePickerMode = 'default' | 'custom' | 'direct'
 type ToolbarPersistMode = 'browser' | 'api'
 type DarkModePersistMode = 'browser' | 'api'
+type ToolbarPositionPersistMode = 'browser' | 'api'
 
 const PLAYGROUND_GALLERY: { src: string; altKey: 'imageGalleryMountain' | 'imageGalleryLake' }[] = [
   { src: 'https://picsum.photos/id/1015/400/300', altKey: 'imageGalleryMountain' },
@@ -86,6 +89,18 @@ async function loadPlaygroundDarkMode() {
 async function savePlaygroundDarkMode(darkMode: boolean) {
   await delay(PLAYGROUND_TOOLBAR_DELAY_MS)
   playgroundDarkMode = darkMode
+}
+
+let playgroundToolbarPosition: ToolbarPosition | null = null
+
+async function loadPlaygroundToolbarPosition() {
+  await delay(PLAYGROUND_TOOLBAR_DELAY_MS)
+  return playgroundToolbarPosition
+}
+
+async function savePlaygroundToolbarPosition(position: ToolbarPosition) {
+  await delay(PLAYGROUND_TOOLBAR_DELAY_MS)
+  playgroundToolbarPosition = position
 }
 
 const exampleMenu = {
@@ -165,6 +180,9 @@ export function App() {
   const [toolbarPersistMode, setToolbarPersistMode] = useState<ToolbarPersistMode>('browser')
   const [darkModePersistMode, setDarkModePersistMode] = useState<DarkModePersistMode>('browser')
   const [initialDarkMode, setInitialDarkMode] = useState(false)
+  const [toolbarPositionPersistMode, setToolbarPositionPersistMode] =
+    useState<ToolbarPositionPersistMode>('browser')
+  const [initialToolbarPosition, setInitialToolbarPosition] = useState<ToolbarPosition>('top')
   const [imageInsert, setImageInsert] = useState<((image: CustomImageInsert) => void) | null>(null)
   const [aiApi, setAiApi] = useState<CustomActionApi | null>(null)
   const [aiHtml, setAiHtml] = useState('')
@@ -268,6 +286,14 @@ export function App() {
       save: savePlaygroundDarkMode,
     }
   }, [darkModePersistMode])
+
+  const toolbarPositionPersistence = useMemo<ToolbarPositionPersistence | undefined>(() => {
+    if (toolbarPositionPersistMode !== 'api') return undefined
+    return {
+      load: loadPlaygroundToolbarPosition,
+      save: savePlaygroundToolbarPosition,
+    }
+  }, [toolbarPositionPersistMode])
 
   return (
     <main className="page">
@@ -604,6 +630,65 @@ export function App() {
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
+                    label={t.appearanceToolbarPositionAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('toolbarPosition')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.appearanceToolbarPositionInitialAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={initialToolbarPosition === 'top'}
+                      onClick={() => setInitialToolbarPosition('top')}
+                    >
+                      {t.toolbarPositionTop}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={initialToolbarPosition === 'left'}
+                      onClick={() => setInitialToolbarPosition('left')}
+                    >
+                      {t.toolbarPositionLeft}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={initialToolbarPosition === 'right'}
+                      onClick={() => setInitialToolbarPosition('right')}
+                    >
+                      {t.toolbarPositionRight}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={initialToolbarPosition === 'bottom'}
+                      onClick={() => setInitialToolbarPosition('bottom')}
+                    >
+                      {t.toolbarPositionBottom}
+                    </button>
+                  </div>
+                  <div className="locale-toggle" role="group" aria-label={t.appearanceToolbarPositionAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={toolbarPositionPersistMode === 'browser'}
+                      onClick={() => setToolbarPositionPersistMode('browser')}
+                    >
+                      {t.toolbarPositionPersistBrowser}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={toolbarPositionPersistMode === 'api'}
+                      onClick={() => setToolbarPositionPersistMode('api')}
+                    >
+                      {t.toolbarPositionPersistApi}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
                     label={t.languageAria}
                     examplesLabel={t.codeExamplesLink}
                     onOpenExamples={() => setExampleBlock('language')}
@@ -676,6 +761,8 @@ export function App() {
               toolbarCustomization={toolbarCustomization}
               darkMode={initialDarkMode}
               darkModePersistence={darkModePersistence}
+              toolbarPosition={initialToolbarPosition}
+              toolbarPositionPersistence={toolbarPositionPersistence}
               loadCustomParagraphStyles={loadPlaygroundCustomStyles}
               onSaveCustomParagraphStyle={savePlaygroundCustomStyle}
               onDeleteCustomParagraphStyle={deletePlaygroundCustomStyle}

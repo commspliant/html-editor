@@ -8,6 +8,7 @@ import { TOOLTIP_HOVER_DELAY_MS } from '../toolbar/Tooltip'
 import type { CustomAction, CustomActionApi, CustomImageInsert, CustomParagraphStyle, EditorMode, ToolbarCustomization } from '../types'
 import { TOOLBAR_CUSTOMIZATION_STORAGE_KEY } from '../toolbar/toolbarCustomization'
 import { DARK_MODE_STORAGE_KEY } from '../modules/view/darkModePersistence'
+import { TOOLBAR_POSITION_STORAGE_KEY } from '../modules/view/toolbarPositionPersistence'
 import { Editor } from './Editor'
 
 vi.mock('../modules/file/fileDialogs', () => ({
@@ -1663,6 +1664,82 @@ describe('Editor dark mode', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith(false))
     expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'light')
     expect(localStorage.getItem(DARK_MODE_STORAGE_KEY)).toBeNull()
+  })
+})
+
+describe('Editor toolbar position', () => {
+  afterEach(() => {
+    localStorage.removeItem(TOOLBAR_POSITION_STORAGE_KEY)
+  })
+
+  async function chooseToolbarPosition(
+    user: ReturnType<typeof userEvent.setup>,
+    name: 'Top' | 'Left' | 'Right' | 'Bottom',
+  ) {
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Toolbar submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Toolbar position submenu' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name }))
+  }
+
+  it('docks the icon toolbar at the top by default', () => {
+    const { container } = render(<Editor />)
+    const toolbar = screen.getByRole('toolbar', { name: 'Formatting toolbar' })
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+
+    expect(container.firstElementChild).toHaveAttribute('data-toolbar-position', 'top')
+    expect(container.querySelector('[data-icon-dock="top"]')).not.toBeNull()
+    expect(toolbar.compareDocumentPosition(visual) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('uses toolbarPosition as the initial dock when nothing is persisted', () => {
+    const { container } = render(<Editor toolbarPosition="left" />)
+
+    expect(container.firstElementChild).toHaveAttribute('data-toolbar-position', 'left')
+    expect(container.querySelector('[data-icon-dock="left"]')).not.toBeNull()
+  })
+
+  it('moves the icon toolbar below the document from View → Toolbar → Position', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<Editor />)
+
+    await chooseToolbarPosition(user, 'Bottom')
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Formatting toolbar' })
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(container.firstElementChild).toHaveAttribute('data-toolbar-position', 'bottom')
+    expect(container.querySelector('[data-icon-dock="bottom"]')).not.toBeNull()
+    expect(visual.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(JSON.parse(localStorage.getItem(TOOLBAR_POSITION_STORAGE_KEY) ?? '')).toBe('bottom')
+  })
+
+  it('applies a persisted localStorage dock', () => {
+    localStorage.setItem(TOOLBAR_POSITION_STORAGE_KEY, '"right"')
+    const { container } = render(<Editor toolbarPosition="top" />)
+
+    expect(container.firstElementChild).toHaveAttribute('data-toolbar-position', 'right')
+  })
+
+  it('loads host settings and saves changes back without localStorage', async () => {
+    const user = userEvent.setup()
+    let stored: 'top' | 'left' | 'right' | 'bottom' | null = 'left'
+    const load = vi.fn(async () => stored)
+    const save = vi.fn(async (next: typeof stored) => {
+      stored = next
+    })
+
+    const { container } = render(<Editor toolbarPositionPersistence={{ load, save }} />)
+
+    await waitFor(() => {
+      expect(container.firstElementChild).toHaveAttribute('data-toolbar-position', 'left')
+    })
+    expect(load).toHaveBeenCalledTimes(1)
+
+    await chooseToolbarPosition(user, 'Right')
+
+    await waitFor(() => expect(save).toHaveBeenCalledWith('right'))
+    expect(container.firstElementChild).toHaveAttribute('data-toolbar-position', 'right')
+    expect(localStorage.getItem(TOOLBAR_POSITION_STORAGE_KEY)).toBeNull()
   })
 })
 

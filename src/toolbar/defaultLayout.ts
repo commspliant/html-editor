@@ -24,7 +24,22 @@ export const defaultToolbarLayout: ToolbarLayout = {
         'visual',
         'html',
         MENU_SEPARATOR,
-        { submenu: 'toolbar', items: ['customizeToolbar'] },
+        {
+          submenu: 'toolbar',
+          items: [
+            'customizeToolbar',
+            MENU_SEPARATOR,
+            {
+              submenu: 'toolbarPosition',
+              items: [
+                'toolbarPositionTop',
+                'toolbarPositionLeft',
+                'toolbarPositionRight',
+                'toolbarPositionBottom',
+              ],
+            },
+          ],
+        },
         MENU_SEPARATOR,
         'lightMode',
         'darkMode',

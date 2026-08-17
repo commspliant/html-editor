@@ -24,6 +24,10 @@ const meta = {
       openDocumentPreview: () => undefined,
       setLightMode: () => undefined,
       setDarkMode: () => undefined,
+      setToolbarPositionTop: () => undefined,
+      setToolbarPositionLeft: () => undefined,
+      setToolbarPositionRight: () => undefined,
+      setToolbarPositionBottom: () => undefined,
       toggleBold: () => undefined,
       toggleItalic: () => undefined,
       toggleUnderline: () => undefined,
@@ -84,6 +88,10 @@ const meta = {
       isFullscreen: () => false,
       isLightMode: () => true,
       isDarkMode: () => false,
+      isToolbarPositionTop: () => true,
+      isToolbarPositionLeft: () => false,
+      isToolbarPositionRight: () => false,
+      isToolbarPositionBottom: () => false,
       canUndo: () => false,
       canRedo: () => false,
       isBold: () => false,
@@ -180,6 +188,10 @@ export const HtmlMode: Story = {
       isFullscreen: () => false,
       isLightMode: () => true,
       isDarkMode: () => false,
+      isToolbarPositionTop: () => true,
+      isToolbarPositionLeft: () => false,
+      isToolbarPositionRight: () => false,
+      isToolbarPositionBottom: () => false,
       canUndo: () => false,
       canRedo: () => false,
       isBold: () => false,
@@ -234,6 +246,10 @@ export const HistoryAvailable: Story = {
       isFullscreen: () => false,
       isLightMode: () => true,
       isDarkMode: () => false,
+      isToolbarPositionTop: () => true,
+      isToolbarPositionLeft: () => false,
+      isToolbarPositionRight: () => false,
+      isToolbarPositionBottom: () => false,
       canUndo: () => true,
       canRedo: () => true,
       isBold: () => false,
@@ -278,6 +294,10 @@ export const UndoOnly: Story = {
       isFullscreen: () => false,
       isLightMode: () => true,
       isDarkMode: () => false,
+      isToolbarPositionTop: () => true,
+      isToolbarPositionLeft: () => false,
+      isToolbarPositionRight: () => false,
+      isToolbarPositionBottom: () => false,
       canUndo: () => true,
       canRedo: () => false,
       isBold: () => false,
@@ -322,6 +342,10 @@ export const FontMarksActive: Story = {
       isFullscreen: () => false,
       isLightMode: () => true,
       isDarkMode: () => false,
+      isToolbarPositionTop: () => true,
+      isToolbarPositionLeft: () => false,
+      isToolbarPositionRight: () => false,
+      isToolbarPositionBottom: () => false,
       canUndo: () => false,
       canRedo: () => false,
       isBold: () => true,
@@ -367,6 +391,18 @@ export const HiddenMenu: Story = {
 export const HiddenToolbar: Story = {
   args: {
     toolbarVisible: false,
+  },
+}
+
+export const ToolbarLeft: Story = {
+  args: {
+    position: 'left',
+  },
+}
+
+export const ToolbarBottom: Story = {
+  args: {
+    position: 'bottom',
   },
 }
 

@@ -34,6 +34,16 @@ export type Messages = {
   menuPageAria: string
   menuToolbar: string
   menuToolbarAria: string
+  menuToolbarPosition: string
+  menuToolbarPositionAria: string
+  toolbarPositionTop: string
+  toolbarPositionTopAria: string
+  toolbarPositionLeft: string
+  toolbarPositionLeftAria: string
+  toolbarPositionRight: string
+  toolbarPositionRightAria: string
+  toolbarPositionBottom: string
+  toolbarPositionBottomAria: string
   menuImage: string
   menuImageAria: string
   menuInsertRow: string

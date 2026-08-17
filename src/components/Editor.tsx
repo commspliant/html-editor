@@ -160,6 +160,11 @@ import {
   readDarkModeFromStorage,
   writeDarkModeToStorage,
 } from '../modules/view/darkModePersistence'
+import {
+  parseToolbarPosition,
+  readToolbarPositionFromStorage,
+  writeToolbarPositionToStorage,
+} from '../modules/view/toolbarPositionPersistence'
 import { ContextMenu, type ContextMenuKind } from '../modules/contextMenu'
 import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
 import { createDocumentHistory } from '../modules/history'
@@ -179,6 +184,7 @@ import type {
   EditorMode,
   EditorProps,
   ToolbarCustomization,
+  ToolbarPosition,
 } from '../types'
 import { HtmlSurface } from './HtmlSurface'
 import { VisualSurface } from './VisualSurface'
@@ -219,6 +225,8 @@ export function Editor({
   toolbarCustomization,
   darkMode = false,
   darkModePersistence,
+  toolbarPosition = 'top',
+  toolbarPositionPersistence,
 }: EditorProps) {
   const locked = Boolean(disabled || readOnly)
   const [html, setHtml] = useControllableState({
@@ -323,6 +331,10 @@ export function Editor({
   const [dark, setDark] = useState(() => {
     if (darkModePersistence) return darkMode
     return readDarkModeFromStorage() ?? darkMode
+  })
+  const [toolbarPos, setToolbarPos] = useState<ToolbarPosition>(() => {
+    if (toolbarPositionPersistence) return toolbarPosition
+    return readToolbarPositionFromStorage() ?? toolbarPosition
   })
   const [paragraphDialog, setParagraphDialog] = useState<{
     open: boolean
@@ -450,8 +462,12 @@ export function Editor({
   toolbarCustomizationRef.current = toolbarCustomization
   const darkModePersistenceRef = useRef(darkModePersistence)
   darkModePersistenceRef.current = darkModePersistence
+  const toolbarPositionPersistenceRef = useRef(toolbarPositionPersistence)
+  toolbarPositionPersistenceRef.current = toolbarPositionPersistence
   const darkRef = useRef(dark)
   darkRef.current = dark
+  const toolbarPosRef = useRef(toolbarPos)
+  toolbarPosRef.current = toolbarPos
   const disableBuiltinImageInsertRef = useRef(disableBuiltinImageInsert)
   disableBuiltinImageInsertRef.current = disableBuiltinImageInsert
   const customStyleLoadGenerationRef = useRef(0)
@@ -459,6 +475,8 @@ export function Editor({
   const toolbarSaveGenerationRef = useRef(0)
   const darkModeLoadGenerationRef = useRef(0)
   const darkModeSaveGenerationRef = useRef(0)
+  const toolbarPositionLoadGenerationRef = useRef(0)
+  const toolbarPositionSaveGenerationRef = useRef(0)
   const fontFaces = useMemo(() => mergeFontFaces(customFonts), [customFonts])
   const fontFacesRef = useRef(fontFaces)
   fontFacesRef.current = fontFaces
@@ -596,6 +614,45 @@ export function Editor({
       darkModeLoadGenerationRef.current += 1
     }
   }, [darkModePersistence, darkMode])
+
+  const persistToolbarPosition = useCallback(async (next: ToolbarPosition) => {
+    setToolbarPos(next)
+    const host = toolbarPositionPersistenceRef.current
+    if (host?.load && host.save) {
+      const generation = ++toolbarPositionSaveGenerationRef.current
+      try {
+        await host.save(next)
+      } catch {
+        /* keep local position */
+      } finally {
+        if (generation !== toolbarPositionSaveGenerationRef.current) return
+      }
+      return
+    }
+    writeToolbarPositionToStorage(next)
+  }, [])
+
+  useEffect(() => {
+    const host = toolbarPositionPersistence
+    if (!host?.load || !host.save) {
+      setToolbarPos(readToolbarPositionFromStorage() ?? toolbarPosition)
+      return
+    }
+    const generation = ++toolbarPositionLoadGenerationRef.current
+    void (async () => {
+      try {
+        const next = await host.load()
+        if (generation !== toolbarPositionLoadGenerationRef.current) return
+        setToolbarPos(parseToolbarPosition(next) ?? toolbarPosition)
+      } catch {
+        if (generation !== toolbarPositionLoadGenerationRef.current) return
+        setToolbarPos(toolbarPosition)
+      }
+    })()
+    return () => {
+      toolbarPositionLoadGenerationRef.current += 1
+    }
+  }, [toolbarPositionPersistence, toolbarPosition])
 
   const commitHtml = useCallback(
     (next: string) => {
@@ -1387,6 +1444,10 @@ export function Editor({
       setDarkMode: (next) => {
         void persistDarkMode(next)
       },
+      getToolbarPosition: () => toolbarPosRef.current,
+      setToolbarPosition: (next) => {
+        void persistToolbarPosition(next)
+      },
       openCustomizeToolbar: () => {
         setCustomizeToolbarOpen(true)
       },
@@ -1828,7 +1889,7 @@ export function Editor({
       isImageSelected: () => modeRef.current === 'visual' && selectedImageRef.current !== null,
       isInTable: () => modeRef.current === 'visual' && inTableRef.current,
     }),
-    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
+    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -1875,7 +1936,7 @@ export function Editor({
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
-    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, hasTextSelectionState, dark],
+    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, hasTextSelectionState, dark, toolbarPos],
   )
 
   const handleVisualBeforeInput = useCallback(
@@ -2065,49 +2126,83 @@ export function Editor({
         style={rootStyle}
         data-fullscreen={fullscreen ? '' : undefined}
         data-wysiwyg-theme={themeAttr}
+        data-toolbar-position={toolbarPos}
         onKeyDown={handleHistoryKeyDown}
       >
-        {menuVisible || toolbarVisible ? (
-          <div className={styles.chrome} onPointerDownCapture={captureChromeSelection}>
+        {menuVisible ? (
+          <div className={styles.menuChrome} onPointerDownCapture={captureChromeSelection}>
             <EditorToolbar
               catalog={catalog}
               layout={layout}
               commands={commands}
               queries={queries}
               disabled={locked}
-              menuVisible={menuVisible}
-              toolbarVisible={toolbarVisible}
+              menuVisible
+              toolbarVisible={false}
             />
           </div>
         ) : null}
         <div
-          className={styles.workspace}
-          onDragEnter={htmlFileDrop.onDragEnter}
-          onDragOver={htmlFileDrop.onDragOver}
-          onDragLeave={htmlFileDrop.onDragLeave}
-          onDrop={htmlFileDrop.onDrop}
+          className={styles.body}
+          data-icon-dock={toolbarVisible ? toolbarPos : undefined}
         >
-          {mode === 'visual' ? (
-            <VisualSurface
-              ref={visualRef}
-              html={extractFontStylesheets(html).body}
-              onChange={(next) => recordVisualHtml(next, true)}
-              onBeforeInput={handleVisualBeforeInput}
-              onPointerDown={handleVisualPointerDown}
-              onContextMenu={handleVisualContextMenu}
-              placeholder={placeholder}
-              disabled={locked}
-            />
-          ) : (
-            <HtmlSurface
-              ref={htmlAreaRef}
-              html={html}
-              onChange={(next) => recordHtml(next, true)}
-              placeholder={placeholder}
-              disabled={locked}
-            />
-          )}
-          {htmlFileDrop.dragging ? <HtmlFileDropOverlay /> : null}
+          {toolbarVisible && (toolbarPos === 'top' || toolbarPos === 'left') ? (
+            <div className={styles.iconChrome} onPointerDownCapture={captureChromeSelection}>
+              <EditorToolbar
+                catalog={catalog}
+                layout={layout}
+                commands={commands}
+                queries={queries}
+                disabled={locked}
+                menuVisible={false}
+                toolbarVisible
+                position={toolbarPos}
+              />
+            </div>
+          ) : null}
+          <div
+            className={styles.workspace}
+            onDragEnter={htmlFileDrop.onDragEnter}
+            onDragOver={htmlFileDrop.onDragOver}
+            onDragLeave={htmlFileDrop.onDragLeave}
+            onDrop={htmlFileDrop.onDrop}
+          >
+            {mode === 'visual' ? (
+              <VisualSurface
+                ref={visualRef}
+                html={extractFontStylesheets(html).body}
+                onChange={(next) => recordVisualHtml(next, true)}
+                onBeforeInput={handleVisualBeforeInput}
+                onPointerDown={handleVisualPointerDown}
+                onContextMenu={handleVisualContextMenu}
+                placeholder={placeholder}
+                disabled={locked}
+              />
+            ) : (
+              <HtmlSurface
+                ref={htmlAreaRef}
+                html={html}
+                onChange={(next) => recordHtml(next, true)}
+                placeholder={placeholder}
+                disabled={locked}
+              />
+            )}
+            {htmlFileDrop.dragging ? <HtmlFileDropOverlay /> : null}
+          </div>
+          {toolbarVisible && (toolbarPos === 'bottom' || toolbarPos === 'right') ? (
+            <div className={styles.iconChrome} onPointerDownCapture={captureChromeSelection}>
+              <EditorToolbar
+                catalog={catalog}
+                layout={layout}
+                commands={commands}
+                queries={queries}
+                disabled={locked}
+                menuVisible={false}
+                toolbarVisible
+                position={toolbarPos}
+              />
+            </div>
+          ) : null}
         </div>
         {fullscreen ? <ExitFullscreenButton onClick={() => setFullscreen(false)} /> : null}
         <CustomizeToolbarDialog

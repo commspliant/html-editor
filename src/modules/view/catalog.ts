@@ -23,6 +23,11 @@ export const viewCatalog: ToolbarCatalog = {
       labelKey: 'menuToolbar',
       ariaKey: 'menuToolbarAria',
     },
+    toolbarPosition: {
+      id: 'toolbarPosition',
+      labelKey: 'menuToolbarPosition',
+      ariaKey: 'menuToolbarPositionAria',
+    },
   },
   groups: {
     view: {
@@ -57,6 +62,34 @@ export const viewCatalog: ToolbarCatalog = {
       icon: CustomizeToolbarIcon,
       labelKey: 'commandCustomizeToolbar',
       ariaKey: 'commandCustomizeToolbarAria',
+    },
+    toolbarPositionTop: {
+      id: 'toolbarPositionTop',
+      command: 'setToolbarPositionTop',
+      labelKey: 'toolbarPositionTop',
+      ariaKey: 'toolbarPositionTopAria',
+      active: 'isToolbarPositionTop',
+    },
+    toolbarPositionLeft: {
+      id: 'toolbarPositionLeft',
+      command: 'setToolbarPositionLeft',
+      labelKey: 'toolbarPositionLeft',
+      ariaKey: 'toolbarPositionLeftAria',
+      active: 'isToolbarPositionLeft',
+    },
+    toolbarPositionRight: {
+      id: 'toolbarPositionRight',
+      command: 'setToolbarPositionRight',
+      labelKey: 'toolbarPositionRight',
+      ariaKey: 'toolbarPositionRightAria',
+      active: 'isToolbarPositionRight',
+    },
+    toolbarPositionBottom: {
+      id: 'toolbarPositionBottom',
+      command: 'setToolbarPositionBottom',
+      labelKey: 'toolbarPositionBottom',
+      ariaKey: 'toolbarPositionBottomAria',
+      active: 'isToolbarPositionBottom',
     },
     lightMode: {
       id: 'lightMode',

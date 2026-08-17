@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { EditorCommands, EditorQueries } from '../core/commandTypes'
+import type { ToolbarPosition } from '../types'
 import { IconNav } from './IconNav'
 import { MenuBar } from './MenuBar'
 import type { ToolbarCatalog, ToolbarLayout } from './types'
@@ -14,6 +15,7 @@ export type EditorToolbarProps = {
   menuVisible?: boolean
   toolbarVisible?: boolean
   compact?: boolean
+  position?: ToolbarPosition
 }
 
 export function EditorToolbar({
@@ -25,6 +27,7 @@ export function EditorToolbar({
   menuVisible = true,
   toolbarVisible = true,
   compact,
+  position = 'top',
 }: EditorToolbarProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
@@ -33,7 +36,11 @@ export function EditorToolbar({
   }
 
   return (
-    <div className={styles.toolbar} data-compact={compact ? '' : undefined}>
+    <div
+      className={styles.toolbar}
+      data-compact={compact ? '' : undefined}
+      data-toolbar-position={position}
+    >
       {menuVisible ? (
         <MenuBar
           menus={layout.menus}

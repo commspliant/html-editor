@@ -33,6 +33,10 @@ function renderToolbar(
     openDocumentPreview: vi.fn(),
     setLightMode: vi.fn(),
     setDarkMode: vi.fn(),
+    setToolbarPositionTop: vi.fn(),
+    setToolbarPositionLeft: vi.fn(),
+    setToolbarPositionRight: vi.fn(),
+    setToolbarPositionBottom: vi.fn(),
     toggleBold: vi.fn(),
     toggleItalic: vi.fn(),
     toggleUnderline: vi.fn(),
@@ -94,6 +98,10 @@ function renderToolbar(
     isFullscreen: () => false,
     isLightMode: () => true,
     isDarkMode: () => false,
+    isToolbarPositionTop: () => true,
+    isToolbarPositionLeft: () => false,
+    isToolbarPositionRight: () => false,
+    isToolbarPositionBottom: () => false,
     canUndo: () => false,
     canRedo: () => false,
     isBold: () => false,
@@ -511,6 +519,12 @@ describe('EditorToolbar', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Toolbar submenu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Customize toolbar' }))
     expect(commands.openCustomizeToolbar).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Toolbar submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Toolbar position submenu' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Left' }))
+    expect(commands.setToolbarPositionLeft).toHaveBeenCalledTimes(1)
   })
 
   it('checks the active view in the View menu', async () => {
@@ -547,6 +561,22 @@ describe('EditorToolbar', () => {
     expect(screen.getByRole('menuitemradio', { name: 'Dark mode' }).querySelector('[data-icon="dark-mode"]')).not.toBeNull()
     expect(screen.queryByRole('button', { name: 'Switch to light mode' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Switch to dark mode' })).not.toBeInTheDocument()
+  })
+
+  it('docks the icon toolbar from View → Toolbar → Position without icon-toolbar buttons', async () => {
+    const user = userEvent.setup()
+    renderToolbar()
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Toolbar submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Toolbar position submenu' }))
+
+    expect(screen.getByRole('menuitemradio', { name: 'Top' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('menuitemradio', { name: 'Left' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('menuitemradio', { name: 'Right' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('menuitemradio', { name: 'Bottom' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.queryByRole('button', { name: 'Dock toolbar at the top' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Dock toolbar on the left' })).not.toBeInTheDocument()
   })
 
   it('separates HTML and Full screen in the View menu', async () => {

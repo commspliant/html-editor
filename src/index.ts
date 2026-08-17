@@ -17,4 +17,6 @@ export type {
   Locale,
   ToolbarCustomization,
   ToolbarCustomizationPersistence,
+  ToolbarPosition,
+  ToolbarPositionPersistence,
 } from './types'

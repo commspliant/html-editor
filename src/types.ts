@@ -157,6 +157,13 @@ export type DarkModePersistence = {
   save: (darkMode: boolean) => void | Promise<void>
 }
 
+export type ToolbarPosition = 'top' | 'left' | 'right' | 'bottom'
+
+export type ToolbarPositionPersistence = {
+  load: () => ToolbarPosition | null | Promise<ToolbarPosition | null>
+  save: (position: ToolbarPosition) => void | Promise<void>
+}
+
 export type EditorProps = {
   value?: string
   defaultValue?: string
@@ -248,4 +255,14 @@ export type EditorProps = {
    * the library does not use localStorage. Omit to persist in the browser.
    */
   darkModePersistence?: DarkModePersistence
+  /**
+   * Initial icon-toolbar dock when nothing is persisted. Default `'top'`.
+   * View → Toolbar → Position updates the live layout and persistence.
+   */
+  toolbarPosition?: ToolbarPosition
+  /**
+   * Host-owned toolbar-position persistence. When set (both `load` and `save`),
+   * the library does not use localStorage. Omit to persist in the browser.
+   */
+  toolbarPositionPersistence?: ToolbarPositionPersistence
 }
