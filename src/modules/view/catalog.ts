@@ -1,5 +1,5 @@
 import type { ToolbarCatalog } from '../../toolbar/types'
-import { FullscreenIcon, HtmlIcon, VisualIcon } from '../../icons'
+import { CustomizeToolbarIcon, FullscreenIcon, HtmlIcon, VisualIcon } from '../../icons'
 
 export const viewCatalog: ToolbarCatalog = {
   menus: {
@@ -7,6 +7,13 @@ export const viewCatalog: ToolbarCatalog = {
       id: 'view',
       labelKey: 'menuView',
       ariaKey: 'menuViewAria',
+    },
+  },
+  submenus: {
+    toolbar: {
+      id: 'toolbar',
+      labelKey: 'menuToolbar',
+      ariaKey: 'menuToolbarAria',
     },
   },
   groups: {
@@ -35,6 +42,13 @@ export const viewCatalog: ToolbarCatalog = {
       labelKey: 'modeHtml',
       ariaKey: 'modeHtmlAria',
       active: 'isHtmlMode',
+    },
+    customizeToolbar: {
+      id: 'customizeToolbar',
+      command: 'openCustomizeToolbar',
+      icon: CustomizeToolbarIcon,
+      labelKey: 'commandCustomizeToolbar',
+      ariaKey: 'commandCustomizeToolbarAria',
     },
     fullscreen: {
       id: 'fullscreen',

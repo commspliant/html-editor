@@ -29,6 +29,7 @@ function renderToolbar(
     setVisualMode: vi.fn(),
     setHtmlMode: vi.fn(),
     toggleFullscreen: vi.fn(),
+    openCustomizeToolbar: vi.fn(),
     toggleBold: vi.fn(),
     toggleItalic: vi.fn(),
     toggleUnderline: vi.fn(),
@@ -476,6 +477,11 @@ describe('EditorToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'View menu' }))
     await user.click(screen.getByRole('menuitemcheckbox', { name: 'Full screen' }))
     expect(commands.toggleFullscreen).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Toolbar submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Customize toolbar' }))
+    expect(commands.openCustomizeToolbar).toHaveBeenCalledTimes(1)
   })
 
   it('checks the active view in the View menu', async () => {
@@ -513,8 +519,8 @@ describe('EditorToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'View menu' }))
 
     const entries = [...screen.getByRole('menu').children].map((el) => el.getAttribute('role'))
-    expect(entries).toEqual(['menuitemradio', 'menuitemradio', 'separator', 'menuitemcheckbox'])
-    expect(screen.getAllByRole('separator')).toHaveLength(1)
+    expect(entries).toEqual(['menuitemradio', 'menuitemradio', 'separator', null, 'separator', 'menuitemcheckbox'])
+    expect(screen.getAllByRole('separator')).toHaveLength(2)
   })
 
   it('separates print from save and open in the File menu', async () => {

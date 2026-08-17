@@ -9,6 +9,8 @@ import {
   type CustomParagraphStyle,
   type EditorBorder,
   type Locale,
+  type ToolbarCustomization,
+  type ToolbarCustomizationPersistence,
 } from 'commspliant-html-editor'
 import { playgroundMessages } from './i18n/messages'
 import { CodeExampleDialog } from './CodeExampleDialog'
@@ -19,6 +21,7 @@ type PageView = 'playground' | 'documentation'
 type MenuAppearance = 'default' | 'example'
 type BorderAppearance = 'default' | 'none' | 'rounded'
 type ImagePickerMode = 'default' | 'custom' | 'direct'
+type ToolbarPersistMode = 'browser' | 'api'
 
 const PLAYGROUND_GALLERY: { src: string; altKey: 'imageGalleryMountain' | 'imageGalleryLake' }[] = [
   { src: 'https://picsum.photos/id/1015/400/300', altKey: 'imageGalleryMountain' },
@@ -26,6 +29,7 @@ const PLAYGROUND_GALLERY: { src: string; altKey: 'imageGalleryMountain' | 'image
 ]
 
 const PLAYGROUND_STYLE_DELAY_MS = 800
+const PLAYGROUND_TOOLBAR_DELAY_MS = 800
 
 let playgroundCustomStyles: CustomParagraphStyle[] = []
 
@@ -56,6 +60,18 @@ async function savePlaygroundCustomStyle(style: CustomParagraphStyle) {
 async function deletePlaygroundCustomStyle(id: string) {
   await delay(PLAYGROUND_STYLE_DELAY_MS)
   playgroundCustomStyles = playgroundCustomStyles.filter((item) => item.id !== id)
+}
+
+let playgroundToolbarSettings: ToolbarCustomization | null = null
+
+async function loadPlaygroundToolbarSettings() {
+  await delay(PLAYGROUND_TOOLBAR_DELAY_MS)
+  return playgroundToolbarSettings
+}
+
+async function savePlaygroundToolbarSettings(settings: ToolbarCustomization | null) {
+  await delay(PLAYGROUND_TOOLBAR_DELAY_MS)
+  playgroundToolbarSettings = settings
 }
 
 const exampleMenu = {
@@ -130,6 +146,7 @@ export function App() {
   const [borderAppearance, setBorderAppearance] = useState<BorderAppearance>('default')
   const [googleFonts, setGoogleFonts] = useState(false)
   const [imagePickerMode, setImagePickerMode] = useState<ImagePickerMode>('default')
+  const [toolbarPersistMode, setToolbarPersistMode] = useState<ToolbarPersistMode>('browser')
   const [imageInsert, setImageInsert] = useState<((image: CustomImageInsert) => void) | null>(null)
   const [aiApi, setAiApi] = useState<CustomActionApi | null>(null)
   const [aiHtml, setAiHtml] = useState('')
@@ -217,6 +234,14 @@ export function App() {
       },
     }
   }, [imagePickerMode, t])
+
+  const toolbarCustomization = useMemo<ToolbarCustomizationPersistence | undefined>(() => {
+    if (toolbarPersistMode !== 'api') return undefined
+    return {
+      load: loadPlaygroundToolbarSettings,
+      save: savePlaygroundToolbarSettings,
+    }
+  }, [toolbarPersistMode])
 
   return (
     <main className="page">
@@ -435,6 +460,31 @@ export function App() {
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
+                    label={t.appearanceToolbarAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('toolbar')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.appearanceToolbarAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={toolbarPersistMode === 'browser'}
+                      onClick={() => setToolbarPersistMode('browser')}
+                    >
+                      {t.toolbarPersistBrowser}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={toolbarPersistMode === 'api'}
+                      onClick={() => setToolbarPersistMode('api')}
+                    >
+                      {t.toolbarPersistApi}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
                     label={t.languageAria}
                     examplesLabel={t.codeExamplesLink}
                     onOpenExamples={() => setExampleBlock('language')}
@@ -502,6 +552,7 @@ export function App() {
               customFonts={googleFonts ? playgroundGoogleFonts : undefined}
               customImagePicker={customImagePicker}
               disableBuiltinImageInsert={imagePickerMode === 'direct'}
+              toolbarCustomization={toolbarCustomization}
               loadCustomParagraphStyles={loadPlaygroundCustomStyles}
               onSaveCustomParagraphStyle={savePlaygroundCustomStyle}
               onDeleteCustomParagraphStyle={deletePlaygroundCustomStyle}

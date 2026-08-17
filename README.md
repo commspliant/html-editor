@@ -67,6 +67,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `transformHtml` | `(html: string) => string` | — | Optional map over document HTML before it is stored and passed to `onChange`. See [Transform HTML](#transform-html) |
 | `customImagePicker` | `CustomImagePicker` | — | Optional third Insert image source. See [Custom image picker](#custom-image-picker) |
 | `disableBuiltinImageInsert` | `boolean` | `false` | Skip the Insert image dialog and call `customImagePicker.onPick` from the toolbar or Insert menu |
+| `toolbarCustomization` | `ToolbarCustomizationPersistence` | — | Host load/save for icon-toolbar layout. Omit to persist in `localStorage`. See [Customize toolbar](#customize-toolbar) |
 
 `mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link and Bookmark), a File icon group (Save and Load), a Print icon group, an Edit icon group (Undo and Redo), an Insert icon group (Link and Bookmark), and the Visual | HTML toggle, with Full screen pinned last on the icon toolbar, unless `menuVisible` or `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. The icon toolbar wraps onto multiple rows when it cannot fit on one line; Full screen stays last, pinned to the right of the first row. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Print opens the browser print dialog for the document HTML only (not the editor chrome). Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection.
 
@@ -281,6 +282,35 @@ Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInse
 ```
 
 `insertImage` uses the same insert path as File and URL: an `<img>` with inline `max-width: 100%; height: auto`, then any host `css`. `src` must be `http(s)`, a relative path, or a raster `data:` URL.
+
+### Customize toolbar
+
+View → Toolbar → Customize toolbar shows every icon-toolbar group. Uncheck an item to hide it on the icon toolbar (menus stay the same). Drag groups — not individual buttons — to reorder them. Full screen stays pinned last. Reset restores the library default.
+
+Omit `toolbarCustomization` to persist that layout in the browser (`localStorage`). Pass `load` and `save` to store it on the host. Both may be async; the dialog shows a loader while they run.
+
+```tsx
+import { Editor, type ToolbarCustomizationPersistence } from 'commspliant-html-editor'
+
+let stored = null
+
+const toolbarCustomization: ToolbarCustomizationPersistence = {
+  load: async () => stored,
+  save: async (settings) => {
+    stored = settings
+  },
+}
+
+<Editor toolbarCustomization={toolbarCustomization} />
+```
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor />
+```
+
+New toolbar buttons and groups belong in the feature catalog and default icon layout. The customize dialog reads that merged layout, so they appear automatically. Saved settings merge with the current default: unknown ids are ignored, and new ids show (visible, in default-relative order).
 
 ### Style isolation
 

@@ -2,7 +2,7 @@ import type { CommandContext, EditorCommands, EditorQueries } from '../../core/c
 
 export function createViewCommands(
   ctx: CommandContext,
-): Pick<EditorCommands, 'setVisualMode' | 'setHtmlMode' | 'toggleFullscreen'> {
+): Pick<EditorCommands, 'setVisualMode' | 'setHtmlMode' | 'toggleFullscreen' | 'openCustomizeToolbar'> {
   return {
     setVisualMode: () => {
       ctx.setMode('visual')
@@ -12,6 +12,9 @@ export function createViewCommands(
     },
     toggleFullscreen: () => {
       ctx.setFullscreen(!ctx.getFullscreen())
+    },
+    openCustomizeToolbar: () => {
+      ctx.openCustomizeToolbar()
     },
   }
 }

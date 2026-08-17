@@ -1,5 +1,5 @@
 ---
-description: Editor chrome — dropdown menu, grouped icon nav, client rearrange, localStorage, reset
+description: Editor chrome — dropdown menu, grouped icon nav, customize dialog, persistence, reset
 globs: src/**/toolbar/**,**/*Toolbar*,**/*toolbar*,**/icon-nav/**
 alwaysApply: false
 ---
@@ -10,24 +10,37 @@ The editor chrome has two surfaces: a **dropdown menu** and **icon navigation**.
 
 ## Default groups
 
-Icons ship in library-defined groups. Grouping lives in one default config, not hardcoded in UI markup.
+Icons ship in library-defined groups. Grouping lives in one default config ([`src/toolbar/defaultLayout.ts`](src/toolbar/defaultLayout.ts)), not hardcoded in UI markup.
 
-## Client rearrange
+## Adding a button or group
 
-The consuming app can reorder icons and groups through the toolbar public API. Do not mutate another feature module’s internals.
+New icon-toolbar buttons and groups must be added to the feature **catalog** and to `defaultToolbarLayout.iconGroups`. Do **not** hardcode them into the customize dialog.
 
-## Persistence and reset
-
-Persist the client’s layout in **that client’s `localStorage`**. The library exposes persist/restore and a consumer-set storage key. Do not bake playground-only keys into the package. A public reset restores the library default grouping and clears the stored layout.
+The customize dialog (View → Toolbar → Customize toolbar) reads the **merged** layout (defaults + `customActions`). Saved customization is merged with the current default: unknown ids are ignored; new groups and items always appear (visible, in default-relative order).
 
 ```ts
-// ❌ BAD — mark feature writes storage; reset by deleting keys by hand
+// ❌ BAD — dialog lists a fixed set of ids
+const ITEMS = ['save', 'open', 'print']
+
+// ✅ GOOD — catalog + defaultLayout; dialog maps layout.iconGroups
+{ id: 'insert', items: ['link', 'bookmark', 'image', 'table', 'video'] }
+```
+
+## Customize, persistence, and reset
+
+Users reorder **groups** (not individual buttons) and show/hide items from the customize dialog. Full screen stays pinned last on the live toolbar.
+
+- Omit `toolbarCustomization` — the library persists under `commspliant-html-editor.toolbarCustomization` in **that client’s** `localStorage`.
+- Pass `toolbarCustomization: { load, save }` — the host owns storage. Do not also write `localStorage`. Do not bake playground-only keys into the package.
+- Reset in the dialog restores the library default and persists `null`.
+
+```ts
+// ❌ BAD — feature writes a playground-only key; reset by deleting keys by hand
 localStorage.setItem('playground-toolbar', JSON.stringify(order))
 localStorage.removeItem('playground-toolbar')
 
-// ✅ GOOD — toolbar API persists under the consumer key and can reset
-toolbar.setLayout(order)
-toolbar.resetLayout()
+// ✅ GOOD — omit the prop for localStorage, or pass host load/save
+<Editor toolbarCustomization={{ load, save }} />
 ```
 
 ## Tooltips
@@ -56,6 +69,16 @@ When adding or regrouping dropdown menu items, review logical groups and put `ME
 // ❌ BAD — mixed groups, no divider
 { id: 'view', items: ['visual', 'html', 'fullscreen'] }
 
-// ✅ GOOD — mode vs display
-{ id: 'view', items: ['visual', 'html', MENU_SEPARATOR, 'fullscreen'] }
+// ✅ GOOD — mode vs toolbar vs display
+{
+  id: 'view',
+  items: [
+    'visual',
+    'html',
+    MENU_SEPARATOR,
+    { submenu: 'toolbar', items: ['customizeToolbar'] },
+    MENU_SEPARATOR,
+    'fullscreen',
+  ],
+}
 ```

@@ -30,6 +30,9 @@ export type PlaygroundMessages = {
   imagePickerDefault: string
   imagePickerCustom: string
   imagePickerDirect: string
+  appearanceToolbarAria: string
+  toolbarPersistBrowser: string
+  toolbarPersistApi: string
   imagePickerTab: string
   imagePickerDescription: string
   imagePickerButton: string
@@ -52,6 +55,7 @@ export type PlaygroundMessages = {
   borderExampleBody: string
   fontsExampleBody: string
   imageExampleBody: string
+  toolbarExampleBody: string
   languageExampleBody: string
   footerGithub: string
   footerGithubLink: string
@@ -92,6 +96,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     imagePickerDefault: 'Built-in insert',
     imagePickerCustom: 'Custom picker tab',
     imagePickerDirect: 'Custom picker only',
+    appearanceToolbarAria: 'Toolbar settings',
+    toolbarPersistBrowser: 'Browser storage',
+    toolbarPersistApi: 'API storage',
     imagePickerTab: 'Gallery',
     imagePickerDescription: 'Choose an image from the sample gallery.',
     imagePickerButton: 'Open gallery',
@@ -119,6 +126,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Pass customFonts to append host faces after the built-in web-safe list. Optional css is a stylesheet URL. When a webfont is used, its stylesheet link is prepended to exported HTML.',
     imageExampleBody:
       'Pass customImagePicker to add a third Insert image source. Set disableBuiltinImageInsert to skip the built-in dialog and open your picker immediately.',
+    toolbarExampleBody:
+      'Omit toolbarCustomization to persist layout in localStorage. Pass load and save to store it on the host, including async APIs.',
     languageExampleBody:
       'Pass locale to switch library chrome between English and Spanish. Document content is not translated.',
     footerGithub: 'GitHub:',
@@ -158,6 +167,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     imagePickerDefault: 'Inserción integrada',
     imagePickerCustom: 'Pestaña de selector',
     imagePickerDirect: 'Solo selector',
+    appearanceToolbarAria: 'Configuración de la barra',
+    toolbarPersistBrowser: 'Almacenamiento del navegador',
+    toolbarPersistApi: 'Almacenamiento API',
     imagePickerTab: 'Galería',
     imagePickerDescription: 'Elige una imagen de la galería de ejemplo.',
     imagePickerButton: 'Abrir galería',
@@ -185,6 +197,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Pasa customFonts para añadir fuentes de la aplicación después de la lista web segura. El css opcional es una URL de hoja de estilos. Si se usa una webfont, su enlace se antepone al HTML exportado.',
     imageExampleBody:
       'Pasa customImagePicker para añadir una tercera fuente de inserción de imágenes. Con disableBuiltinImageInsert se omite el diálogo integrado y se abre tu selector de inmediato.',
+    toolbarExampleBody:
+      'Omite toolbarCustomization para guardar el diseño en localStorage. Pasa load y save para almacenarlo en el anfitrión, incluidas las APIs asíncronas.',
     languageExampleBody:
       'Pasa locale para cambiar el chrome de la biblioteca entre inglés y español. El contenido del documento no se traduce.',
     footerGithub: 'GitHub:',

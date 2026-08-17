@@ -17,7 +17,17 @@ export const defaultToolbarLayout: ToolbarLayout = {
         { submenu: 'insertColumn', items: ['insertColumnAfter', 'insertColumnBefore', 'deleteColumn'] },
       ],
     },
-    { id: 'view', items: ['visual', 'html', MENU_SEPARATOR, 'fullscreen'] },
+    {
+      id: 'view',
+      items: [
+        'visual',
+        'html',
+        MENU_SEPARATOR,
+        { submenu: 'toolbar', items: ['customizeToolbar'] },
+        MENU_SEPARATOR,
+        'fullscreen',
+      ],
+    },
     {
       id: 'format',
       items: [

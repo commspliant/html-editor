@@ -28,6 +28,8 @@ export type Messages = {
   menuParagraphStylesAria: string
   menuPage: string
   menuPageAria: string
+  menuToolbar: string
+  menuToolbarAria: string
   menuImage: string
   menuImageAria: string
   menuInsertRow: string
@@ -130,6 +132,8 @@ export type Messages = {
   commandBulletListAria: string
   commandNumberedList: string
   commandNumberedListAria: string
+  commandCustomizeToolbar: string
+  commandCustomizeToolbarAria: string
   styleParagraph: string
   styleHeading1: string
   styleHeading2: string
@@ -328,6 +332,15 @@ export type Messages = {
   toolbarGroupView: string
   toolbarGroupFullscreen: string
   toolbarGroupCustom: string
+  customizeToolbarDialogTitle: string
+  customizeToolbarDialogReset: string
+  customizeToolbarDialogClose: string
+  customizeToolbarDialogCloseAria: string
+  customizeToolbarDialogLoading: string
+  customizeToolbarItemVisible: string
+  customizeToolbarDragHandle: string
+  customizeToolbarMoveUp: string
+  customizeToolbarMoveDown: string
 }
 
 export type MessageKey = keyof Messages
