@@ -147,6 +147,19 @@ export type ToolbarCustomization = {
   hiddenItemIds: string[]
 }
 
+/**
+ * Host allowlist for chrome. The two lists do not cross-filter: hiding a menu
+ * does not hide its toolbar buttons, and hiding a toolbar button does not hide
+ * the matching menu item. Omit the prop, or either field, to leave that surface
+ * unfiltered.
+ */
+export type AllowedChrome = {
+  /** Top-level menu ids (`file`, `edit`, `insert`, `view`, `format`, plus custom). Omit to show every menu. */
+  menus?: string[]
+  /** Icon-toolbar item ids. Omit to show every toolbar button. */
+  toolbar?: string[]
+}
+
 export type ToolbarCustomizationPersistence = {
   load: () => ToolbarCustomization | null | Promise<ToolbarCustomization | null>
   save: (settings: ToolbarCustomization | null) => void | Promise<void>
@@ -209,6 +222,11 @@ export type EditorProps = {
   border?: 'none' | EditorBorder
   menuVisible?: boolean
   toolbarVisible?: boolean
+  /**
+   * Host allowlist for which menus and icon-toolbar buttons appear.
+   * Omit to show everything. The two lists are independent.
+   */
+  allowedChrome?: AllowedChrome
   customActions?: CustomAction[]
   /**
    * Extra document font faces appended after the built-in web-safe list.

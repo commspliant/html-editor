@@ -170,6 +170,7 @@ import { ContextMenu, shouldOpenEditorContextMenu, type ContextMenuKind } from '
 import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
 import { createDocumentHistory } from '../modules/history'
 import { defaultToolbarCatalog, defaultToolbarLayout, EditorToolbar } from '../toolbar'
+import { filterAllowedChrome } from '../toolbar/allowedChrome'
 import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
 import {
   applyToolbarCustomization,
@@ -215,6 +216,7 @@ export function Editor({
   border,
   menuVisible = true,
   toolbarVisible = true,
+  allowedChrome,
   customActions,
   customFonts,
   transformHtml,
@@ -1924,12 +1926,16 @@ export function Editor({
     () => mergeCustomActions(customActions, defaultToolbarCatalog, defaultToolbarLayout),
     [customActions],
   )
+  const allowedLayout = useMemo(
+    () => filterAllowedChrome(baseLayout, allowedChrome),
+    [baseLayout, allowedChrome],
+  )
   const layout = useMemo(
     () => ({
-      ...baseLayout,
-      iconGroups: applyToolbarCustomization(baseLayout.iconGroups, toolbarSettings),
+      ...allowedLayout,
+      iconGroups: applyToolbarCustomization(allowedLayout.iconGroups, toolbarSettings),
     }),
-    [baseLayout, toolbarSettings],
+    [allowedLayout, toolbarSettings],
   )
 
   const commands = useMemo(
@@ -2215,7 +2221,7 @@ export function Editor({
         <CustomizeToolbarDialog
           open={customizeToolbarOpen}
           catalog={catalog}
-          groups={baseLayout.iconGroups}
+          groups={allowedLayout.iconGroups}
           settings={toolbarSettings}
           loading={toolbarSettingsLoading}
           busy={toolbarSettingsBusy}

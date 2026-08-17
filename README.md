@@ -64,6 +64,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `border` | `'none' \| EditorBorder` | `1px` `#d0d0d0`, radius `6px` | Outer editor box. `'none'` removes width, radius, and shadow. Object fields (`width`, `color`, `radius`, `shadow`) are independent; omitted fields keep the defaults |
 | `menuVisible` | `boolean` | `true` | Show the dropdown menu bar. Set `false` to hide it |
 | `toolbarVisible` | `boolean` | `true` | Show the icon toolbar. Set `false` to hide it |
+| `allowedChrome` | `AllowedChrome` | — | Host allowlist of menus and icon-toolbar buttons. Omit to show everything. See [Allowed chrome](#allowed-chrome) |
 | `toolbarPosition` | `'top' \| 'left' \| 'right' \| 'bottom'` | `'top'` | Initial icon-toolbar dock when nothing is persisted. See [Toolbar position](#toolbar-position) |
 | `toolbarPositionPersistence` | `ToolbarPositionPersistence` | — | Host load/save for the icon-toolbar dock. Omit to persist in `localStorage`. See [Toolbar position](#toolbar-position) |
 | `customActions` | `CustomAction[]` | — | Host-defined menu items and/or toolbar buttons. See [Custom actions](#custom-actions) |
@@ -110,6 +111,33 @@ export function App() {
 import { Editor } from 'commspliant-html-editor'
 
 <Editor menuVisible={false} toolbarVisible={false} />
+```
+
+### Allowed chrome
+
+Pass `allowedChrome` to show only the menus and icon-toolbar buttons the host allows. Omit the prop (or either field) to leave that surface unfiltered.
+
+The two lists are independent: hiding the File menu does not hide Save on the toolbar, and hiding the Print button does not hide File → Print. Built-in menu ids are `file`, `edit`, `insert`, `view`, and `format` (plus any custom menu id from `customActions`). Toolbar ids are catalog item ids (`save`, `bold`, `print`, …). If `toolbar` is set, custom action ids must be listed to appear on the icon bar.
+
+Empty arrays hide that surface (`menus: []` shows no dropdowns; `toolbar: []` shows no icons). The right-click context menu is not filtered. Commands stay registered; this only hides chrome.
+
+View → Toolbar → Customize toolbar and its persistence still work as they do today, on the allowed toolbar subset. The dialog lists only allowed icon-toolbar items.
+
+```tsx
+import { Editor, type AllowedChrome } from 'commspliant-html-editor'
+
+const allowedChrome: AllowedChrome = {
+  menus: ['file', 'edit'],
+  toolbar: ['save', 'open', 'print', 'undo', 'redo'],
+}
+
+<Editor allowedChrome={allowedChrome} />
+```
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor />
 ```
 
 ### Toolbar position
@@ -362,7 +390,7 @@ Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInse
 
 ### Customize toolbar
 
-View → Toolbar → Customize toolbar shows every icon-toolbar group. Uncheck an item to hide it on the icon toolbar (menus stay the same). Drag groups — not individual buttons — to reorder them. Full screen stays pinned last. Reset restores the library default.
+View → Toolbar → Customize toolbar shows every icon-toolbar group (or only the items in `allowedChrome.toolbar` when that list is set). Uncheck an item to hide it on the icon toolbar (menus stay the same). Drag groups — not individual buttons — to reorder them. Full screen stays pinned last. Reset restores the library default.
 
 Omit `toolbarCustomization` to persist that layout in the browser (`localStorage`). Pass `load` and `save` to store it on the host. Both may be async; the dialog shows a loader while they run.
 

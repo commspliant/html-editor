@@ -16,6 +16,10 @@ export type PlaygroundMessages = {
   menuVisible: string
   toolbarVisible: string
   fullscreen: string
+  allowedChromeAria: string
+  allowedChromeAll: string
+  allowedChromeFileEdit: string
+  allowedChromeFormat: string
   readOnlyAria: string
   readOnly: string
   readOnlyOff: string
@@ -76,6 +80,7 @@ export type PlaygroundMessages = {
   codeExamplesLink: string
   codeExamplesClose: string
   chromeExampleBody: string
+  allowedChromeExampleBody: string
   readOnlyExampleBody: string
   htmlFileDropExampleBody: string
   autoSaveExampleBody: string
@@ -112,6 +117,10 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     menuVisible: 'Menu',
     toolbarVisible: 'Toolbar',
     fullscreen: 'Full screen',
+    allowedChromeAria: 'Allowed chrome',
+    allowedChromeAll: 'All',
+    allowedChromeFileEdit: 'File and Edit',
+    allowedChromeFormat: 'Format only',
     readOnlyAria: 'Read only',
     readOnly: 'Read only',
     readOnlyOff: 'Editable',
@@ -173,6 +182,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     codeExamplesClose: 'Close',
     chromeExampleBody:
       'Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host.',
+    allowedChromeExampleBody:
+      'Pass allowedChrome to show only the menus and icon-toolbar buttons the host allows. The two lists are independent. Omit the prop to show everything. Customize toolbar and persistence still apply on the allowed toolbar subset.',
     readOnlyExampleBody:
       'Lock both editing surfaces and all menus and toolbar buttons from the host. Default is false. Same lock as disabled.',
     htmlFileDropExampleBody:
@@ -218,6 +229,10 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     menuVisible: 'Menú',
     toolbarVisible: 'Barra de herramientas',
     fullscreen: 'Pantalla completa',
+    allowedChromeAria: 'Chrome permitido',
+    allowedChromeAll: 'Todo',
+    allowedChromeFileEdit: 'Archivo y Editar',
+    allowedChromeFormat: 'Solo Formato',
     readOnlyAria: 'Solo lectura',
     readOnly: 'Solo lectura',
     readOnlyOff: 'Editable',
@@ -279,6 +294,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     codeExamplesClose: 'Cerrar',
     chromeExampleBody:
       'Muestra u oculta la barra de menú y la barra de iconos, y controla la pantalla completa desde la aplicación anfitriona.',
+    allowedChromeExampleBody:
+      'Pasa allowedChrome para mostrar solo los menús y botones de la barra que el anfitrión permite. Las dos listas son independientes. Omite la propiedad para mostrar todo. Personalizar la barra y la persistencia siguen aplicándose al subconjunto permitido.',
     readOnlyExampleBody:
       'Bloquea ambas superficies de edición y todos los menús y botones de la barra desde la aplicación anfitriona. El valor predeterminado es false. El mismo bloqueo que disabled.',
     htmlFileDropExampleBody:

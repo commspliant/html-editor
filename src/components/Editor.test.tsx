@@ -1685,6 +1685,98 @@ describe('Editor toolbar customization', () => {
   })
 })
 
+describe('Editor allowed chrome', () => {
+  afterEach(() => {
+    localStorage.removeItem(TOOLBAR_CUSTOMIZATION_STORAGE_KEY)
+  })
+
+  async function openCustomizeDialog(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Toolbar submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Customize toolbar' }))
+  }
+
+  it('hides disallowed menus and keeps items inside shown menus', async () => {
+    const user = userEvent.setup()
+    render(<Editor allowedChrome={{ menus: ['file', 'edit'] }} />)
+
+    expect(screen.getByRole('button', { name: 'File menu' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit menu' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Insert menu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'View menu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Format menu' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Print document' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'File menu' }))
+    expect(screen.getByRole('menuitem', { name: 'Print' })).toBeInTheDocument()
+  })
+
+  it('hides disallowed toolbar buttons without changing menus', async () => {
+    const user = userEvent.setup()
+    render(<Editor allowedChrome={{ toolbar: ['save', 'undo'] }} />)
+
+    expect(screen.getByRole('button', { name: 'Save as HTML file' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Print document' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'File menu' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Insert menu' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'File menu' }))
+    expect(screen.getByRole('menuitem', { name: 'Print' })).toBeInTheDocument()
+  })
+
+  it('lists only allowed toolbar items in the customize dialog', async () => {
+    const user = userEvent.setup()
+    render(<Editor allowedChrome={{ toolbar: ['save', 'undo'] }} />)
+
+    await openCustomizeDialog(user)
+
+    expect(screen.getByRole('checkbox', { name: 'Save: Show on toolbar' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Undo: Show on toolbar' })).toBeChecked()
+    expect(screen.queryByRole('checkbox', { name: 'Print: Show on toolbar' })).not.toBeInTheDocument()
+  })
+
+  it('persists hiding an allowed toolbar item in localStorage', async () => {
+    const user = userEvent.setup()
+    render(<Editor allowedChrome={{ toolbar: ['save', 'undo'] }} />)
+
+    await openCustomizeDialog(user)
+    await user.click(screen.getByRole('checkbox', { name: 'Save: Show on toolbar' }))
+
+    expect(screen.queryByRole('button', { name: 'Save as HTML file' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem(TOOLBAR_CUSTOMIZATION_STORAGE_KEY) ?? '{}').hiddenItemIds).toEqual([
+      'save',
+    ])
+  })
+
+  it('persists hiding an allowed toolbar item through host load and save', async () => {
+    const user = userEvent.setup()
+    let stored: ToolbarCustomization | null = null
+    const load = vi.fn(async () => stored)
+    const save = vi.fn(async (next: ToolbarCustomization | null) => {
+      stored = next
+    })
+
+    render(
+      <Editor
+        allowedChrome={{ toolbar: ['save', 'undo'] }}
+        toolbarCustomization={{ load, save }}
+      />,
+    )
+
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(1))
+    await openCustomizeDialog(user)
+    await user.click(screen.getByRole('checkbox', { name: 'Undo: Show on toolbar' }))
+
+    await waitFor(() => expect(save).toHaveBeenCalled())
+    expect(save.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ hiddenItemIds: ['undo'] }))
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save as HTML file' })).toBeInTheDocument()
+    expect(localStorage.getItem(TOOLBAR_CUSTOMIZATION_STORAGE_KEY)).toBeNull()
+  })
+})
+
 describe('Editor dark mode', () => {
   afterEach(() => {
     localStorage.removeItem(DARK_MODE_STORAGE_KEY)
