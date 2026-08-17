@@ -166,7 +166,7 @@ import {
   readToolbarPositionFromStorage,
   writeToolbarPositionToStorage,
 } from '../modules/view/toolbarPositionPersistence'
-import { ContextMenu, type ContextMenuKind } from '../modules/contextMenu'
+import { ContextMenu, shouldOpenEditorContextMenu, type ContextMenuKind } from '../modules/contextMenu'
 import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
 import { createDocumentHistory } from '../modules/history'
 import { defaultToolbarCatalog, defaultToolbarLayout, EditorToolbar } from '../toolbar'
@@ -443,6 +443,7 @@ export function Editor({
   const [inTable, setInTable] = useState(false)
   const inTableRef = useRef(inTable)
   inTableRef.current = inTable
+  const lastVisualPointerTypeRef = useRef<string | undefined>(undefined)
   const customStylesRef = useRef(customStyles)
   customStylesRef.current = customStyles
   const customStylesLoadingRef = useRef(customStylesLoading)
@@ -1993,6 +1994,7 @@ export function Editor({
   const handleVisualContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (locked) return
+      if (!shouldOpenEditorContextMenu(event, lastVisualPointerTypeRef.current)) return
       event.preventDefault()
       event.stopPropagation()
       const root = visualRef.current
@@ -2032,6 +2034,7 @@ export function Editor({
 
   const handleVisualPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
+      lastVisualPointerTypeRef.current = event.pointerType
       if (locked) return
       const root = visualRef.current
       if (!root) return

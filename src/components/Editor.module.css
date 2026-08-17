@@ -213,6 +213,8 @@
   min-height: 100%;
   padding: 0.75rem;
   outline: none;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .root .visual:focus {

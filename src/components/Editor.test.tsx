@@ -1883,6 +1883,32 @@ describe('Editor context menu', () => {
     expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeDisabled()
   })
 
+  it('does not override context menu after a touch pointer so native selection can run', () => {
+    render(<Editor defaultValue="<p>Hello</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const down = createEvent.pointerDown(visual)
+    Object.defineProperty(down, 'pointerType', { value: 'touch' })
+    fireEvent(visual, down)
+    const event = createEvent.contextMenu(visual)
+    fireEvent(visual, event)
+
+    expect(event.defaultPrevented).toBe(false)
+    expect(screen.queryByRole('menu', { name: 'Editor context menu' })).not.toBeInTheDocument()
+  })
+
+  it('still opens the custom menu on a mouse right-click after a mouse pointer', () => {
+    render(<Editor defaultValue="<p>Hello</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const down = createEvent.pointerDown(visual)
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' })
+    fireEvent(visual, down)
+    const event = createEvent.contextMenu(visual, { button: 2 })
+    fireEvent(visual, event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(screen.getByRole('menu', { name: 'Editor context menu' })).toBeInTheDocument()
+  })
+
   it('does not override context menu in HTML mode or on the toolbar', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
