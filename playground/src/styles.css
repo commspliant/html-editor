@@ -170,7 +170,6 @@ body {
   min-height: 0;
   min-inline-size: 0;
   gap: 0;
-  background: var(--off-white);
 }
 
 .workspace-resizing {
@@ -434,10 +433,6 @@ body {
 
 .page-footer-separator {
   color: rgba(234, 241, 251, 0.35);
-}
-
-.editor-pane .editor-slot {
-  padding: 0.5rem;
 }
 
 .editor-slot {
