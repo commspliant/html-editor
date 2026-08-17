@@ -26,6 +26,8 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
   ) {
     const t = useT()
     const innerRef = useRef<HTMLDivElement | null>(null)
+    const onBeforeInputRef = useRef(onBeforeInput)
+    onBeforeInputRef.current = onBeforeInput
 
     const setRefs = (node: HTMLDivElement | null) => {
       innerRef.current = node
@@ -45,6 +47,16 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
       syncPageHolderBackground(el)
     }, [html])
 
+    useLayoutEffect(() => {
+      const el = innerRef.current
+      if (!el) return
+      const handler = (event: Event) => {
+        onBeforeInputRef.current?.(event as InputEvent)
+      }
+      el.addEventListener('beforeinput', handler)
+      return () => el.removeEventListener('beforeinput', handler)
+    }, [])
+
     return (
       <div
         ref={setRefs}
@@ -56,9 +68,6 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
         aria-label={t('visualEditorAria')}
         aria-disabled={disabled || undefined}
         data-placeholder={placeholder}
-        onBeforeInput={(event) => {
-          onBeforeInput?.(event.nativeEvent as InputEvent)
-        }}
         onPointerDown={onPointerDown}
         onContextMenu={onContextMenu}
         onInput={(event) => {

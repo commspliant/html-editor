@@ -326,9 +326,8 @@ export type Messages = {
   toolbarGroupAlign: string
   toolbarGroupParagraph: string
   toolbarGroupView: string
+  toolbarGroupFullscreen: string
   toolbarGroupCustom: string
-  toolbarScrollLeftAria: string
-  toolbarScrollRightAria: string
 }
 
 export type MessageKey = keyof Messages

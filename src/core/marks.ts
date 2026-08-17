@@ -481,8 +481,8 @@ export function applyPendingFontMarksOnInsert(
   }
 
   const caret = document.createRange()
-  caret.setStartAfter(nodeToInsert)
-  caret.collapse(true)
+  caret.selectNodeContents(nodeToInsert)
+  caret.collapse(false)
   sel.removeAllRanges()
   sel.addRange(caret)
 }

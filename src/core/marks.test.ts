@@ -187,4 +187,20 @@ describe('pending font marks', () => {
     applyPendingFontMarksOnInsert(el, '!', {}, null, null, { value: 'Georgia, serif' })
     expect(el.querySelector('span')).toHaveStyle({ fontFamily: 'Georgia, serif' })
   })
+
+  it('leaves the caret inside the styled span so further typing keeps the format', () => {
+    const el = mountVisual('<p>Hi</p>')
+    selectOffsets(el, 2, 2)
+
+    applyPendingFontMarksOnInsert(el, '!', { bold: true })
+    const span = el.querySelector('span')
+    const sel = window.getSelection()
+    expect(span).not.toBeNull()
+    expect(span?.contains(sel?.anchorNode ?? null)).toBe(true)
+
+    const text = span?.firstChild as Text
+    text.insertData(text.length, '?')
+    expect(span).toHaveTextContent('!?')
+    expect(span).toHaveStyle({ fontWeight: '700' })
+  })
 })

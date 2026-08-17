@@ -73,13 +73,33 @@ export function rangeFromOffsets(root: HTMLElement, start: number, end: number):
   return range
 }
 
-function isRangeLive(range: Range, root: HTMLElement): boolean {
+export function isRangeLive(range: Range, root: HTMLElement): boolean {
   try {
     const ancestor = range.commonAncestorContainer
     return root === ancestor || root.contains(ancestor)
   } catch {
     return false
   }
+}
+
+export function shouldKeepStoredVisualSelection(
+  stored: SelectionSnapshot | null | undefined,
+  live: SelectionSnapshot,
+): stored is SelectionSnapshot {
+  return Boolean(
+    stored &&
+      stored.mode === 'visual' &&
+      stored.visualRange &&
+      (!live.visualRange || (!stored.collapsed && live.collapsed)),
+  )
+}
+
+export function rangeToRestore(root: HTMLElement, snapshot: SelectionSnapshot): Range | null {
+  if (snapshot.mode !== 'visual') return null
+  if (snapshot.visualRange && isRangeLive(snapshot.visualRange, root)) {
+    return snapshot.visualRange
+  }
+  return rangeFromOffsets(root, snapshot.start, snapshot.end)
 }
 
 export function snapshotSelection(args: {

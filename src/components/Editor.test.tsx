@@ -679,6 +679,91 @@ describe('Editor font marks', () => {
     expect(visual.querySelector('span')).toHaveStyle({ backgroundColor: 'rgb(255, 255, 0)' })
   })
 
+  function typeIntoVisual(visual: HTMLElement, text: string) {
+    visual.dispatchEvent(
+      new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'insertText',
+        data: text,
+      }),
+    )
+  }
+
+  it('applies a pending font family to the next typed character at a caret', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    selectVisualText(visual, 5, 5)
+    await user.click(screen.getByRole('button', { name: 'Font family' }))
+    await user.click(screen.getByRole('option', { name: 'Georgia' }))
+
+    act(() => {
+      typeIntoVisual(visual, 'x')
+    })
+
+    const span = visual.querySelector('span')
+    expect(span).toHaveStyle({ fontFamily: 'Georgia, serif' })
+    expect(span).toHaveTextContent('x')
+    expect(span?.contains(window.getSelection()?.anchorNode ?? null)).toBe(true)
+  })
+
+  it('applies a pending font size to the next typed character at a caret', () => {
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    selectVisualText(visual, 5, 5)
+    fireEvent.click(screen.getByRole('button', { name: 'Font size' }))
+    fireEvent.click(screen.getByRole('option', { name: '18' }))
+
+    act(() => {
+      typeIntoVisual(visual, 'x')
+    })
+
+    const span = visual.querySelector('span')
+    expect(span).toHaveStyle({ fontSize: '18pt' })
+    expect(span).toHaveTextContent('x')
+    expect(span?.contains(window.getSelection()?.anchorNode ?? null)).toBe(true)
+  })
+
+  it('applies a pending font color to the next typed character at a caret', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    selectVisualText(visual, 5, 5)
+    await user.click(screen.getByRole('button', { name: 'Font color' }))
+    await user.click(screen.getByRole('option', { name: '#ff0000' }))
+
+    act(() => {
+      typeIntoVisual(visual, 'x')
+    })
+
+    const span = visual.querySelector('span')
+    expect(span).toHaveStyle({ color: 'rgb(255, 0, 0)' })
+    expect(span).toHaveTextContent('x')
+    expect(span?.contains(window.getSelection()?.anchorNode ?? null)).toBe(true)
+  })
+
+  it('applies pending bold to the next typed character at a caret', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    selectVisualText(visual, 5, 5)
+    await user.click(screen.getByRole('button', { name: 'Bold' }))
+
+    act(() => {
+      typeIntoVisual(visual, 'x')
+    })
+
+    const span = visual.querySelector('span')
+    expect(span).toHaveStyle({ fontWeight: '700' })
+    expect(span).toHaveTextContent('x')
+    expect(span?.contains(window.getSelection()?.anchorNode ?? null)).toBe(true)
+  })
+
   it('opens the font properties dialog from the Fonts menu', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)

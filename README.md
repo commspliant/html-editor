@@ -68,7 +68,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `customImagePicker` | `CustomImagePicker` | — | Optional third Insert image source. See [Custom image picker](#custom-image-picker) |
 | `disableBuiltinImageInsert` | `boolean` | `false` | Skip the Insert image dialog and call `customImagePicker.onPick` from the toolbar or Insert menu |
 
-`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link and Bookmark), a File icon group (Save and Load), a Print icon group, an Edit icon group (Undo and Redo), an Insert icon group (Link and Bookmark), and the Visual | HTML | Full screen toggle unless `menuVisible` or `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Print opens the browser print dialog for the document HTML only (not the editor chrome). Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection.
+`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link and Bookmark), a File icon group (Save and Load), a Print icon group, an Edit icon group (Undo and Redo), an Insert icon group (Link and Bookmark), and the Visual | HTML toggle, with Full screen pinned last on the icon toolbar, unless `menuVisible` or `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. The icon toolbar wraps onto multiple rows when it cannot fit on one line; Full screen stays last, pinned to the right of the first row. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Print opens the browser print dialog for the document HTML only (not the editor chrome). Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection.
 
 `menuColor`, `menuBackground`, `menuFontSize`, and `menuFontFamily` restyle the dropdown menu bar and panels only — not the icon toolbar. `border` is the outer editor box and is ignored in fullscreen. Custom menu fonts must already be available on the page.
 
@@ -76,7 +76,7 @@ The toolbar Font dropdown lists web-safe faces (Arial, Georgia, Times New Roman,
 
 ### Editor chrome
 
-Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host.
+Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host. The icon toolbar wraps onto multiple rows when it cannot fit on one line; Full screen stays last, pinned to the right of the first row.
 
 ```tsx
 import { useState } from 'react'
@@ -215,7 +215,7 @@ Each object:
 | `icon` | React component | Optional 16×16 icon. Omit to use the built-in custom-action icon |
 | `showIn` | `'menu'` \| `'toolbar'` \| `'both'` | Which chrome surfaces show the action |
 | `menu` | `{ id?: string; label?: string }` | Menu placement. Built-in ids: `file`, `edit`, `insert`, `view`, `format`. Other ids create a new top-level menu. Default id: `custom` |
-| `toolbarGroup` | `string` | Icon group. Built-in ids: `file`, `edit`, `insert`, `view`. Other ids create a group at the end. Default: `custom` |
+| `toolbarGroup` | `string` | Icon group. Built-in ids: `file`, `edit`, `insert`, `view`. Other ids create a group before Full screen. Default: `custom` |
 | `onAction` | `(api: CustomActionApi) => void` | Called when the item is activated |
 
 **Placement**

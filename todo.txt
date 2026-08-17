@@ -1,14 +1,17 @@
 custom fonts in menus, custom border and border radious (DONE)
 backround color DONE
 Custom pre-defined Styles (drop down H list extention) (those custom defined styles cold be saveble to db so hook required to laod, save) DONE
-
-insert
- -image (DONE)
- -video
- -audio
-format brush
 remove formatting (DONE)
 tables (DONE)
+-image (DONE)
+bookmark manager (DONE)
+right click custom menu (DONE)
+
+add document preview button and menu 
+insert
+  -video
+ -audio
+format brush
 edit toolbar settings (local storage, can reset)
 save as md, 
 load from md
@@ -25,7 +28,6 @@ backround image
 backround image position, crop
 background image zoom
 css animations
-bookmark manager
 config where to show  the toolbar
 draw? (svg?)
 Animation library
@@ -37,10 +39,10 @@ Possible javascript block <javasript> separate editor window,
 Fit, % zoom on screen only
 The save, load is now file, add two buttons (customizable what is shown, with save to API and load from API)
 Add comments to specific lines, especially for commspliant. and this can be shown with show comments, or hide.
-right click custom menu
 make it as an electron app as well, for multiple platform, Desktop HTML word editor
 Import docx? Save as Docx?
 possibiltity to detach main menu only and main menu and toolbar together
 Readonly property, all button and menu disabled, and neather editor can be edited.
 Not only add table, but add responsive grid system, editable properties for mobile devices.
-Drag html file in
+Drag html file In
+Add table column with and row heiht property editor
