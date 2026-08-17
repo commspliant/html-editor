@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import { validateBookmarkName, type BookmarkNameError } from '../../core/bookmark'
 import { CloseIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
@@ -89,7 +89,9 @@ export function BookmarkDialog({
     onApply(name.trim())
   }
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -158,7 +160,7 @@ export function BookmarkDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

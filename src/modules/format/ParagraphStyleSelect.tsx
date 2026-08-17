@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import { useT } from '../../i18n/LocaleProvider'
 import type { ToolbarWidgetProps } from '../../toolbar/types'
 import { Tooltip } from '../../toolbar/Tooltip'
@@ -94,7 +94,9 @@ export function ParagraphStyleSelect({ commands, queries, disabled }: ToolbarWid
         <span className={styles.chevron} aria-hidden="true" />
       </div>
       {open
-        ? createPortal(
+        ? (
+      <ChromePortal>
+
             <ParagraphStyleList
               listRef={listRef}
               listId={listId}
@@ -113,9 +115,9 @@ export function ParagraphStyleSelect({ commands, queries, disabled }: ToolbarWid
                 commands.applyCustomParagraphStyle(id)
                 setOpen(false)
               }}
-            />,
-            document.body,
-          )
+            />
+      </ChromePortal>
+    )
         : null}
     </div>
   )

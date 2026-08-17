@@ -1,0 +1,61 @@
+.chrome {
+  --wysiwyg-chrome-text: #444;
+  --wysiwyg-chrome-text-strong: #111;
+  --wysiwyg-chrome-text-muted: #555;
+  --wysiwyg-chrome-toolbar: #f0f0f0;
+  --wysiwyg-chrome-menu: #fff;
+  --wysiwyg-chrome-border: #e5e5e5;
+  --wysiwyg-chrome-divider: #d0d0d0;
+  --wysiwyg-chrome-hover: #f0f0f0;
+  --wysiwyg-chrome-pressed: #ececec;
+  --wysiwyg-chrome-dialog: #fff;
+  --wysiwyg-chrome-dialog-text: #222;
+  --wysiwyg-chrome-dialog-border: #c8c8c8;
+  --wysiwyg-chrome-dialog-muted: #f7f7f7;
+  --wysiwyg-chrome-dialog-group: #fafafa;
+  --wysiwyg-chrome-input: #fff;
+  --wysiwyg-chrome-focus: #8ab4ff;
+  --wysiwyg-chrome-backdrop: rgb(0 0 0 / 32%);
+  --wysiwyg-chrome-shadow: rgb(0 0 0 / 18%);
+  --wysiwyg-chrome-menu-shadow: rgb(0 0 0 / 8%);
+  --wysiwyg-chrome-tooltip-bg: #222;
+  --wysiwyg-chrome-tooltip-fg: #fff;
+  --wysiwyg-chrome-selected: #e8f0fe;
+  --wysiwyg-chrome-danger: #b33;
+  --wysiwyg-chrome-primary: #4a7fd4;
+  --wysiwyg-chrome-primary-fg: #fff;
+  --wysiwyg-chrome-primary-soft: #e8eef8;
+  --wysiwyg-chrome-empty: #ddd;
+  --wysiwyg-chrome-icon: #333;
+}
+
+.chrome[data-wysiwyg-theme='dark'] {
+  --wysiwyg-chrome-text: #e4e4e4;
+  --wysiwyg-chrome-text-strong: #fff;
+  --wysiwyg-chrome-text-muted: #bbb;
+  --wysiwyg-chrome-toolbar: #2b2b2b;
+  --wysiwyg-chrome-menu: #1e1e1e;
+  --wysiwyg-chrome-border: #3a3a3a;
+  --wysiwyg-chrome-divider: #4a4a4a;
+  --wysiwyg-chrome-hover: #3a3a3a;
+  --wysiwyg-chrome-pressed: #444;
+  --wysiwyg-chrome-dialog: #252525;
+  --wysiwyg-chrome-dialog-text: #e8e8e8;
+  --wysiwyg-chrome-dialog-border: #4a4a4a;
+  --wysiwyg-chrome-dialog-muted: #1a1a1a;
+  --wysiwyg-chrome-dialog-group: #1a1a1a;
+  --wysiwyg-chrome-input: #1e1e1e;
+  --wysiwyg-chrome-focus: #8ab4ff;
+  --wysiwyg-chrome-backdrop: rgb(0 0 0 / 55%);
+  --wysiwyg-chrome-shadow: rgb(0 0 0 / 45%);
+  --wysiwyg-chrome-menu-shadow: rgb(0 0 0 / 40%);
+  --wysiwyg-chrome-tooltip-bg: #eee;
+  --wysiwyg-chrome-tooltip-fg: #111;
+  --wysiwyg-chrome-selected: #2a3a50;
+  --wysiwyg-chrome-danger: #f66;
+  --wysiwyg-chrome-primary: #6a9ae0;
+  --wysiwyg-chrome-primary-fg: #111;
+  --wysiwyg-chrome-primary-soft: #2a3a50;
+  --wysiwyg-chrome-empty: #555;
+  --wysiwyg-chrome-icon: #eee;
+}

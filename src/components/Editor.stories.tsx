@@ -187,6 +187,8 @@ let storyToolbarSettings: { groupOrder: string[]; hiddenItemIds: string[] } | nu
   hiddenItemIds: ['print'],
 }
 
+let storyDarkMode = true
+
 export const HostToolbarCustomization: Story = {
   args: {
     defaultValue: '<p>View → Toolbar → Customize toolbar. Print starts hidden; host load/save is in memory.</p>',
@@ -194,6 +196,19 @@ export const HostToolbarCustomization: Story = {
       load: async () => storyToolbarSettings,
       save: async (settings) => {
         storyToolbarSettings = settings
+      },
+    },
+  },
+}
+
+export const DarkMode: Story = {
+  args: {
+    defaultValue: '<p>View → Dark mode inverts chrome only. The document surface stays light.</p>',
+    darkMode: true,
+    darkModePersistence: {
+      load: async () => storyDarkMode,
+      save: async (darkMode) => {
+        storyDarkMode = darkMode
       },
     },
   },

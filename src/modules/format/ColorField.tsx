@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import { ColorPicker } from './ColorPicker'
 import styles from './ColorSelect.module.css'
 import fieldStyles from './ColorField.module.css'
@@ -104,7 +104,9 @@ export function ColorField({
         <span className={swatchClass} style={swatchStyle} />
       </button>
       {open
-        ? createPortal(
+        ? (
+      <ChromePortal>
+
             <div
               ref={popoverRef}
               id={listId}
@@ -121,9 +123,9 @@ export function ColorField({
                 onChange={onChange}
                 onCommit={() => setOpen(false)}
               />
-            </div>,
-            document.body,
-          )
+            </div>
+      </ChromePortal>
+    )
         : null}
     </div>
   )

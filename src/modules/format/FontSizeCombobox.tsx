@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { FontSizeUnit } from '../../core/fontSizeUnits'
 import { useT } from '../../i18n/LocaleProvider'
 import type { MessageKey } from '../../i18n/types'
@@ -122,7 +122,9 @@ export function FontSizeCombobox({
   const presets = FONT_SIZE_PRESETS[unit]
 
   const list = open
-    ? createPortal(
+    ? (
+      <ChromePortal>
+
         <ul
           ref={listRef}
           className={styles.list}
@@ -148,9 +150,9 @@ export function FontSizeCombobox({
               </button>
             </li>
           ))}
-        </ul>,
-        document.body,
-      )
+        </ul>
+      </ChromePortal>
+    )
     : null
 
   const control = (

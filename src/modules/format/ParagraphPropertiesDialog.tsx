@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { ParagraphDialogTab, ParagraphPropertiesApply } from '../../core/commandTypes'
 import { useT } from '../../i18n/LocaleProvider'
 import { ParagraphPropertiesFields } from './ParagraphPropertiesFields'
@@ -71,7 +71,9 @@ export function ParagraphPropertiesDialog({
 
   if (!open) return null
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -105,7 +107,7 @@ export function ParagraphPropertiesDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

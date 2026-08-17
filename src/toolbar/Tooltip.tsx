@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../chrome/ChromeTheme'
 import styles from './Toolbar.module.css'
 
 export const TOOLTIP_HOVER_DELAY_MS = 400
@@ -127,7 +127,9 @@ export function Tooltip({ label, children, className, elevated }: TooltipProps) 
         {children}
       </span>
       {open
-        ? createPortal(
+        ? (
+      <ChromePortal>
+
             <span
               ref={tipRef}
               className={elevated ? `${styles.tooltip} ${styles.tooltipElevated}` : styles.tooltip}
@@ -136,9 +138,9 @@ export function Tooltip({ label, children, className, elevated }: TooltipProps) 
               aria-hidden="true"
             >
               {label}
-            </span>,
-            document.body,
-          )
+            </span>
+      </ChromePortal>
+    )
         : null}
     </>
   )

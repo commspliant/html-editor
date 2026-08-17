@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { LinkApply, LinkDialogTab } from '../../core/commandTypes'
 import type { BookmarkEntry } from '../../core/bookmark'
 import { defaultLinkAttrs, type LinkHoverMode } from '../../core/link'
@@ -138,7 +138,9 @@ export function LinkDialog({
     onApply({ ...appearance(), href: `#${draftBookmark}` })
   }
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -309,7 +311,7 @@ export function LinkDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

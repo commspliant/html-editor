@@ -10,6 +10,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     setMode: vi.fn(),
     getFullscreen: () => false,
     setFullscreen: vi.fn(),
+    getDarkMode: () => false,
+    setDarkMode: vi.fn(),
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
     getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),
@@ -144,6 +146,17 @@ describe('createViewCommands', () => {
 
     expect(openDocumentPreview).toHaveBeenCalledTimes(1)
   })
+
+  it('sets light and dark chrome modes', () => {
+    const setDarkMode = vi.fn()
+    const commands = createViewCommands(context({ setDarkMode }))
+
+    commands.setDarkMode()
+    expect(setDarkMode).toHaveBeenCalledWith(true)
+
+    commands.setLightMode()
+    expect(setDarkMode).toHaveBeenCalledWith(false)
+  })
 })
 
 describe('createViewQueries', () => {
@@ -157,5 +170,12 @@ describe('createViewQueries', () => {
   it('reports fullscreen state', () => {
     expect(createViewQueries(context({ getFullscreen: () => false })).isFullscreen()).toBe(false)
     expect(createViewQueries(context({ getFullscreen: () => true })).isFullscreen()).toBe(true)
+  })
+
+  it('reports chrome theme', () => {
+    expect(createViewQueries(context({ getDarkMode: () => false })).isLightMode()).toBe(true)
+    expect(createViewQueries(context({ getDarkMode: () => false })).isDarkMode()).toBe(false)
+    expect(createViewQueries(context({ getDarkMode: () => true })).isLightMode()).toBe(false)
+    expect(createViewQueries(context({ getDarkMode: () => true })).isDarkMode()).toBe(true)
   })
 })

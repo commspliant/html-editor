@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { FontDialogTab, FontPropertiesApply, ParagraphDialogTab, ParagraphPropertiesApply } from '../../core/commandTypes'
 import { paragraphApplyToStyle, styleToParagraphApply } from '../../core/paragraphProperties'
 import { CloseIcon } from '../../icons'
@@ -158,7 +158,9 @@ export function CustomParagraphStyleDialog({
     })
   }
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -299,7 +301,7 @@ export function CustomParagraphStyleDialog({
           </>
         )}
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

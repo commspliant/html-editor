@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import { writeDocumentHtml } from '../../core/documentStyles'
 import { CloseIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
@@ -60,7 +60,9 @@ export function DocumentPreviewDialog({ open, html, onClose }: DocumentPreviewDi
 
   if (!open) return null
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -103,7 +105,7 @@ export function DocumentPreviewDialog({ open, html, onClose }: DocumentPreviewDi
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

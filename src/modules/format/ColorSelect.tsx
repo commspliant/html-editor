@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import { useT } from '../../i18n/LocaleProvider'
 import type { MessageKey } from '../../i18n/types'
 import type { IconProps } from '../../icons'
@@ -118,7 +118,9 @@ export function ColorSelect({
         <span className={barClass} style={barStyle} />
       </button>
       {open
-        ? createPortal(
+        ? (
+      <ChromePortal>
+
             <div
               ref={popoverRef}
               id={listId}
@@ -135,9 +137,9 @@ export function ColorSelect({
                 onChange={apply}
                 onCommit={() => setOpen(false)}
               />
-            </div>,
-            document.body,
-          )
+            </div>
+      </ChromePortal>
+    )
         : null}
     </div>
   )

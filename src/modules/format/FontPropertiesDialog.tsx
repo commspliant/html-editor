@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { FontDialogTab, FontPropertiesApply } from '../../core/commandTypes'
 import type { FontFace } from '../../core/fontFamily'
 import type { FontSizeUnit } from '../../core/fontSizeUnits'
@@ -112,7 +112,9 @@ export function FontPropertiesDialog({
 
   if (!open) return null
 
-  return createPortal(
+  return (
+      <ChromePortal>
+
     <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
@@ -147,7 +149,7 @@ export function FontPropertiesDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  )
+    </div>
+      </ChromePortal>
+    )
 }

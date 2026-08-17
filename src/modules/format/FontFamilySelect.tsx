@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { FontFace } from '../../core/fontFamily'
 import { useT } from '../../i18n/LocaleProvider'
 import type { ToolbarWidgetProps } from '../../toolbar/types'
@@ -111,7 +111,9 @@ export function FontFamilyCombobox({
         <span className={styles.chevron} aria-hidden="true" />
       </div>
       {open
-        ? createPortal(
+        ? (
+      <ChromePortal>
+
             <FontFamilyList
               listRef={listRef}
               listId={listId}
@@ -124,9 +126,9 @@ export function FontFamilyCombobox({
                 onChange(next)
                 setOpen(false)
               }}
-            />,
-            document.body,
-          )
+            />
+      </ChromePortal>
+    )
         : null}
     </div>
   )

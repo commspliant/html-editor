@@ -39,6 +39,12 @@ export type PlaygroundMessages = {
   appearanceToolbarAria: string
   toolbarPersistBrowser: string
   toolbarPersistApi: string
+  appearanceDarkModeAria: string
+  appearanceDarkModeInitialAria: string
+  darkModeInitialLight: string
+  darkModeInitialDark: string
+  darkModePersistBrowser: string
+  darkModePersistApi: string
   imagePickerTab: string
   imagePickerDescription: string
   imagePickerButton: string
@@ -64,6 +70,7 @@ export type PlaygroundMessages = {
   fontsExampleBody: string
   imageExampleBody: string
   toolbarExampleBody: string
+  darkModeExampleBody: string
   languageExampleBody: string
   footerGithub: string
   footerGithubLink: string
@@ -113,6 +120,12 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     appearanceToolbarAria: 'Toolbar settings',
     toolbarPersistBrowser: 'Browser storage',
     toolbarPersistApi: 'API storage',
+    appearanceDarkModeAria: 'Dark mode settings',
+    appearanceDarkModeInitialAria: 'Initial chrome theme',
+    darkModeInitialLight: 'Start light',
+    darkModeInitialDark: 'Start dark',
+    darkModePersistBrowser: 'Browser storage',
+    darkModePersistApi: 'API storage',
     imagePickerTab: 'Gallery',
     imagePickerDescription: 'Choose an image from the sample gallery.',
     imagePickerButton: 'Open gallery',
@@ -146,6 +159,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Pass customImagePicker to add a third Insert image source. Set disableBuiltinImageInsert to skip the built-in dialog and open your picker immediately.',
     toolbarExampleBody:
       'Omit toolbarCustomization to persist layout in localStorage. Pass load and save to store it on the host, including async APIs.',
+    darkModeExampleBody:
+      'darkMode is the initial chrome theme when nothing is persisted (default false, light). Omit darkModePersistence to persist View → Light mode / Dark mode in localStorage. Pass load and save to store it on the host. Visual and HTML surfaces stay unchanged.',
     languageExampleBody:
       'Pass locale to switch library chrome between English and Spanish. Document content is not translated.',
     footerGithub: 'GitHub:',
@@ -194,6 +209,12 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     appearanceToolbarAria: 'Configuración de la barra',
     toolbarPersistBrowser: 'Almacenamiento del navegador',
     toolbarPersistApi: 'Almacenamiento API',
+    appearanceDarkModeAria: 'Configuración del modo oscuro',
+    appearanceDarkModeInitialAria: 'Tema inicial del chrome',
+    darkModeInitialLight: 'Iniciar claro',
+    darkModeInitialDark: 'Iniciar oscuro',
+    darkModePersistBrowser: 'Almacenamiento del navegador',
+    darkModePersistApi: 'Almacenamiento API',
     imagePickerTab: 'Galería',
     imagePickerDescription: 'Elige una imagen de la galería de ejemplo.',
     imagePickerButton: 'Abrir galería',
@@ -227,6 +248,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Pasa customImagePicker para añadir una tercera fuente de inserción de imágenes. Con disableBuiltinImageInsert se omite el diálogo integrado y se abre tu selector de inmediato.',
     toolbarExampleBody:
       'Omite toolbarCustomization para guardar el diseño en localStorage. Pasa load y save para almacenarlo en el anfitrión, incluidas las APIs asíncronas.',
+    darkModeExampleBody:
+      'darkMode es el tema inicial del chrome cuando no hay nada persistido (false por defecto, claro). Omite darkModePersistence para guardar Vista → Modo claro / Modo oscuro en localStorage. Pasa load y save para almacenarlo en el anfitrión. Las superficies Visual y HTML no cambian.',
     languageExampleBody:
       'Pasa locale para cambiar el chrome de la biblioteca entre inglés y español. El contenido del documento no se traduce.',
     footerGithub: 'GitHub:',

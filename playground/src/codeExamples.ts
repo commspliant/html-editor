@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'readOnly' | 'htmlFileDrop' | 'menu' | 'border' | 'fonts' | 'image' | 'toolbar' | 'language'
+export type ExampleBlockId = 'chrome' | 'readOnly' | 'htmlFileDrop' | 'menu' | 'border' | 'fonts' | 'image' | 'toolbar' | 'darkMode' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -142,6 +142,27 @@ const toolbarCustomization: ToolbarCustomizationPersistence = {
 }
 
 <Editor toolbarCustomization={toolbarCustomization} />`,
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor />`,
+    ],
+  },
+  darkMode: {
+    titleKey: 'appearanceDarkModeAria',
+    bodyKey: 'darkModeExampleBody',
+    snippets: [
+      `import { Editor, type DarkModePersistence } from 'commspliant-html-editor'
+
+let stored = null
+
+const darkModePersistence: DarkModePersistence = {
+  load: async () => stored,
+  save: async (darkMode) => {
+    stored = darkMode
+  },
+}
+
+<Editor darkMode={false} darkModePersistence={darkModePersistence} />`,
       `import { Editor } from 'commspliant-html-editor'
 
 <Editor />`,

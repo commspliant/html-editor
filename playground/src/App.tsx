@@ -11,6 +11,7 @@ import {
   type Locale,
   type ToolbarCustomization,
   type ToolbarCustomizationPersistence,
+  type DarkModePersistence,
 } from 'commspliant-html-editor'
 import { playgroundMessages } from './i18n/messages'
 import { CodeExampleDialog } from './CodeExampleDialog'
@@ -22,6 +23,7 @@ type MenuAppearance = 'default' | 'example'
 type BorderAppearance = 'default' | 'none' | 'rounded'
 type ImagePickerMode = 'default' | 'custom' | 'direct'
 type ToolbarPersistMode = 'browser' | 'api'
+type DarkModePersistMode = 'browser' | 'api'
 
 const PLAYGROUND_GALLERY: { src: string; altKey: 'imageGalleryMountain' | 'imageGalleryLake' }[] = [
   { src: 'https://picsum.photos/id/1015/400/300', altKey: 'imageGalleryMountain' },
@@ -72,6 +74,18 @@ async function loadPlaygroundToolbarSettings() {
 async function savePlaygroundToolbarSettings(settings: ToolbarCustomization | null) {
   await delay(PLAYGROUND_TOOLBAR_DELAY_MS)
   playgroundToolbarSettings = settings
+}
+
+let playgroundDarkMode: boolean | null = null
+
+async function loadPlaygroundDarkMode() {
+  await delay(PLAYGROUND_TOOLBAR_DELAY_MS)
+  return playgroundDarkMode
+}
+
+async function savePlaygroundDarkMode(darkMode: boolean) {
+  await delay(PLAYGROUND_TOOLBAR_DELAY_MS)
+  playgroundDarkMode = darkMode
 }
 
 const exampleMenu = {
@@ -149,6 +163,8 @@ export function App() {
   const [googleFonts, setGoogleFonts] = useState(false)
   const [imagePickerMode, setImagePickerMode] = useState<ImagePickerMode>('default')
   const [toolbarPersistMode, setToolbarPersistMode] = useState<ToolbarPersistMode>('browser')
+  const [darkModePersistMode, setDarkModePersistMode] = useState<DarkModePersistMode>('browser')
+  const [initialDarkMode, setInitialDarkMode] = useState(false)
   const [imageInsert, setImageInsert] = useState<((image: CustomImageInsert) => void) | null>(null)
   const [aiApi, setAiApi] = useState<CustomActionApi | null>(null)
   const [aiHtml, setAiHtml] = useState('')
@@ -244,6 +260,14 @@ export function App() {
       save: savePlaygroundToolbarSettings,
     }
   }, [toolbarPersistMode])
+
+  const darkModePersistence = useMemo<DarkModePersistence | undefined>(() => {
+    if (darkModePersistMode !== 'api') return undefined
+    return {
+      load: loadPlaygroundDarkMode,
+      save: savePlaygroundDarkMode,
+    }
+  }, [darkModePersistMode])
 
   return (
     <main className="page">
@@ -537,6 +561,49 @@ export function App() {
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
+                    label={t.appearanceDarkModeAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('darkMode')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.appearanceDarkModeInitialAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!initialDarkMode}
+                      onClick={() => setInitialDarkMode(false)}
+                    >
+                      {t.darkModeInitialLight}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={initialDarkMode}
+                      onClick={() => setInitialDarkMode(true)}
+                    >
+                      {t.darkModeInitialDark}
+                    </button>
+                  </div>
+                  <div className="locale-toggle" role="group" aria-label={t.appearanceDarkModeAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={darkModePersistMode === 'browser'}
+                      onClick={() => setDarkModePersistMode('browser')}
+                    >
+                      {t.darkModePersistBrowser}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={darkModePersistMode === 'api'}
+                      onClick={() => setDarkModePersistMode('api')}
+                    >
+                      {t.darkModePersistApi}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
                     label={t.languageAria}
                     examplesLabel={t.codeExamplesLink}
                     onOpenExamples={() => setExampleBlock('language')}
@@ -607,6 +674,8 @@ export function App() {
               customImagePicker={customImagePicker}
               disableBuiltinImageInsert={imagePickerMode === 'direct'}
               toolbarCustomization={toolbarCustomization}
+              darkMode={initialDarkMode}
+              darkModePersistence={darkModePersistence}
               loadCustomParagraphStyles={loadPlaygroundCustomStyles}
               onSaveCustomParagraphStyle={savePlaygroundCustomStyle}
               onDeleteCustomParagraphStyle={deletePlaygroundCustomStyle}

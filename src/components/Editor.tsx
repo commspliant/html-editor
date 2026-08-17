@@ -139,6 +139,7 @@ import {
   queryRowAtSelection,
 } from '../core/rowProperties'
 import { useControllableState } from '../hooks/useControllableState'
+import { ChromeThemeProvider, chromeThemeProps } from '../chrome/ChromeTheme'
 import { CloseIcon } from '../icons'
 import { LocaleProvider, useT } from '../i18n/LocaleProvider'
 import { FontPropertiesDialog } from '../modules/format/FontPropertiesDialog'
@@ -155,6 +156,10 @@ import { TablePropertiesDialog } from '../modules/table/TablePropertiesDialog'
 import { CellPropertiesDialog } from '../modules/table/CellPropertiesDialog'
 import { RowPropertiesDialog } from '../modules/table/RowPropertiesDialog'
 import { DocumentPreviewDialog } from '../modules/view/DocumentPreviewDialog'
+import {
+  readDarkModeFromStorage,
+  writeDarkModeToStorage,
+} from '../modules/view/darkModePersistence'
 import { ContextMenu, type ContextMenuKind } from '../modules/contextMenu'
 import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
 import { createDocumentHistory } from '../modules/history'
@@ -212,6 +217,8 @@ export function Editor({
   disableBuiltinImageInsert,
   disableHtmlFileDrop = false,
   toolbarCustomization,
+  darkMode = false,
+  darkModePersistence,
 }: EditorProps) {
   const locked = Boolean(disabled || readOnly)
   const [html, setHtml] = useControllableState({
@@ -313,6 +320,10 @@ export function Editor({
   const [toolbarSettings, setToolbarSettings] = useState<ToolbarCustomization | null>(null)
   const [toolbarSettingsLoading, setToolbarSettingsLoading] = useState(false)
   const [toolbarSettingsBusy, setToolbarSettingsBusy] = useState(false)
+  const [dark, setDark] = useState(() => {
+    if (darkModePersistence) return darkMode
+    return readDarkModeFromStorage() ?? darkMode
+  })
   const [paragraphDialog, setParagraphDialog] = useState<{
     open: boolean
     tab: ParagraphDialogTab
@@ -437,11 +448,17 @@ export function Editor({
   customImagePickerRef.current = customImagePicker
   const toolbarCustomizationRef = useRef(toolbarCustomization)
   toolbarCustomizationRef.current = toolbarCustomization
+  const darkModePersistenceRef = useRef(darkModePersistence)
+  darkModePersistenceRef.current = darkModePersistence
+  const darkRef = useRef(dark)
+  darkRef.current = dark
   const disableBuiltinImageInsertRef = useRef(disableBuiltinImageInsert)
   disableBuiltinImageInsertRef.current = disableBuiltinImageInsert
   const customStyleLoadGenerationRef = useRef(0)
   const toolbarLoadGenerationRef = useRef(0)
   const toolbarSaveGenerationRef = useRef(0)
+  const darkModeLoadGenerationRef = useRef(0)
+  const darkModeSaveGenerationRef = useRef(0)
   const fontFaces = useMemo(() => mergeFontFaces(customFonts), [customFonts])
   const fontFacesRef = useRef(fontFaces)
   fontFacesRef.current = fontFaces
@@ -540,6 +557,45 @@ export function Editor({
       toolbarLoadGenerationRef.current += 1
     }
   }, [toolbarCustomization])
+
+  const persistDarkMode = useCallback(async (next: boolean) => {
+    setDark(next)
+    const host = darkModePersistenceRef.current
+    if (host?.load && host.save) {
+      const generation = ++darkModeSaveGenerationRef.current
+      try {
+        await host.save(next)
+      } catch {
+        /* keep local theme */
+      } finally {
+        if (generation !== darkModeSaveGenerationRef.current) return
+      }
+      return
+    }
+    writeDarkModeToStorage(next)
+  }, [])
+
+  useEffect(() => {
+    const host = darkModePersistence
+    if (!host?.load || !host.save) {
+      setDark(readDarkModeFromStorage() ?? darkMode)
+      return
+    }
+    const generation = ++darkModeLoadGenerationRef.current
+    void (async () => {
+      try {
+        const next = await host.load()
+        if (generation !== darkModeLoadGenerationRef.current) return
+        setDark(typeof next === 'boolean' ? next : darkMode)
+      } catch {
+        if (generation !== darkModeLoadGenerationRef.current) return
+        setDark(darkMode)
+      }
+    })()
+    return () => {
+      darkModeLoadGenerationRef.current += 1
+    }
+  }, [darkModePersistence, darkMode])
 
   const commitHtml = useCallback(
     (next: string) => {
@@ -1327,6 +1383,10 @@ export function Editor({
       setMode: handleModeChange,
       getFullscreen: () => fullscreenRef.current,
       setFullscreen,
+      getDarkMode: () => darkRef.current,
+      setDarkMode: (next) => {
+        void persistDarkMode(next)
+      },
       openCustomizeToolbar: () => {
         setCustomizeToolbarOpen(true)
       },
@@ -1768,7 +1828,7 @@ export function Editor({
       isImageSelected: () => modeRef.current === 'visual' && selectedImageRef.current !== null,
       isInTable: () => modeRef.current === 'visual' && inTableRef.current,
     }),
-    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
+    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -1815,7 +1875,7 @@ export function Editor({
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
-    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, hasTextSelectionState],
+    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, hasTextSelectionState, dark],
   )
 
   const handleVisualBeforeInput = useCallback(
@@ -1984,7 +2044,7 @@ export function Editor({
     [locked, undo, redo, commandContext, commands, restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
   )
 
-  const rootClassName = [styles.root, fullscreen ? styles.fullscreen : '', className]
+  const rootClassName = [styles.root, chromeThemeProps(dark).className, fullscreen ? styles.fullscreen : '', className]
     .filter(Boolean)
     .join(' ')
   const rootStyle = editorChromeStyle({
@@ -1995,13 +2055,16 @@ export function Editor({
     menuFontFamily,
     border,
   })
+  const themeAttr = chromeThemeProps(dark)['data-wysiwyg-theme']
 
   return (
     <LocaleProvider locale={locale}>
+      <ChromeThemeProvider dark={dark}>
       <div
         className={rootClassName}
         style={rootStyle}
         data-fullscreen={fullscreen ? '' : undefined}
+        data-wysiwyg-theme={themeAttr}
         onKeyDown={handleHistoryKeyDown}
       >
         {menuVisible || toolbarVisible ? (
@@ -2250,6 +2313,7 @@ export function Editor({
           onClose={() => setContextMenu((prev) => ({ ...prev, open: false }))}
         />
       </div>
+      </ChromeThemeProvider>
     </LocaleProvider>
   )
 }

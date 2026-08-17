@@ -10,6 +10,7 @@ export type {
   CustomParagraphStyle,
   CustomParagraphStyleFont,
   CustomParagraphStyleParagraph,
+  DarkModePersistence,
   EditorBorder,
   EditorMode,
   EditorProps,

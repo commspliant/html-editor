@@ -7,6 +7,10 @@ export type Messages = {
   modeHtmlAria: string
   modeFullscreen: string
   modeFullscreenAria: string
+  modeLight: string
+  modeLightAria: string
+  modeDark: string
+  modeDarkAria: string
   exitFullscreenAria: string
   visualEditorAria: string
   htmlEditorAria: string
