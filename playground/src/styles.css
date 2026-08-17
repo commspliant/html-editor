@@ -351,6 +351,13 @@ body {
   border-radius: var(--radius-sm);
 }
 
+.control-group-status {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--nav-label);
+}
+
 .locale-toggle {
   display: flex;
   flex-wrap: wrap;

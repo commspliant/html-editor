@@ -173,6 +173,8 @@ export function App() {
   const [fullscreen, setFullscreen] = useState(false)
   const [readOnly, setReadOnly] = useState(false)
   const [disableHtmlFileDrop, setDisableHtmlFileDrop] = useState(false)
+  const [autoSave, setAutoSave] = useState(false)
+  const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
   const [menuAppearance, setMenuAppearance] = useState<MenuAppearance>('default')
   const [borderAppearance, setBorderAppearance] = useState<BorderAppearance>('default')
   const [googleFonts, setGoogleFonts] = useState(false)
@@ -294,6 +296,18 @@ export function App() {
       save: savePlaygroundToolbarPosition,
     }
   }, [toolbarPositionPersistMode])
+
+  const onAutoSave = useCallback((_html: string) => {
+    setLastAutoSaveAt(Date.now())
+  }, [])
+
+  const autoSaveWhen =
+    lastAutoSaveAt == null
+      ? t.autoSaveNever
+      : new Date(lastAutoSaveAt).toLocaleString(locale, {
+          dateStyle: 'medium',
+          timeStyle: 'medium',
+        })
 
   return (
     <main className="page">
@@ -443,6 +457,34 @@ export function App() {
                       {t.htmlFileDropDisabled}
                     </button>
                   </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.autoSaveAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('autoSave')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.autoSaveAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!autoSave}
+                      onClick={() => setAutoSave(false)}
+                    >
+                      {t.autoSaveOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={autoSave}
+                      onClick={() => setAutoSave(true)}
+                    >
+                      {t.autoSaveOn}
+                    </button>
+                  </div>
+                  <p className="control-group-status">
+                    {t.autoSaveLast}: {autoSaveWhen}
+                  </p>
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
@@ -744,6 +786,7 @@ export function App() {
               onFullscreenChange={setFullscreen}
               readOnly={readOnly}
               disableHtmlFileDrop={disableHtmlFileDrop}
+              onAutoSave={autoSave ? onAutoSave : undefined}
               {...(menuAppearance === 'example' ? exampleMenu : {})}
               border={
                 borderAppearance === 'none'

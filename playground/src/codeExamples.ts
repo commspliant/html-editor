@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'readOnly' | 'htmlFileDrop' | 'menu' | 'border' | 'fonts' | 'image' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'menu' | 'border' | 'fonts' | 'image' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -49,6 +49,20 @@ export function App() {
       `import { Editor } from 'commspliant-html-editor'
 
 <Editor disableHtmlFileDrop />`,
+    ],
+  },
+  autoSave: {
+    titleKey: 'autoSaveAria',
+    bodyKey: 'autoSaveExampleBody',
+    snippets: [
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor
+  defaultValue="<p>Hello</p>"
+  onAutoSave={(html) => {
+    void fetch('/save', { method: 'POST', body: html })
+  }}
+/>`,
     ],
   },
   menu: {

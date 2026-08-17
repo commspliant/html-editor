@@ -22,6 +22,11 @@ export type PlaygroundMessages = {
   htmlFileDropAria: string
   htmlFileDropAllowed: string
   htmlFileDropDisabled: string
+  autoSaveAria: string
+  autoSaveOn: string
+  autoSaveOff: string
+  autoSaveLast: string
+  autoSaveNever: string
   appearanceMenuAria: string
   menuDefault: string
   menuExample: string
@@ -73,6 +78,7 @@ export type PlaygroundMessages = {
   chromeExampleBody: string
   readOnlyExampleBody: string
   htmlFileDropExampleBody: string
+  autoSaveExampleBody: string
   menuExampleBody: string
   borderExampleBody: string
   fontsExampleBody: string
@@ -112,6 +118,11 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     htmlFileDropAria: 'HTML file drop',
     htmlFileDropAllowed: 'Drop allowed',
     htmlFileDropDisabled: 'Drop disabled',
+    autoSaveAria: 'Auto save',
+    autoSaveOn: 'On',
+    autoSaveOff: 'Off',
+    autoSaveLast: 'Last auto save',
+    autoSaveNever: 'Never',
     appearanceMenuAria: 'Menu appearance',
     menuDefault: 'Menu default',
     menuExample: 'Menu example',
@@ -166,6 +177,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Lock both editing surfaces and all menus and toolbar buttons from the host. Default is false. Same lock as disabled.',
     htmlFileDropExampleBody:
       'Dropping an HTML file onto the document replaces it, the same as File → Open. Set disableHtmlFileDrop to ignore drops. File → Open is unchanged.',
+    autoSaveExampleBody:
+      'Pass onAutoSave to persist the document HTML. The editor polls every second and calls the callback only when the HTML changed. Omit the prop to disable. The callback is not awaited, so editing is not blocked.',
     menuExampleBody:
       'Restyle the dropdown menu bar only — not the icon toolbar. Load any custom webfont on the host page before passing its family name.',
     borderExampleBody:
@@ -211,6 +224,11 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     htmlFileDropAria: 'Soltar archivo HTML',
     htmlFileDropAllowed: 'Soltar permitido',
     htmlFileDropDisabled: 'Soltar desactivado',
+    autoSaveAria: 'Autoguardado',
+    autoSaveOn: 'Activado',
+    autoSaveOff: 'Desactivado',
+    autoSaveLast: 'Último autoguardado',
+    autoSaveNever: 'Nunca',
     appearanceMenuAria: 'Apariencia del menú',
     menuDefault: 'Menú predeterminado',
     menuExample: 'Menú de ejemplo',
@@ -265,6 +283,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Bloquea ambas superficies de edición y todos los menús y botones de la barra desde la aplicación anfitriona. El valor predeterminado es false. El mismo bloqueo que disabled.',
     htmlFileDropExampleBody:
       'Soltar un archivo HTML sobre el documento lo reemplaza, igual que Archivo → Abrir. Con disableHtmlFileDrop se ignoran las sueltas. Archivo → Abrir no cambia.',
+    autoSaveExampleBody:
+      'Pasa onAutoSave para persistir el HTML del documento. El editor consulta cada segundo y llama al callback solo si el HTML cambió. Omite la propiedad para desactivarlo. El callback no se espera, así que la edición no se bloquea.',
     menuExampleBody:
       'Cambia solo el estilo de la barra de menús desplegables, no la barra de iconos. Carga cualquier fuente web en la página anfitriona antes de pasar su familia.',
     borderExampleBody:
