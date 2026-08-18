@@ -18,6 +18,9 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     setToolbarPosition: vi.fn(),
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
+    toggleReadAloud: vi.fn(),
+    isReadingAloud: () => false,
+    canReadAloud: () => true,
     getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),
     insertText: vi.fn(),
     insertHtml: vi.fn(),
@@ -56,6 +59,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     isNumberedList: () => false,
     openFontProperties: vi.fn(),
     applyFontProperties: vi.fn(),
+    openCustomCss: vi.fn(),
+    applyCustomCss: vi.fn(),
     openParagraphProperties: vi.fn(),
     applyParagraphProperties: vi.fn(),
     openPageProperties: vi.fn(),
@@ -147,6 +152,18 @@ describe('createFormatCommands', () => {
     commands.setFontFamily(null)
 
     expect(setFontFamily.mock.calls).toEqual([['Georgia, serif'], [null]])
+  })
+
+  it('opens and applies custom css', () => {
+    const openCustomCss = vi.fn()
+    const applyCustomCss = vi.fn()
+    const commands = createFormatCommands(context({ openCustomCss, applyCustomCss }))
+
+    commands.openCustomCss()
+    commands.applyCustomCss('color: red')
+
+    expect(openCustomCss).toHaveBeenCalledTimes(1)
+    expect(applyCustomCss).toHaveBeenCalledWith('color: red')
   })
 
   it('opens and applies paragraph properties', () => {

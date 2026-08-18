@@ -101,6 +101,14 @@ import {
   deleteSelectionInDocument,
 } from '../core/clipboard'
 import { clearFormattingInDocument } from '../core/clearFormatting'
+import {
+  compressCustomCss,
+  formatCustomCssForDisplay,
+  hasPendingCustomCss,
+  queryCustomCssAtSelection,
+  setCustomCssInDocument,
+} from '../core/customCss'
+import { createReadAloudSession, isSpeechSynthesisSupported, resolveReadAloudText } from '../core/readAloud'
 import { closestImage, insertImageInDocument, selectImageInDocument } from '../core/image'
 import { insertHorizontalRuleInDocument } from '../core/horizontalRule'
 import { writeImagePixelSize } from '../core/imageResize'
@@ -152,6 +160,7 @@ import { FontPropertiesDialog } from '../modules/format/FontPropertiesDialog'
 import { ParagraphPropertiesDialog } from '../modules/format/ParagraphPropertiesDialog'
 import { PagePropertiesDialog } from '../modules/format/PagePropertiesDialog'
 import { CustomParagraphStyleDialog } from '../modules/format/CustomParagraphStyleDialog'
+import { CustomCssDialog } from '../modules/format/CustomCssDialog'
 import { BookmarkDialog } from '../modules/insert/BookmarkDialog'
 import { ImageDialog } from '../modules/insert/ImageDialog'
 import { ImagePropertiesDialog } from '../modules/insert/ImagePropertiesDialog'
@@ -267,6 +276,13 @@ export function Editor({
   const fullscreenRef = useRef(fullscreen)
   fullscreenRef.current = fullscreen
   const selectionRef = useRef<SelectionSnapshot | null>(null)
+  const [, setReadingAloudTick] = useState(0)
+  const readAloudSessionRef = useRef<ReturnType<typeof createReadAloudSession> | null>(null)
+  if (readAloudSessionRef.current === null) {
+    readAloudSessionRef.current = createReadAloudSession(() => {
+      setReadingAloudTick((tick) => tick + 1)
+    })
+  }
   const transformHtmlRef = useRef(transformHtml)
   transformHtmlRef.current = transformHtml
   const pendingMarksRef = useRef<PendingFontMarks>({})
@@ -274,6 +290,7 @@ export function Editor({
   const pendingFontFamilyRef = useRef<PendingFontFamily>(null)
   const pendingFontColorRef = useRef<PendingColor | null>(null)
   const pendingHighlightColorRef = useRef<PendingColor | null>(null)
+  const pendingCustomCssRef = useRef<string | null>(null)
   const pendingAnchorRef = useRef<{ start: number; end: number } | null>(null)
   const [markState, setMarkState] = useState<FontMarkState>(emptyFontMarkState)
   const markStateRef = useRef(markState)
@@ -353,6 +370,10 @@ export function Editor({
     open: false,
     tab: 'general',
     value: emptyParagraphPropertiesApply(),
+  })
+  const [customCssDialog, setCustomCssDialog] = useState<{ open: boolean; value: string }>({
+    open: false,
+    value: '',
   })
   const [pageDialog, setPageDialog] = useState<{
     open: boolean
@@ -895,6 +916,7 @@ export function Editor({
     pendingFontFamilyRef.current = null
     pendingFontColorRef.current = null
     pendingHighlightColorRef.current = null
+    pendingCustomCssRef.current = null
     pendingAnchorRef.current = null
   }, [])
 
@@ -908,6 +930,7 @@ export function Editor({
     pendingFontFamilyRef.current = null
     pendingFontColorRef.current = null
     pendingHighlightColorRef.current = null
+    pendingCustomCssRef.current = null
     pendingAnchorRef.current = null
     setMarkState(emptyFontMarkState())
     setFontSizeState({ value: null, unit: preferredUnitRef.current, mixed: false })
@@ -978,13 +1001,13 @@ export function Editor({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       if (event.defaultPrevented) return
-      if (fontDialog.open || paragraphDialog.open || pageDialog.open || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen || documentPreview.open) return
+      if (fontDialog.open || customCssDialog.open || paragraphDialog.open || pageDialog.open || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen || documentPreview.open) return
       event.preventDefault()
       setFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [fullscreen, setFullscreen, fontDialog.open, paragraphDialog.open, pageDialog.open, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen, documentPreview.open])
+  }, [fullscreen, setFullscreen, fontDialog.open, customCssDialog.open, paragraphDialog.open, pageDialog.open, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen, documentPreview.open])
 
   useEffect(() => {
     const onSelectionChange = () => {
@@ -1215,6 +1238,39 @@ export function Editor({
       restoreVisualRange(root)
       setParagraphDialog((prev) => ({ ...prev, open: false }))
       if (!applyParagraphPropertiesInDocument(root, draft)) {
+        captureSelection()
+        refreshMarkState()
+        return
+      }
+      recordVisualHtml(root.innerHTML, false)
+      captureSelection()
+      refreshMarkState()
+    },
+    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+  )
+
+  const applyCustomCss = useCallback(
+    (css: string) => {
+      if (modeRef.current !== 'visual') return
+      const root = visualRef.current
+      if (!root) return
+      const snapshot = restoreVisualRange(root)
+      setCustomCssDialog((prev) => ({ ...prev, open: false }))
+      if (!compressCustomCss(css)) {
+        captureSelection()
+        refreshMarkState()
+        return
+      }
+
+      if (snapshot.collapsed) {
+        pendingCustomCssRef.current = css
+        pendingAnchorRef.current = { start: snapshot.start, end: snapshot.end }
+        refreshMarkState()
+        return
+      }
+
+      pendingCustomCssRef.current = null
+      if (!setCustomCssInDocument(root, css)) {
         captureSelection()
         refreshMarkState()
         return
@@ -1463,6 +1519,12 @@ export function Editor({
 
   useAutoSave({ onAutoSave, getHtml: getDocumentHtml })
 
+  useEffect(() => {
+    return () => {
+      readAloudSessionRef.current?.cancel()
+    }
+  }, [])
+
   const commandContext: CommandContext = useMemo(
     () => ({
       getHtml: getDocumentHtml,
@@ -1486,6 +1548,32 @@ export function Editor({
       },
       openDocumentPreview: () => {
         setDocumentPreview({ open: true, html: getDocumentHtml() })
+      },
+      toggleReadAloud: () => {
+        const session = readAloudSessionRef.current
+        if (!session) return
+        const snapshot =
+          selectionRef.current ??
+          snapshotSelection({
+            mode: modeRef.current,
+            visualEl: visualRef.current,
+            htmlEl: htmlAreaRef.current,
+          })
+        const text = resolveReadAloudText(describeSelection(snapshot), getDocumentHtml())
+        if (!text) return
+        session.toggle(text)
+      },
+      isReadingAloud: () => readAloudSessionRef.current?.isSpeaking() ?? false,
+      canReadAloud: () => {
+        if (!isSpeechSynthesisSupported()) return false
+        const snapshot =
+          selectionRef.current ??
+          snapshotSelection({
+            mode: modeRef.current,
+            visualEl: visualRef.current,
+            htmlEl: htmlAreaRef.current,
+          })
+        return resolveReadAloudText(describeSelection(snapshot), getDocumentHtml()) !== null
       },
       undo,
       redo,
@@ -1554,6 +1642,7 @@ export function Editor({
         pendingFontFamilyRef.current = null
         pendingFontColorRef.current = null
         pendingHighlightColorRef.current = null
+        pendingCustomCssRef.current = null
         pendingAnchorRef.current = null
         if (!clearFormattingInDocument(root)) return
         recordVisualHtml(root.innerHTML, false)
@@ -1666,6 +1755,18 @@ export function Editor({
       },
       applyFontProperties: (draft: FontPropertiesApply) => {
         applyProperties(draft)
+      },
+      openCustomCss: () => {
+        if (modeRef.current !== 'visual') return
+        const root = visualRef.current
+        if (root) restoreVisualRange(root)
+        const query = root ? queryCustomCssAtSelection(root) : { value: null, mixed: false }
+        const value =
+          query.mixed || !query.value ? '' : formatCustomCssForDisplay(query.value)
+        setCustomCssDialog({ open: true, value })
+      },
+      applyCustomCss: (css: string) => {
+        applyCustomCss(css)
       },
       openParagraphProperties: (tab?: ParagraphDialogTab) => {
         if (modeRef.current !== 'visual') return
@@ -1930,7 +2031,7 @@ export function Editor({
       canMergeCells: () => modeRef.current === 'visual' && canMergeCellsRef.current,
       canUnmergeCells: () => modeRef.current === 'visual' && canUnmergeCellsRef.current,
     }),
-    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
+    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2000,7 +2101,8 @@ export function Editor({
         !hasPendingInlineColors({
           color: pendingFontColorRef.current,
           backgroundColor: pendingHighlightColorRef.current,
-        })
+        }) &&
+        !hasPendingCustomCss(pendingCustomCssRef.current)
       ) {
         return
       }
@@ -2017,12 +2119,14 @@ export function Editor({
           backgroundColor: pendingHighlightColorRef.current,
         },
         pendingFontFamilyRef.current,
+        pendingCustomCssRef.current,
       )
       pendingMarksRef.current = {}
       pendingFontSizeRef.current = null
       pendingFontFamilyRef.current = null
       pendingFontColorRef.current = null
       pendingHighlightColorRef.current = null
+      pendingCustomCssRef.current = null
       pendingAnchorRef.current = null
       recordVisualHtml(root.innerHTML, true)
       captureSelection()
@@ -2306,6 +2410,13 @@ export function Editor({
           onTabChange={(tab) => setParagraphDialog({ ...paragraphDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyParagraphProperties(draft)}
           onClose={() => setParagraphDialog({ ...paragraphDialog, open: false })}
+        />
+        <CustomCssDialog
+          open={customCssDialog.open}
+          value={customCssDialog.value}
+          disabled={locked}
+          onApply={(css) => commandContext.applyCustomCss(css)}
+          onClose={() => setCustomCssDialog((prev) => ({ ...prev, open: false }))}
         />
         <PagePropertiesDialog
           open={pageDialog.open}

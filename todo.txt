@@ -17,28 +17,18 @@ auto save hooks, (check every second, if the document has changed, if yes call a
 Cannot mark text on mobile devices (DONE / Not tested)
 custom menu hides as property (DONE)
 Add table column with and row heiht property editor (DONE)
-Add merge cells, colspan, rowspan (right click property, or optionally mark the cells, and press the merge cells, and unmerge cells) (IN PROGRESS)
-
-
-read aloud by browser?
-acc custom CSS popup for selected element
+Add merge cells, colspan, rowspan (right click property, or optionally mark the cells, and press the merge cells, and unmerge cells) (DONE)
+read aloud by browser? (DONE)
+add custom CSS popup for selected element (IN PROGRESS)
 
 
 insert
  -video
  -audio
 format brush
-save as md, 
-load from md
 The save, load is now file, add two buttons (customizable what is shown, with save to API and load from API)
-
-zoom?
-ruler?
-Pages?
 customizable auto sanitize Javascipt, including javascript: in tags
-backround image
-backround image position, crop
-background image zoom
+backround image, backround image position, crop, background image zoom
 Animation library
 Add special HTML block, like toggle, (witch custom CSS provided by us), configurable if allowed to use
 For image inserted, allow referred/embedded, background and non background as well
@@ -49,6 +39,8 @@ Add header, footer and body possibilities for commspiant, so this will not be se
 
 
 // Optional
+save as md, 
+load from md
 css animations
 draw? (svg?)
 make it as an electron app as well, for multiple platform, Desktop HTML word editor
@@ -57,3 +49,6 @@ Possible javascript block <javasript> separate editor window,
 convert between md and html
 Add editing possibilities to position fixed, absolute and z-index for specific features
 possibiltity to detach main menu only and main menu and toolbar together
+zoom?
+ruler?
+Pages?

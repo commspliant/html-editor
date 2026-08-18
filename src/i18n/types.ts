@@ -127,6 +127,8 @@ export type Messages = {
   commandFontFamilyAria: string
   commandFontProperties: string
   commandFontPropertiesAria: string
+  commandCustomCss: string
+  commandCustomCssAria: string
   commandParagraphProperties: string
   commandParagraphPropertiesAria: string
   commandPageProperties: string
@@ -157,6 +159,8 @@ export type Messages = {
   commandCustomizeToolbarAria: string
   commandPreview: string
   commandPreviewAria: string
+  commandReadAloud: string
+  commandReadAloudAria: string
   styleParagraph: string
   styleHeading1: string
   styleHeading2: string
@@ -216,6 +220,10 @@ export type Messages = {
   bookmarkDialogErrorEmpty: string
   bookmarkDialogErrorInvalid: string
   bookmarkDialogErrorDuplicate: string
+  customCssDialogTitle: string
+  customCssDialogField: string
+  customCssDialogFieldAria: string
+  customCssDialogCloseAria: string
   imageDialogTitle: string
   imageDialogSource: string
   imageDialogFile: string

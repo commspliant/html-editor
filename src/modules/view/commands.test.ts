@@ -16,6 +16,9 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     setToolbarPosition: vi.fn(),
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
+    toggleReadAloud: vi.fn(),
+    isReadingAloud: () => false,
+    canReadAloud: () => true,
     getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),
     insertText: vi.fn(),
     insertHtml: vi.fn(),
@@ -54,6 +57,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     isNumberedList: () => false,
     openFontProperties: vi.fn(),
     applyFontProperties: vi.fn(),
+    openCustomCss: vi.fn(),
+    applyCustomCss: vi.fn(),
     openParagraphProperties: vi.fn(),
     applyParagraphProperties: vi.fn(),
     openPageProperties: vi.fn(),
@@ -153,6 +158,15 @@ describe('createViewCommands', () => {
     expect(openDocumentPreview).toHaveBeenCalledTimes(1)
   })
 
+  it('toggles read aloud', () => {
+    const toggleReadAloud = vi.fn()
+    const commands = createViewCommands(context({ toggleReadAloud }))
+
+    commands.toggleReadAloud()
+
+    expect(toggleReadAloud).toHaveBeenCalledTimes(1)
+  })
+
   it('sets light and dark chrome modes', () => {
     const setDarkMode = vi.fn()
     const commands = createViewCommands(context({ setDarkMode }))
@@ -205,5 +219,12 @@ describe('createViewQueries', () => {
     expect(createViewQueries(context({ getToolbarPosition: () => 'right' })).isToolbarPositionRight()).toBe(true)
     expect(createViewQueries(context({ getToolbarPosition: () => 'bottom' })).isToolbarPositionBottom()).toBe(true)
     expect(createViewQueries(context({ getToolbarPosition: () => 'left' })).isToolbarPositionTop()).toBe(false)
+  })
+
+  it('reports read aloud state', () => {
+    expect(createViewQueries(context({ isReadingAloud: () => false })).isReadingAloud()).toBe(false)
+    expect(createViewQueries(context({ isReadingAloud: () => true })).isReadingAloud()).toBe(true)
+    expect(createViewQueries(context({ canReadAloud: () => true })).canReadAloud()).toBe(true)
+    expect(createViewQueries(context({ canReadAloud: () => false })).canReadAloud()).toBe(false)
   })
 })

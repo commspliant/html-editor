@@ -34,6 +34,7 @@ function renderToolbar(
     toggleFullscreen: vi.fn(),
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
+    toggleReadAloud: vi.fn(),
     setLightMode: vi.fn(),
     setDarkMode: vi.fn(),
     setToolbarPositionTop: vi.fn(),
@@ -60,6 +61,8 @@ function renderToolbar(
     toggleNumberedList: vi.fn(),
     openFontProperties: vi.fn(),
     applyFontProperties: vi.fn(),
+    openCustomCss: vi.fn(),
+    applyCustomCss: vi.fn(),
     openParagraphProperties: vi.fn(),
     applyParagraphProperties: vi.fn(),
     openPageProperties: vi.fn(),
@@ -141,6 +144,8 @@ function renderToolbar(
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => true,
+    isReadingAloud: () => false,
+    canReadAloud: () => true,
     ...overrides.queries,
   }
   const toolbar = (
@@ -416,15 +421,17 @@ describe('EditorToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'Switch to visual mode' }))
     await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
     await user.click(screen.getByRole('button', { name: 'Preview document' }))
+    await user.click(screen.getByRole('button', { name: 'Read selection or document aloud' }))
     await user.click(screen.getByRole('button', { name: 'Toggle full screen' }))
 
     expect(commands.setVisualMode).toHaveBeenCalledTimes(1)
     expect(commands.setHtmlMode).toHaveBeenCalledTimes(1)
     expect(commands.openDocumentPreview).toHaveBeenCalledTimes(1)
+    expect(commands.toggleReadAloud).toHaveBeenCalledTimes(1)
     expect(commands.toggleFullscreen).toHaveBeenCalledTimes(1)
   })
 
-  it('places visual, html, and preview in a view icon group', () => {
+  it('places visual, html, preview, and read aloud in a view icon group', () => {
     renderToolbar()
 
     const group = screen.getByRole('group', { name: 'View' })
@@ -432,6 +439,7 @@ describe('EditorToolbar', () => {
     expect(group.querySelector('[data-icon="visual"]')).not.toBeNull()
     expect(group.querySelector('[data-icon="html"]')).not.toBeNull()
     expect(group.querySelector('[data-icon="preview"]')).not.toBeNull()
+    expect(group.querySelector('[data-icon="read-aloud"]')).not.toBeNull()
     expect(group.querySelector('[data-icon="fullscreen"]')).toBeNull()
   })
 
@@ -524,6 +532,10 @@ describe('EditorToolbar', () => {
     expect(commands.openDocumentPreview).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'Read aloud' }))
+    expect(commands.toggleReadAloud).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
     await user.click(screen.getByRole('menuitemcheckbox', { name: 'Full screen' }))
     expect(commands.toggleFullscreen).toHaveBeenCalledTimes(1)
 
@@ -567,6 +579,8 @@ describe('EditorToolbar', () => {
     expect(screen.getByRole('button', { name: 'Switch to HTML mode' }).querySelector('[data-icon="html"]')).not.toBeNull()
     expect(screen.getByRole('menuitem', { name: 'Preview' }).querySelector('[data-icon="preview"]')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Preview document' }).querySelector('[data-icon="preview"]')).not.toBeNull()
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Read aloud' }).querySelector('[data-icon="read-aloud"]')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Read selection or document aloud' }).querySelector('[data-icon="read-aloud"]')).not.toBeNull()
     expect(screen.getByRole('menuitemcheckbox', { name: 'Full screen' }).querySelector('[data-icon="fullscreen"]')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Toggle full screen' }).querySelector('[data-icon="fullscreen"]')).not.toBeNull()
     expect(screen.getByRole('menuitemradio', { name: 'Light mode' }).querySelector('[data-icon="light-mode"]')).not.toBeNull()
@@ -608,6 +622,7 @@ describe('EditorToolbar', () => {
       'menuitemradio',
       'separator',
       'menuitem',
+      'menuitemcheckbox',
       'menuitemcheckbox',
     ])
     expect(screen.getAllByRole('separator')).toHaveLength(3)

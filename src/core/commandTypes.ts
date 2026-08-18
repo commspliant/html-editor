@@ -58,6 +58,7 @@ export type CommandName =
   | 'toggleFullscreen'
   | 'openCustomizeToolbar'
   | 'openDocumentPreview'
+  | 'toggleReadAloud'
   | 'setLightMode'
   | 'setDarkMode'
   | 'setToolbarPositionTop'
@@ -70,6 +71,8 @@ export type CommandName =
   | 'toggleStrikethrough'
   | 'clearFormatting'
   | 'openFontProperties'
+  | 'openCustomCss'
+  | 'applyCustomCss'
   | 'openParagraphProperties'
   | 'openPageProperties'
   | 'openCustomParagraphStyleDialog'
@@ -132,6 +135,8 @@ export type QueryName =
   | 'canMergeCells'
   | 'canUnmergeCells'
   | 'hasTextSelection'
+  | 'isReadingAloud'
+  | 'canReadAloud'
 
 export type CommandContext = {
   getHtml: () => string
@@ -146,6 +151,9 @@ export type CommandContext = {
   setToolbarPosition: (position: ToolbarPosition) => void
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
+  toggleReadAloud: () => void
+  isReadingAloud: () => boolean
+  canReadAloud: () => boolean
   getSelection: () => CustomActionSelection
   insertText: (text: string) => void
   insertHtml: (html: string, formattedText?: string) => void
@@ -184,6 +192,8 @@ export type CommandContext = {
   isNumberedList: () => boolean
   openFontProperties: (tab?: FontDialogTab) => void
   applyFontProperties: (draft: FontPropertiesApply) => void
+  openCustomCss: () => void
+  applyCustomCss: (css: string) => void
   openParagraphProperties: (tab?: ParagraphDialogTab) => void
   applyParagraphProperties: (draft: ParagraphPropertiesApply) => void
   openPageProperties: (tab?: PageDialogTab) => void
@@ -243,6 +253,7 @@ export type EditorCommands = {
   toggleFullscreen: () => void
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
+  toggleReadAloud: () => void
   setLightMode: () => void
   setDarkMode: () => void
   setToolbarPositionTop: () => void
@@ -355,6 +366,8 @@ export type EditorQueries = {
   canMergeCells: () => boolean
   canUnmergeCells: () => boolean
   hasTextSelection: () => boolean
+  isReadingAloud: () => boolean
+  canReadAloud: () => boolean
 }
 
 export type { FontFace, FontFamilyQuery, FontSizeQuery, InlineColorQuery, ListType, ParagraphStyleTag, TextAlign, ParagraphPropertiesApply, ParagraphBoxApply, ImagePropertiesApply, TableApply, TablePropertiesApply, CellPropertiesApply, RowPropertiesApply }
