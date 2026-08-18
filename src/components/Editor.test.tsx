@@ -848,6 +848,63 @@ describe('Editor font marks', () => {
     expect(screen.getByRole('button', { name: 'Bold' })).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('copies inline formatting with the format brush and applies it to another selection', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor defaultValue='<p><span style="font-weight: 700; color: #ff0000;">Source</span></p><p>Target</p>' />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const brush = screen.getByRole('button', { name: 'Copy formatting' })
+
+    act(() => {
+      selectVisualText(visual, 0, 6)
+    })
+    await user.click(brush)
+    expect(brush).toHaveAttribute('aria-pressed', 'true')
+
+    act(() => {
+      selectVisualText(visual, 6, 12)
+    })
+    fireEvent.mouseUp(visual)
+
+    expect(brush).toHaveAttribute('aria-pressed', 'false')
+    expect(visual.innerHTML).toContain('font-weight: 700')
+    expect(visual.innerHTML).toContain('#ff0000')
+  })
+
+  it('cancels the format brush when clicked again while active', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue='<p><span style="font-weight: 700;">Source</span></p>' />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const brush = screen.getByRole('button', { name: 'Copy formatting' })
+
+    act(() => {
+      selectVisualText(visual, 0, 6)
+    })
+    await user.click(brush)
+    expect(brush).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(brush)
+    expect(brush).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('does not arm the format brush without a text selection', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const brush = screen.getByRole('button', { name: 'Copy formatting' })
+
+    act(() => {
+      selectVisualText(visual, 2, 2)
+    })
+    await user.click(brush)
+
+    expect(brush).toHaveAttribute('aria-pressed', 'false')
+  })
+
   it('disables font commands in HTML mode', async () => {
     const user = userEvent.setup()
     render(<Editor defaultMode="html" defaultValue="<p>Hello</p>" />)

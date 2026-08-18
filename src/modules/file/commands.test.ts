@@ -113,12 +113,15 @@ describe('createFileCommands', () => {
       copy: vi.fn(),
       deleteSelection: vi.fn(),
       clearFormatting: vi.fn(),
+      toggleFormatBrush: vi.fn(),
       isLink: () => false,
       isImageSelected: () => false,
     isInTable: () => false,
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
+    toggleFormatBrush: vi.fn(),
+    isFormatBrushActive: () => false,
     })
 
     await commands.save()
@@ -228,12 +231,15 @@ describe('createFileCommands', () => {
       copy: vi.fn(),
       deleteSelection: vi.fn(),
       clearFormatting: vi.fn(),
+      toggleFormatBrush: vi.fn(),
       isLink: () => false,
       isImageSelected: () => false,
     isInTable: () => false,
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
+    toggleFormatBrush: vi.fn(),
+    isFormatBrushActive: () => false,
     })
 
     await commands.open()
@@ -342,12 +348,15 @@ describe('createFileCommands', () => {
       copy: vi.fn(),
       deleteSelection: vi.fn(),
       clearFormatting: vi.fn(),
+      toggleFormatBrush: vi.fn(),
       isLink: () => false,
       isImageSelected: () => false,
     isInTable: () => false,
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
+    toggleFormatBrush: vi.fn(),
+    isFormatBrushActive: () => false,
     })
 
     await commands.open()
@@ -455,12 +464,15 @@ describe('createFileCommands', () => {
       copy: vi.fn(),
       deleteSelection: vi.fn(),
       clearFormatting: vi.fn(),
+      toggleFormatBrush: vi.fn(),
       isLink: () => false,
       isImageSelected: () => false,
     isInTable: () => false,
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
+    toggleFormatBrush: vi.fn(),
+    isFormatBrushActive: () => false,
     })
 
     commands.print()

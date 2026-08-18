@@ -102,6 +102,12 @@ import {
 } from '../core/clipboard'
 import { clearFormattingInDocument } from '../core/clearFormatting'
 import {
+  applyCopiedFormat,
+  selectionRangesEqual,
+  snapshotFormatFromRoot,
+  type CopiedFormat,
+} from '../core/formatBrush'
+import {
   compressCustomCss,
   formatCustomCssForDisplay,
   hasPendingCustomCss,
@@ -352,6 +358,11 @@ export function Editor({
   const [hasTextSelectionState, setHasTextSelectionState] = useState(false)
   const hasTextSelectionStateRef = useRef(hasTextSelectionState)
   hasTextSelectionStateRef.current = hasTextSelectionState
+  const [formatBrushActiveState, setFormatBrushActiveState] = useState(false)
+  const formatBrushActiveRef = useRef(formatBrushActiveState)
+  formatBrushActiveRef.current = formatBrushActiveState
+  const copiedFormatRef = useRef<CopiedFormat | null>(null)
+  const formatBrushSourceRef = useRef<SelectionSnapshot | null>(null)
   const [linkActive, setLinkActive] = useState(false)
   const linkActiveRef = useRef(linkActive)
   linkActiveRef.current = linkActive
@@ -1105,6 +1116,66 @@ export function Editor({
     return selectionRef.current ?? snapshot
   }, [])
 
+  const deactivateFormatBrush = useCallback(() => {
+    copiedFormatRef.current = null
+    formatBrushSourceRef.current = null
+    setFormatBrushActiveState(false)
+  }, [])
+
+  const tryApplyFormatBrush = useCallback(() => {
+    if (!formatBrushActiveRef.current || !copiedFormatRef.current || !formatBrushSourceRef.current) {
+      return
+    }
+    if (modeRef.current !== 'visual') return
+    const root = visualRef.current
+    if (!root) return
+    captureSelection()
+    const snapshot = selectionRef.current
+    if (!snapshot || snapshot.collapsed) return
+    if (selectionRangesEqual(snapshot, formatBrushSourceRef.current)) return
+    restoreVisualRange(root)
+    applyCopiedFormat(root, copiedFormatRef.current)
+    recordVisualHtml(root.innerHTML, false)
+    captureSelection()
+    refreshMarkState()
+    deactivateFormatBrush()
+  }, [captureSelection, restoreVisualRange, recordVisualHtml, refreshMarkState, deactivateFormatBrush])
+
+  const toggleFormatBrush = useCallback(() => {
+    if (modeRef.current !== 'visual') {
+      deactivateFormatBrush()
+      return
+    }
+    if (formatBrushActiveRef.current) {
+      deactivateFormatBrush()
+      return
+    }
+    const root = visualRef.current
+    if (!root) {
+      deactivateFormatBrush()
+      return
+    }
+    const snapshot = restoreVisualRange(root)
+    if (snapshot.collapsed) {
+      deactivateFormatBrush()
+      return
+    }
+    copiedFormatRef.current = snapshotFormatFromRoot(root)
+    formatBrushSourceRef.current = { ...snapshot }
+    setFormatBrushActiveState(true)
+    captureSelection()
+  }, [deactivateFormatBrush, restoreVisualRange, captureSelection])
+
+  const handleVisualMouseUp = useCallback(() => {
+    tryApplyFormatBrush()
+  }, [tryApplyFormatBrush])
+
+  useEffect(() => {
+    if (mode !== 'visual' || locked) {
+      deactivateFormatBrush()
+    }
+  }, [mode, locked, deactivateFormatBrush])
+
   const applyFontSize = useCallback(
     (size: number, unit?: FontSizeUnit) => {
       if (modeRef.current !== 'visual') return
@@ -1741,6 +1812,8 @@ export function Editor({
         captureSelection()
         refreshMarkState()
       },
+      toggleFormatBrush,
+      isFormatBrushActive: () => formatBrushActiveRef.current,
       isFontMarkActive: (mark: FontMark) => markStateRef.current[mark],
       hasTextSelection: () => modeRef.current === 'visual' && hasTextSelectionStateRef.current,
       setFontSize: (size: number, unit?: FontSizeUnit) => {
@@ -2151,7 +2224,7 @@ export function Editor({
       canMergeCells: () => modeRef.current === 'visual' && canMergeCellsRef.current,
       canUnmergeCells: () => modeRef.current === 'visual' && canUnmergeCellsRef.current,
     }),
-    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml],
+    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, toggleFormatBrush],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2202,7 +2275,7 @@ export function Editor({
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
-    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, dark, toolbarPos],
+    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos],
   )
 
   const handleVisualBeforeInput = useCallback(
@@ -2452,6 +2525,7 @@ export function Editor({
                 onChange={(next) => recordVisualHtml(next, true)}
                 onBeforeInput={handleVisualBeforeInput}
                 onPointerDown={handleVisualPointerDown}
+                onMouseUp={handleVisualMouseUp}
                 onContextMenu={handleVisualContextMenu}
                 placeholder={placeholder}
                 disabled={locked}

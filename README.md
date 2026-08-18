@@ -137,7 +137,9 @@ Pass `allowedChrome` to show only the menus and icon-toolbar buttons the host al
 
 The two lists are independent: hiding the File menu does not hide Save on the toolbar, and hiding the Print button does not hide File → Print. `menus` is top-level menu ids only: `file`, `edit`, `insert`, `table`, `view`, and `format` (plus any custom menu id from `customActions`). `toolbar` is icon-toolbar item ids:
 
-`save`, `open`, `print`, `undo`, `redo`, `link`, `bookmark`, `image`, `table`, `horizontalRule`, `mergeCells`, `unmergeCells`, `fontFamily`, `paragraphStyle`, `fontSize`, `fontColor`, `highlightColor`, `customCss`, `bold`, `italic`, `underline`, `strikethrough`, `clearFormatting`, `alignLeft`, `alignCenter`, `alignRight`, `alignJustify`, `indent`, `outdent`, `bulletList`, `numberedList`, `visual`, `html`, `preview`, `readAloud`, `fullscreen`
+`save`, `open`, `print`, `undo`, `redo`, `link`, `bookmark`, `image`, `table`, `horizontalRule`, `mergeCells`, `unmergeCells`, `fontFamily`, `paragraphStyle`, `fontSize`, `fontColor`, `highlightColor`, `customCss`, `formatBrush`, `bold`, `italic`, `underline`, `strikethrough`, `clearFormatting`, `alignLeft`, `alignCenter`, `alignRight`, `alignJustify`, `indent`, `outdent`, `bulletList`, `numberedList`, `visual`, `html`, `preview`, `readAloud`, `fullscreen`
+
+The **Format brush** icon (`formatBrush`) is toolbar-only. Select source text, click the brush to copy inline character formatting (bold, italic, underline, strikethrough, font, size, color, highlight, custom CSS), then select target text to apply. Click the brush again or click it without a selection to cancel.
 
 If `toolbar` is set, custom action ids must be listed to appear on the icon bar.
 

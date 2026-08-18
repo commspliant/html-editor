@@ -124,6 +124,8 @@ export const es: Messages = {
   commandStrikethroughAria: 'Tachado',
   commandClearFormatting: 'Restablecer formato',
   commandClearFormattingAria: 'Restablecer formato',
+  commandFormatBrush: 'Copiar formato',
+  commandFormatBrushAria: 'Copiar formato',
   commandFontSize: 'Tamaño de fuente',
   commandFontSizeAria: 'Tamaño de fuente',
   commandFontSizeUnitAria: 'Unidad de tamaño de fuente',

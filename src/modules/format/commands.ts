@@ -16,6 +16,7 @@ export function createFormatCommands(
   | 'toggleUnderline'
   | 'toggleStrikethrough'
   | 'clearFormatting'
+  | 'toggleFormatBrush'
   | 'setFontSize'
   | 'setFontSizeUnit'
   | 'setFontFamily'
@@ -56,6 +57,9 @@ export function createFormatCommands(
     },
     clearFormatting: () => {
       ctx.clearFormatting()
+    },
+    toggleFormatBrush: () => {
+      ctx.toggleFormatBrush()
     },
     setFontSize: (size, unit) => {
       ctx.setFontSize(size, unit)
@@ -160,7 +164,7 @@ export function createFormatQueries(
   | 'isBulletList'
   | 'isNumberedList'
   | 'hasTextSelection'
-  | 'customParagraphStylesEnabled'
+  | 'isFormatBrushActive'
   | 'getCustomParagraphStyles'
   | 'isCustomParagraphStylesLoading'
 > {
@@ -189,6 +193,7 @@ export function createFormatQueries(
     isBulletList: () => ctx.isBulletList(),
     isNumberedList: () => ctx.isNumberedList(),
     hasTextSelection: () => ctx.hasTextSelection(),
+    isFormatBrushActive: () => ctx.isFormatBrushActive(),
     customParagraphStylesEnabled: () => ctx.customParagraphStylesEnabled(),
     getCustomParagraphStyles: () => ctx.getCustomParagraphStyles(),
     isCustomParagraphStylesLoading: () => ctx.isCustomParagraphStylesLoading(),
