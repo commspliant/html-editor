@@ -227,6 +227,18 @@ export type EditorProps = {
    * `transformHtml`). Omit to disable. The callback is not awaited.
    */
   onAutoSave?: (html: string) => void | Promise<void>
+  /**
+   * When set, File → Save calls this with the current document HTML (same as
+   * `onChange`, after `transformHtml`) instead of the built-in local file picker.
+   * The callback is awaited. Omit to keep the default save-to-file behavior.
+   */
+  onSave?: (html: string) => void | Promise<void>
+  /**
+   * When set, File → Open calls this instead of the built-in local file picker.
+   * Return document HTML to replace the editor, or `null` to cancel. The callback
+   * is awaited. Omit to keep the default open-from-file behavior.
+   */
+  onOpen?: () => string | null | Promise<string | null>
   mode?: EditorMode
   defaultMode?: EditorMode
   onModeChange?: (mode: EditorMode) => void

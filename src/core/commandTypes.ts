@@ -256,6 +256,8 @@ export type CommandContext = {
   hasTextSelection: () => boolean
   toggleFormatBrush: () => void
   isFormatBrushActive: () => boolean
+  onSave?: (html: string) => void | Promise<void>
+  onOpen?: () => string | null | Promise<string | null>
 }
 
 export type EditorCommand = () => void | Promise<void>

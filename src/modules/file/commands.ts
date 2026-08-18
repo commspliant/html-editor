@@ -5,10 +5,15 @@ import { printHtml } from './printHtml'
 export function createFileCommands(ctx: CommandContext): Pick<EditorCommands, 'save' | 'open' | 'print'> {
   return {
     save: async () => {
-      await saveHtml(ctx.getHtml())
+      const html = ctx.getHtml()
+      if (ctx.onSave) {
+        await ctx.onSave(html)
+      } else {
+        await saveHtml(html)
+      }
     },
     open: async () => {
-      const html = await loadHtml()
+      const html = ctx.onOpen ? await ctx.onOpen() : await loadHtml()
       if (html !== null) {
         ctx.setHtml(html)
       }

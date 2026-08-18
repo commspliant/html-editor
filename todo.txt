@@ -21,9 +21,9 @@ Add merge cells, colspan, rowspan (right click property, or optionally mark the 
 read aloud by browser? (DONE)
 add custom CSS popup for selected element (IN PROGRESS)
 insert  -video,  -audio (DONE)
-format brush (IN PROGRESS)
+format brush (DONE)
+The save, load is now file, add two buttons (customizable what is shown, with save to API and load from API) (DONE)
 
-The save, load is now file, add two buttons (customizable what is shown, with save to API and load from API)
 customizable auto sanitize Javascipt, including javascript: in tags
 backround image, backround image position, crop, background image zoom
 Animation library
