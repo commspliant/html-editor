@@ -98,6 +98,8 @@ describe('createFileCommands', () => {
     insertColumnAfter: vi.fn(),
     insertColumnBefore: vi.fn(),
     deleteColumn: vi.fn(),
+    mergeCells: vi.fn(),
+    unmergeCells: vi.fn(),
       cut: vi.fn(),
       copy: vi.fn(),
       deleteSelection: vi.fn(),
@@ -105,6 +107,8 @@ describe('createFileCommands', () => {
       isLink: () => false,
       isImageSelected: () => false,
     isInTable: () => false,
+    canMergeCells: () => false,
+    canUnmergeCells: () => false,
     hasTextSelection: () => false,
     })
 
@@ -200,6 +204,8 @@ describe('createFileCommands', () => {
     insertColumnAfter: vi.fn(),
     insertColumnBefore: vi.fn(),
     deleteColumn: vi.fn(),
+    mergeCells: vi.fn(),
+    unmergeCells: vi.fn(),
       cut: vi.fn(),
       copy: vi.fn(),
       deleteSelection: vi.fn(),
@@ -207,6 +213,8 @@ describe('createFileCommands', () => {
       isLink: () => false,
       isImageSelected: () => false,
     isInTable: () => false,
+    canMergeCells: () => false,
+    canUnmergeCells: () => false,
     hasTextSelection: () => false,
     })
 
@@ -301,6 +309,8 @@ describe('createFileCommands', () => {
     insertColumnAfter: vi.fn(),
     insertColumnBefore: vi.fn(),
     deleteColumn: vi.fn(),
+    mergeCells: vi.fn(),
+    unmergeCells: vi.fn(),
       cut: vi.fn(),
       copy: vi.fn(),
       deleteSelection: vi.fn(),
@@ -308,6 +318,8 @@ describe('createFileCommands', () => {
       isLink: () => false,
       isImageSelected: () => false,
     isInTable: () => false,
+    canMergeCells: () => false,
+    canUnmergeCells: () => false,
     hasTextSelection: () => false,
     })
 
@@ -401,6 +413,8 @@ describe('createFileCommands', () => {
     insertColumnAfter: vi.fn(),
     insertColumnBefore: vi.fn(),
     deleteColumn: vi.fn(),
+    mergeCells: vi.fn(),
+    unmergeCells: vi.fn(),
       cut: vi.fn(),
       copy: vi.fn(),
       deleteSelection: vi.fn(),
@@ -408,6 +422,8 @@ describe('createFileCommands', () => {
       isLink: () => false,
       isImageSelected: () => false,
     isInTable: () => false,
+    canMergeCells: () => false,
+    canUnmergeCells: () => false,
     hasTextSelection: () => false,
     })
 

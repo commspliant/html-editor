@@ -119,6 +119,8 @@ describe('cell properties', () => {
           },
           verticalAlign: 'middle',
           width: { value: 120, unit: 'px' },
+          colSpan: 1,
+          rowSpan: 1,
         }),
       ),
     ).toBe(true)
@@ -129,6 +131,26 @@ describe('cell properties', () => {
     expect(cell.style.verticalAlign).toBe('middle')
     expect(cell.style.width).toBe('120px')
     expect(readCellProperties(cell).verticalAlign).toBe('middle')
+  })
+
+  it('writes colspan and rowspan onto the caret cell', () => {
+    const el = mountVisual('<p>x</p>')
+    const table = insertAndSelect(el)
+    const cell = table.rows[0].cells[0]
+
+    expect(
+      applyCellPropertiesInDocument(
+        el,
+        defaultCellPropertiesApply({
+          colSpan: 2,
+          rowSpan: 1,
+        }),
+      ),
+    ).toBe(true)
+
+    expect(cell.colSpan).toBe(2)
+    expect(table.rows[0].cells).toHaveLength(1)
+    expect(readCellProperties(cell).colSpan).toBe(2)
   })
 })
 

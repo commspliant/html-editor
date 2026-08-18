@@ -48,6 +48,8 @@ export type CellPropertiesFieldsProps = {
 export function CellPropertiesFields({ value, disabled, onChange }: CellPropertiesFieldsProps) {
   const t = useT()
   const alignId = useId()
+  const colSpanId = useId()
+  const rowSpanId = useId()
   const [paddingLinked, setPaddingLinked] = useState(() =>
     boxSidesEqual(value.padding, setAllSides(firstDefinedSide(value.padding))),
   )
@@ -133,6 +135,46 @@ export function CellPropertiesFields({ value, disabled, onChange }: CellProperti
         disabled={disabled}
         onChange={(width) => onChange({ ...value, width })}
       />
+      <div className={styles.sizeRow}>
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor={colSpanId}>
+            {t('cellPropertiesColSpan')}
+          </label>
+          <input
+            id={colSpanId}
+            className={styles.lengthInput}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            value={value.colSpan}
+            disabled={disabled}
+            onChange={(event) => {
+              const parsed = Number.parseInt(event.target.value, 10)
+              onChange({ ...value, colSpan: Number.isFinite(parsed) ? Math.max(1, parsed) : 1 })
+            }}
+          />
+        </div>
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor={rowSpanId}>
+            {t('cellPropertiesRowSpan')}
+          </label>
+          <input
+            id={rowSpanId}
+            className={styles.lengthInput}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            value={value.rowSpan}
+            disabled={disabled}
+            onChange={(event) => {
+              const parsed = Number.parseInt(event.target.value, 10)
+              onChange({ ...value, rowSpan: Number.isFinite(parsed) ? Math.max(1, parsed) : 1 })
+            }}
+          />
+        </div>
+      </div>
     </div>
   )
 }

@@ -112,16 +112,21 @@ import {
   queryImageAtSelection,
 } from '../core/imageProperties'
 import {
+  canMergeCellsInDocument,
+  canUnmergeCellsInDocument,
   closestTable,
   closestCell,
+  cellsInSelection,
   deleteColumnInDocument,
   deleteRowInDocument,
   insertColumnInDocument,
   insertRowInDocument,
   insertTableInDocument,
+  mergeCellsInDocument,
   selectCellInDocument,
   tabInTable,
   tableAtSelection,
+  unmergeCellsInDocument,
 } from '../core/table'
 import {
   applyTablePropertiesInDocument,
@@ -438,13 +443,21 @@ export function Editor({
     y: number
     kind: ContextMenuKind
     inTable: boolean
-  }>({ open: false, x: 0, y: 0, kind: 'caret', inTable: false })
+    canMergeCells: boolean
+    canUnmergeCells: boolean
+  }>({ open: false, x: 0, y: 0, kind: 'caret', inTable: false, canMergeCells: false, canUnmergeCells: false })
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null)
   const selectedImageRef = useRef(selectedImage)
   selectedImageRef.current = selectedImage
   const [inTable, setInTable] = useState(false)
   const inTableRef = useRef(inTable)
   inTableRef.current = inTable
+  const [canMergeCells, setCanMergeCells] = useState(false)
+  const canMergeCellsRef = useRef(canMergeCells)
+  canMergeCellsRef.current = canMergeCells
+  const [canUnmergeCells, setCanUnmergeCells] = useState(false)
+  const canUnmergeCellsRef = useRef(canUnmergeCells)
+  canUnmergeCellsRef.current = canUnmergeCells
   const lastVisualPointerTypeRef = useRef<string | undefined>(undefined)
   const customStylesRef = useRef(customStyles)
   customStylesRef.current = customStyles
@@ -727,6 +740,18 @@ export function Editor({
     })
   }, [])
 
+  const refreshTableState = useCallback((root: HTMLElement | null) => {
+    if (!root || modeRef.current !== 'visual') {
+      setInTable(false)
+      setCanMergeCells(false)
+      setCanUnmergeCells(false)
+      return
+    }
+    setInTable(tableAtSelection(root) !== null)
+    setCanMergeCells(canMergeCellsInDocument(root))
+    setCanUnmergeCells(canUnmergeCellsInDocument(root))
+  }, [])
+
   const captureChromeSelection = useCallback(() => {
     const next = snapshotSelection({
       mode: modeRef.current,
@@ -972,11 +997,11 @@ export function Editor({
       clearPendingMarksIfSelectionMoved()
       refreshMarkState()
       setSelectedImage(imageAtSelection(visualRef.current))
-      setInTable(tableAtSelection(visualRef.current) !== null)
+      refreshTableState(visualRef.current)
     }
     document.addEventListener('selectionchange', onSelectionChange)
     return () => document.removeEventListener('selectionchange', onSelectionChange)
-  }, [captureSelection, clearPendingMarksIfSelectionMoved, refreshMarkState])
+  }, [captureSelection, clearPendingMarksIfSelectionMoved, refreshMarkState, refreshTableState])
 
   useEffect(() => {
     if (mode !== 'html') return
@@ -1292,9 +1317,9 @@ export function Editor({
       recordVisualHtml(root.innerHTML, false)
       captureSelection()
       refreshMarkState()
-      setInTable(true)
+      refreshTableState(root)
     },
-    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState, refreshTableState],
   )
 
   const applyTableProperties = useCallback(
@@ -1331,8 +1356,9 @@ export function Editor({
       recordVisualHtml(root.innerHTML, false)
       captureSelection()
       refreshMarkState()
+      refreshTableState(root)
     },
-    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState, refreshTableState],
   )
 
   const applyRowProperties = useCallback(
@@ -1368,9 +1394,9 @@ export function Editor({
       recordVisualHtml(root.innerHTML, false)
       captureSelection()
       refreshMarkState()
-      setInTable(tableAtSelection(root) !== null)
+      refreshTableState(root)
     },
-    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState, refreshTableState],
   )
 
   const insertCustomImage = useCallback(
@@ -1865,6 +1891,12 @@ export function Editor({
       deleteColumn: () => {
         runTableStructure((root) => deleteColumnInDocument(root))
       },
+      mergeCells: () => {
+        runTableStructure((root) => mergeCellsInDocument(root))
+      },
+      unmergeCells: () => {
+        runTableStructure((root) => unmergeCellsInDocument(root))
+      },
       cut: async () => {
         if (modeRef.current !== 'visual') return
         const root = visualRef.current
@@ -1895,6 +1927,8 @@ export function Editor({
       isLink: () => linkActiveRef.current,
       isImageSelected: () => modeRef.current === 'visual' && selectedImageRef.current !== null,
       isInTable: () => modeRef.current === 'visual' && inTableRef.current,
+      canMergeCells: () => modeRef.current === 'visual' && canMergeCellsRef.current,
+      canUnmergeCells: () => modeRef.current === 'visual' && canUnmergeCellsRef.current,
     }),
     [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
   )
@@ -1947,7 +1981,7 @@ export function Editor({
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
-    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, hasTextSelectionState, dark, toolbarPos],
+    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, dark, toolbarPos],
   )
 
   const handleVisualBeforeInput = useCallback(
@@ -2005,9 +2039,15 @@ export function Editor({
       event.stopPropagation()
       const root = visualRef.current
       if (!root) return
+      restoreVisualRange(root)
       const img = closestImage(root, event.target as Node)
       const cell = closestCell(root, event.target as Node)
-      if (cell) selectCellInDocument(root, cell)
+      if (cell && !cellsInSelection(root).includes(cell)) selectCellInDocument(root, cell)
+      const tableFlags = {
+        inTable: closestTable(root, event.target as Node) !== null,
+        canMergeCells: canMergeCellsInDocument(root),
+        canUnmergeCells: canUnmergeCellsInDocument(root),
+      }
       if (img) {
         selectImageInDocument(root, img)
         captureSelection()
@@ -2017,6 +2057,7 @@ export function Editor({
           x: event.clientX,
           y: event.clientY,
           kind: 'image',
+          ...tableFlags,
           inTable: closestTable(root, img) !== null,
         })
         return
@@ -2032,10 +2073,10 @@ export function Editor({
         x: event.clientX,
         y: event.clientY,
         kind: snapshot.collapsed ? 'caret' : 'text',
-        inTable: closestTable(root, event.target as Node) !== null,
+        ...tableFlags,
       })
     },
-    [locked, captureSelection],
+    [locked, captureSelection, restoreVisualRange],
   )
 
   const handleVisualPointerDown = useCallback(
@@ -2075,7 +2116,7 @@ export function Editor({
         }
         captureSelection()
         refreshMarkState()
-        setInTable(tableAtSelection(root) !== null)
+        refreshTableState(root)
         return
       }
       if (!(event.ctrlKey || event.metaKey)) return
@@ -2115,7 +2156,7 @@ export function Editor({
         commands.print()
       }
     },
-    [locked, undo, redo, commandContext, commands, restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+    [locked, undo, redo, commandContext, commands, restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState, refreshTableState],
   )
 
   const rootClassName = [styles.root, chromeThemeProps(dark).className, fullscreen ? styles.fullscreen : '', className]
@@ -2417,6 +2458,8 @@ export function Editor({
           y={contextMenu.y}
           kind={contextMenu.kind}
           inTable={contextMenu.inTable}
+          canMergeCells={contextMenu.canMergeCells}
+          canUnmergeCells={contextMenu.canUnmergeCells}
           commands={commands}
           onClose={() => setContextMenu((prev) => ({ ...prev, open: false }))}
         />

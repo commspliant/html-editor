@@ -89,6 +89,8 @@ function renderToolbar(
     insertColumnAfter: vi.fn(),
     insertColumnBefore: vi.fn(),
     deleteColumn: vi.fn(),
+    mergeCells: vi.fn(),
+    unmergeCells: vi.fn(),
     cut: vi.fn(),
     copy: vi.fn(),
     deleteSelection: vi.fn(),
@@ -136,6 +138,8 @@ function renderToolbar(
     isLink: () => false,
     isImageSelected: () => false,
     isInTable: () => false,
+    canMergeCells: () => false,
+    canUnmergeCells: () => false,
     hasTextSelection: () => true,
     ...overrides.queries,
   }
@@ -741,26 +745,39 @@ describe('EditorToolbar', () => {
     const user = userEvent.setup()
     renderToolbar()
 
-    await user.click(screen.getByRole('button', { name: 'Format menu' }))
+    await user.click(screen.getByRole('button', { name: 'Table menu' }))
     expect(screen.getByRole('menuitem', { name: 'Table properties…' })).toBeDisabled()
     expect(screen.getByRole('menuitem', { name: 'Cell properties…' })).toBeDisabled()
     expect(screen.getByRole('menuitem', { name: 'Row properties…' })).toBeDisabled()
-
-    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
     expect(screen.getByRole('menuitem', { name: 'Insert or delete row' })).toBeDisabled()
     expect(screen.getByRole('menuitem', { name: 'Insert or delete column' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Merge cells' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Unmerge cells' })).toBeDisabled()
   })
 
-  it('opens table properties from the Format menu when the caret is in a table', async () => {
+  it('opens table properties from the Table menu when the caret is in a table', async () => {
     const user = userEvent.setup()
     const { commands } = renderToolbar({
       queries: { isInTable: () => true },
     })
 
-    await user.click(screen.getByRole('button', { name: 'Format menu' }))
+    await user.click(screen.getByRole('button', { name: 'Table menu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Table properties…' }))
 
     expect(commands.openTableProperties).toHaveBeenCalled()
+  })
+
+  it('runs merge and unmerge from the icon toolbar when those operations are available', async () => {
+    const user = userEvent.setup()
+    const { commands } = renderToolbar({
+      queries: { canMergeCells: () => true, canUnmergeCells: () => true },
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Merge selected cells' }))
+    await user.click(screen.getByRole('button', { name: 'Split merged cells' }))
+
+    expect(commands.mergeCells).toHaveBeenCalled()
+    expect(commands.unmergeCells).toHaveBeenCalled()
   })
 
   it('does not show Page properties in the icon toolbar', () => {
@@ -1307,6 +1324,7 @@ describe('EditorToolbar', () => {
     expect(screen.getByRole('button', { name: 'File menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Edit menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Insert menu' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Table menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'View menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Format menu' })).toBeInTheDocument()
     expect(screen.getByRole('toolbar', { name: 'Formatting toolbar' })).toBeInTheDocument()
@@ -1318,6 +1336,7 @@ describe('EditorToolbar', () => {
     expect(screen.queryByRole('button', { name: 'File menu' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit menu' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Insert menu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Table menu' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'View menu' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Format menu' })).not.toBeInTheDocument()
     expect(screen.getByRole('toolbar', { name: 'Formatting toolbar' })).toBeInTheDocument()
@@ -1329,6 +1348,7 @@ describe('EditorToolbar', () => {
     expect(screen.getByRole('button', { name: 'File menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Edit menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Insert menu' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Table menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'View menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Format menu' })).toBeInTheDocument()
     expect(screen.queryByRole('toolbar', { name: 'Formatting toolbar' })).not.toBeInTheDocument()
@@ -1421,6 +1441,7 @@ describe('EditorToolbar', () => {
       expect(screen.queryByRole('button', { name: 'File menu' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Edit menu' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Insert menu' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Table menu' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'View menu' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Format menu' })).not.toBeInTheDocument()
     })

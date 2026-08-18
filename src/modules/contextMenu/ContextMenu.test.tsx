@@ -75,6 +75,8 @@ function stubCommands(overrides: Partial<EditorCommands> = {}): EditorCommands {
     insertColumnAfter: noop,
     insertColumnBefore: noop,
     deleteColumn: noop,
+    mergeCells: noop,
+    unmergeCells: noop,
     cut: asyncNoop,
     copy: asyncNoop,
     deleteSelection: noop,
@@ -87,11 +89,21 @@ function renderMenu(
   kind: ContextMenuKind,
   commands: EditorCommands = stubCommands(),
   onClose = vi.fn(),
-  inTable = false,
+  flags: { inTable?: boolean; canMergeCells?: boolean; canUnmergeCells?: boolean } = {},
 ) {
   render(
     <LocaleProvider>
-      <ContextMenu open x={16} y={16} kind={kind} inTable={inTable} commands={commands} onClose={onClose} />
+      <ContextMenu
+        open
+        x={16}
+        y={16}
+        kind={kind}
+        inTable={flags.inTable}
+        canMergeCells={flags.canMergeCells}
+        canUnmergeCells={flags.canUnmergeCells}
+        commands={commands}
+        onClose={onClose}
+      />
     </LocaleProvider>,
   )
   return onClose
@@ -111,6 +123,8 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Table properties' })).toBeDisabled()
     expect(screen.getByRole('menuitem', { name: 'Cell properties' })).toBeDisabled()
     expect(screen.getByRole('menuitem', { name: 'Row properties' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Merge selected cells' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Split merged cells' })).toBeDisabled()
   })
 
   it('enables clipboard and image properties for an image', () => {
@@ -127,21 +141,34 @@ describe('ContextMenu', () => {
   })
 
   it('enables table properties when the caret is in a table', () => {
-    renderMenu('caret', stubCommands(), vi.fn(), true)
+    renderMenu('caret', stubCommands(), vi.fn(), { inTable: true })
 
     expect(screen.getByRole('menuitem', { name: 'Table properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Cell properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Row properties' })).toBeEnabled()
+    expect(screen.getByRole('menuitem', { name: 'Merge selected cells' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Split merged cells' })).toBeDisabled()
     expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeDisabled()
   })
 
   it('enables image and table properties for an image inside a table', () => {
-    renderMenu('image', stubCommands(), vi.fn(), true)
+    renderMenu('image', stubCommands(), vi.fn(), { inTable: true })
 
     expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Table properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Cell properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Row properties' })).toBeEnabled()
+  })
+
+  it('enables merge and unmerge when those operations are available', () => {
+    renderMenu('caret', stubCommands(), vi.fn(), {
+      inTable: true,
+      canMergeCells: true,
+      canUnmergeCells: true,
+    })
+
+    expect(screen.getByRole('menuitem', { name: 'Merge selected cells' })).toBeEnabled()
+    expect(screen.getByRole('menuitem', { name: 'Split merged cells' })).toBeEnabled()
   })
 
   it('disables clipboard and image properties at the caret', () => {

@@ -21,6 +21,8 @@ describe('CellPropertiesDialog', () => {
 
     expect(screen.getByRole('dialog', { name: 'Cell properties' })).toBeInTheDocument()
     expect(screen.getByLabelText('Vertical align')).toHaveValue('middle')
+    expect(screen.getByLabelText('Column span')).toHaveValue(1)
+    expect(screen.getByLabelText('Row span')).toHaveValue(1)
     await user.click(screen.getByRole('button', { name: 'OK' }))
     expect(onApply).toHaveBeenCalledWith(value)
   })

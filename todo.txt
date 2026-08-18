@@ -16,6 +16,13 @@ config where to show the toolbar (DONE)
 auto save hooks, (check every second, if the document has changed, if yes call a callback, optional property), add to playgraoudn with visible auto saves (DONE)
 Cannot mark text on mobile devices (DONE / Not tested)
 custom menu hides as property (DONE)
+Add table column with and row heiht property editor (DONE)
+Add merge cells, colspan, rowspan (right click property, or optionally mark the cells, and press the merge cells, and unmerge cells) (IN PROGRESS)
+
+
+read aloud by browser?
+acc custom CSS popup for selected element
+
 
 insert
  -video
@@ -23,8 +30,8 @@ insert
 format brush
 save as md, 
 load from md
-convert between md and html
-read aloud by browser?
+The save, load is now file, add two buttons (customizable what is shown, with save to API and load from API)
+
 zoom?
 ruler?
 Pages?
@@ -32,22 +39,21 @@ customizable auto sanitize Javascipt, including javascript: in tags
 backround image
 backround image position, crop
 background image zoom
-css animations
-draw? (svg?)
 Animation library
 Add special HTML block, like toggle, (witch custom CSS provided by us), configurable if allowed to use
 For image inserted, allow referred/embedded, background and non background as well
-Add editing possibilities to position fixed, absolute and z-index for specific features
-Possible javascript block <javasript> separate editor window, 
 Fit, % zoom on screen only
-The save, load is now file, add two buttons (customizable what is shown, with save to API and load from API)
 Add comments to specific lines, especially for commspliant. and this can be shown with show comments, or hide.
-make it as an electron app as well, for multiple platform, Desktop HTML word editor
-Import docx? Save as Docx?
-possibiltity to detach main menu only and main menu and toolbar together
 Not only add table, but add responsive grid system, editable properties for mobile devices.
-Add table column with and row heiht property editor
-Add merge cells, colspan, rowspan (right click property, or optionally mark the cells, and press the merge cells, and unmerge cells)
-
 Add header, footer and body possibilities for commspiant, so this will not be separate partial and tab. Better user experience. This means we can edit totally separate pages, with separate html, and may add @page properties as well for printing as properities panel
 
+
+// Optional
+css animations
+draw? (svg?)
+make it as an electron app as well, for multiple platform, Desktop HTML word editor
+Import docx? Save as Docx?
+Possible javascript block <javasript> separate editor window, 
+convert between md and html
+Add editing possibilities to position fixed, absolute and z-index for specific features
+possibiltity to detach main menu only and main menu and toolbar together

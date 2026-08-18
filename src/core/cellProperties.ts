@@ -14,7 +14,8 @@ import {
   writeParagraphBox,
   type BoxSides,
 } from './paragraphBox'
-import { cellAtSelection, cellsInSelection } from './table'
+import { cellAtSelection, cellsInSelection, setCellSpanInDocument } from './table'
+import { readCellSpan } from './tableGrid'
 
 export const CELL_VERTICAL_ALIGNS = ['top', 'middle', 'bottom', 'baseline'] as const
 
@@ -26,6 +27,8 @@ export type CellPropertiesApply = {
   padding: BoxSides
   verticalAlign: CellVerticalAlign | null
   width: CssLength | null
+  colSpan: number
+  rowSpan: number
 }
 
 const VERTICAL_ALIGN_SET = new Set<string>(CELL_VERTICAL_ALIGNS)
@@ -39,6 +42,8 @@ export function defaultCellPropertiesApply(
     padding: { ...EMPTY_BOX_SIDES },
     verticalAlign: null,
     width: null,
+    colSpan: 1,
+    rowSpan: 1,
     ...overrides,
   }
 }
@@ -51,6 +56,7 @@ export function readCellProperties(cell: HTMLTableCellElement): CellPropertiesAp
     padding: box.padding,
     verticalAlign: readVerticalAlign(cell),
     width: parseCssLength(cell.style.width),
+    ...readCellSpan(cell),
   }
 }
 
@@ -99,6 +105,13 @@ export function applyCellPropertiesInDocument(
   for (const cell of cells) {
     if (writeCellProperties(cell, draft)) changed = true
   }
+  const origin = cellAtSelection(root)
+  if (origin) {
+    const current = readCellSpan(origin)
+    if (current.colSpan !== draft.colSpan || current.rowSpan !== draft.rowSpan) {
+      if (setCellSpanInDocument(root, draft.colSpan, draft.rowSpan)) changed = true
+    }
+  }
   return changed
 }
 
@@ -108,7 +121,9 @@ export function cellPropertiesEqual(a: CellPropertiesApply, b: CellPropertiesApp
     a.color === b.color &&
     boxSidesEqual(a.padding, b.padding) &&
     a.verticalAlign === b.verticalAlign &&
-    cssLengthsEqual(a.width, b.width)
+    cssLengthsEqual(a.width, b.width) &&
+    a.colSpan === b.colSpan &&
+    a.rowSpan === b.rowSpan
   )
 }
 

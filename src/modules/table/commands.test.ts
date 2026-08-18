@@ -89,6 +89,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     insertColumnAfter: vi.fn(),
     insertColumnBefore: vi.fn(),
     deleteColumn: vi.fn(),
+    mergeCells: vi.fn(),
+    unmergeCells: vi.fn(),
     cut: vi.fn(),
     copy: vi.fn(),
     deleteSelection: vi.fn(),
@@ -96,6 +98,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     isLink: () => false,
     isImageSelected: () => false,
     isInTable: () => false,
+    canMergeCells: () => false,
+    canUnmergeCells: () => false,
     hasTextSelection: () => false,
     ...overrides,
   }
@@ -182,11 +186,30 @@ describe('createTableCommands', () => {
     expect(insertColumnBefore).toHaveBeenCalledTimes(1)
     expect(deleteColumn).toHaveBeenCalledTimes(1)
   })
+
+  it('forwards merge and unmerge commands', () => {
+    const mergeCells = vi.fn()
+    const unmergeCells = vi.fn()
+    const commands = createTableCommands(context({ mergeCells, unmergeCells }))
+
+    commands.mergeCells()
+    commands.unmergeCells()
+
+    expect(mergeCells).toHaveBeenCalledTimes(1)
+    expect(unmergeCells).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('createTableQueries', () => {
   it('reports whether the caret is in a table', () => {
     expect(createTableQueries(context({ isInTable: () => true })).isInTable()).toBe(true)
     expect(createTableQueries(context()).isInTable()).toBe(false)
+  })
+
+  it('reports whether cells can be merged or unmerged', () => {
+    expect(createTableQueries(context({ canMergeCells: () => true })).canMergeCells()).toBe(true)
+    expect(createTableQueries(context()).canMergeCells()).toBe(false)
+    expect(createTableQueries(context({ canUnmergeCells: () => true })).canUnmergeCells()).toBe(true)
+    expect(createTableQueries(context()).canUnmergeCells()).toBe(false)
   })
 })

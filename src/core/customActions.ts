@@ -52,9 +52,21 @@ export const BUILTIN_TOOLBAR_ITEM_IDS = new Set([
   'outdent',
   'bulletList',
   'numberedList',
+  'table',
+  'insertRowBelow',
+  'insertRowBefore',
+  'deleteRow',
+  'insertColumnAfter',
+  'insertColumnBefore',
+  'deleteColumn',
+  'mergeCells',
+  'unmergeCells',
+  'tableProperties',
+  'cellProperties',
+  'rowProperties',
 ])
 
-const BUILTIN_MENU_IDS = new Set(['file', 'edit', 'insert', 'view', 'format'])
+const BUILTIN_MENU_IDS = new Set(['file', 'edit', 'insert', 'table', 'view', 'format'])
 
 export const DEFAULT_CUSTOM_MENU_ID = 'custom'
 export const DEFAULT_CUSTOM_GROUP_ID = 'custom'
