@@ -1,5 +1,8 @@
 export const HISTORY_COALESCE_MS = 400
 
+/** Maximum undo steps retained in memory to avoid unbounded growth on long sessions. */
+export const HISTORY_MAX_PAST_ENTRIES = 100
+
 export type RecordOptions = {
   coalesce?: boolean
 }
@@ -22,6 +25,16 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
   let coalescing = false
   let lastRecordAt = 0
 
+  function trimPast(): void {
+    if (past.length <= HISTORY_MAX_PAST_ENTRIES) return
+    past.splice(0, past.length - HISTORY_MAX_PAST_ENTRIES)
+  }
+
+  function pushPast(entry: string): void {
+    past.push(entry)
+    trimPast()
+  }
+
   function record(next: string, options?: RecordOptions): void {
     if (applying) {
       present = next
@@ -40,7 +53,7 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
       return
     }
 
-    past.push(present)
+    pushPast(present)
     present = next
     future = []
     lastRecordAt = now
@@ -58,7 +71,7 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
   function redo(): string | null {
     if (future.length === 0) return null
     coalescing = false
-    past.push(present)
+    pushPast(present)
     present = future.pop() as string
     return present
   }
@@ -70,7 +83,7 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
       return
     }
     if (html === present) return
-    past.push(present)
+    pushPast(present)
     present = html
     future = []
     coalescing = false

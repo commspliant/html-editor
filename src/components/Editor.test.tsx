@@ -24,6 +24,49 @@ vi.mock('../modules/file/printHtml', () => ({
   printHtml: vi.fn(),
 }))
 
+async function flushSelectionRefresh(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve())
+    })
+  })
+}
+
+async function selectVisualText(visual: HTMLElement, start: number, end: number): Promise<void> {
+  const walker = document.createTreeWalker(visual, NodeFilter.SHOW_TEXT)
+  let startNode: Text | null = null
+  let endNode: Text | null = null
+  let startOffset = 0
+  let endOffset = 0
+  let remainingStart = start
+  let remainingEnd = end
+  let current: Node | null
+  while ((current = walker.nextNode())) {
+    const text = current as Text
+    const len = text.data.length
+    if (!startNode && remainingStart <= len) {
+      startNode = text
+      startOffset = remainingStart
+    }
+    if (!startNode) remainingStart -= len
+    if (!endNode && remainingEnd <= len) {
+      endNode = text
+      endOffset = remainingEnd
+      break
+    }
+    remainingEnd -= len
+  }
+  if (!startNode || !endNode) throw new Error('expected text nodes')
+  const range = document.createRange()
+  range.setStart(startNode, startOffset)
+  range.setEnd(endNode, endOffset)
+  const sel = window.getSelection()
+  sel?.removeAllRanges()
+  sel?.addRange(range)
+  document.dispatchEvent(new Event('selectionchange'))
+  await flushSelectionRefresh()
+}
+
 describe('Editor', () => {
   it('defaults to visual mode with a contenteditable surface', () => {
     render(<Editor />)
@@ -804,46 +847,12 @@ describe('Editor history', () => {
 })
 
 describe('Editor font marks', () => {
-  function selectVisualText(visual: HTMLElement, start: number, end: number) {
-    const walker = document.createTreeWalker(visual, NodeFilter.SHOW_TEXT)
-    let remainingStart = start
-    let remainingEnd = end
-    let startNode: Text | null = null
-    let startOffset = 0
-    let endNode: Text | null = null
-    let endOffset = 0
-    let current: Node | null
-    while ((current = walker.nextNode())) {
-      const text = current as Text
-      const len = text.data.length
-      if (!startNode && remainingStart <= len) {
-        startNode = text
-        startOffset = remainingStart
-      }
-      if (!startNode) remainingStart -= len
-      if (!endNode && remainingEnd <= len) {
-        endNode = text
-        endOffset = remainingEnd
-        break
-      }
-      remainingEnd -= len
-    }
-    if (!startNode || !endNode) throw new Error('expected text nodes')
-    const range = document.createRange()
-    range.setStart(startNode, startOffset)
-    range.setEnd(endNode, endOffset)
-    const sel = window.getSelection()
-    sel?.removeAllRanges()
-    sel?.addRange(range)
-    document.dispatchEvent(new Event('selectionchange'))
-  }
-
   it('applies bold from the toolbar as an inline style', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Bold' }))
 
     expect(visual).toContainHTML('font-weight')
@@ -856,19 +865,17 @@ describe('Editor font marks', () => {
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     visual.focus()
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     await user.keyboard('{Control>}i{/Control}')
 
     expect(visual.querySelector('span')).toHaveStyle({ fontStyle: 'italic' })
   })
 
-  it('reports strong as bold in the toolbar', () => {
+  it('reports strong as bold in the toolbar', async () => {
     render(<Editor defaultValue="<p><strong>Bold</strong></p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    act(() => {
-      selectVisualText(visual, 0, 4)
-    })
+    await selectVisualText(visual, 0, 4)
 
     expect(screen.getByRole('button', { name: 'Bold' })).toHaveAttribute('aria-pressed', 'true')
   })
@@ -882,14 +889,14 @@ describe('Editor font marks', () => {
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     const brush = screen.getByRole('button', { name: 'Copy formatting' })
 
-    act(() => {
-      selectVisualText(visual, 0, 6)
+    await act(async () => {
+      await selectVisualText(visual, 0, 6)
     })
     await user.click(brush)
     expect(brush).toHaveAttribute('aria-pressed', 'true')
 
-    act(() => {
-      selectVisualText(visual, 6, 12)
+    await act(async () => {
+      await selectVisualText(visual, 6, 12)
     })
     fireEvent.mouseUp(visual)
 
@@ -905,8 +912,8 @@ describe('Editor font marks', () => {
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     const brush = screen.getByRole('button', { name: 'Copy formatting' })
 
-    act(() => {
-      selectVisualText(visual, 0, 6)
+    await act(async () => {
+      await selectVisualText(visual, 0, 6)
     })
     await user.click(brush)
     expect(brush).toHaveAttribute('aria-pressed', 'true')
@@ -922,8 +929,8 @@ describe('Editor font marks', () => {
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     const brush = screen.getByRole('button', { name: 'Copy formatting' })
 
-    act(() => {
-      selectVisualText(visual, 2, 2)
+    await act(async () => {
+      await selectVisualText(visual, 2, 2)
     })
     await user.click(brush)
 
@@ -944,11 +951,11 @@ describe('Editor font marks', () => {
     expect(screen.getByRole('combobox', { name: 'Font size' })).toBeDisabled()
   })
 
-  it('applies font size from the toolbar as an inline style', () => {
+  it('applies font size from the toolbar as an inline style', async () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     fireEvent.click(screen.getByRole('button', { name: 'Font size' }))
     fireEvent.click(screen.getByRole('option', { name: '18' }))
 
@@ -960,7 +967,7 @@ describe('Editor font marks', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Font color' }))
     await user.click(screen.getByRole('option', { name: '#ff0000' }))
 
@@ -972,7 +979,7 @@ describe('Editor font marks', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Highlight color' }))
     await user.click(screen.getByRole('option', { name: '#ffff00' }))
 
@@ -995,7 +1002,7 @@ describe('Editor font marks', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
     await user.click(screen.getByRole('button', { name: 'Font family' }))
     await user.click(screen.getByRole('option', { name: 'Georgia' }))
 
@@ -1009,11 +1016,11 @@ describe('Editor font marks', () => {
     expect(span?.contains(window.getSelection()?.anchorNode ?? null)).toBe(true)
   })
 
-  it('applies a pending font size to the next typed character at a caret', () => {
+  it('applies a pending font size to the next typed character at a caret', async () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
     fireEvent.click(screen.getByRole('button', { name: 'Font size' }))
     fireEvent.click(screen.getByRole('option', { name: '18' }))
 
@@ -1032,7 +1039,7 @@ describe('Editor font marks', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
     await user.click(screen.getByRole('button', { name: 'Font color' }))
     await user.click(screen.getByRole('option', { name: '#ff0000' }))
 
@@ -1051,7 +1058,7 @@ describe('Editor font marks', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
     await user.click(screen.getByRole('button', { name: 'Bold' }))
 
     act(() => {
@@ -1081,7 +1088,7 @@ describe('Editor font marks', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
 
     await user.click(screen.getByRole('button', { name: 'Format menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Fonts submenu' }))
@@ -1098,7 +1105,7 @@ describe('Editor font marks', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
 
     await user.click(screen.getByRole('button', { name: 'Format menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Fonts submenu' }))
@@ -1114,46 +1121,12 @@ describe('Editor font marks', () => {
 })
 
 describe('Editor insert chrome', () => {
-  function selectVisualText(visual: HTMLElement, start: number, end: number) {
-    const walker = document.createTreeWalker(visual, NodeFilter.SHOW_TEXT)
-    let remainingStart = start
-    let remainingEnd = end
-    let startNode: Text | null = null
-    let startOffset = 0
-    let endNode: Text | null = null
-    let endOffset = 0
-    let current: Node | null
-    while ((current = walker.nextNode())) {
-      const text = current as Text
-      const len = text.data.length
-      if (!startNode && remainingStart <= len) {
-        startNode = text
-        startOffset = remainingStart
-      }
-      if (!startNode) remainingStart -= len
-      if (!endNode && remainingEnd <= len) {
-        endNode = text
-        endOffset = remainingEnd
-        break
-      }
-      remainingEnd -= len
-    }
-    if (!startNode || !endNode) throw new Error('expected text nodes')
-    const range = document.createRange()
-    range.setStart(startNode, startOffset)
-    range.setEnd(endNode, endOffset)
-    const sel = window.getSelection()
-    sel?.removeAllRanges()
-    sel?.addRange(range)
-    document.dispatchEvent(new Event('selectionchange'))
-  }
-
   it('wraps a selection in a link from the dialog', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
 
     await user.click(screen.getByRole('button', { name: 'Insert menu' }))
     fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Link' }))
@@ -1174,7 +1147,7 @@ describe('Editor insert chrome', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
 
     await user.click(screen.getByRole('button', { name: 'Bookmark' }))
     const dialog = screen.getByRole('dialog', { name: 'Insert bookmark' })
@@ -1229,7 +1202,7 @@ describe('Editor insert chrome', () => {
     )
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
 
     await user.click(screen.getByRole('button', { name: 'Insert image' }))
     expect(onPick).toHaveBeenCalledTimes(1)
@@ -1251,46 +1224,12 @@ describe('Editor insert chrome', () => {
 })
 
 describe('Editor paragraph chrome', () => {
-  function selectVisualText(visual: HTMLElement, start: number, end: number) {
-    const walker = document.createTreeWalker(visual, NodeFilter.SHOW_TEXT)
-    let remainingStart = start
-    let remainingEnd = end
-    let startNode: Text | null = null
-    let startOffset = 0
-    let endNode: Text | null = null
-    let endOffset = 0
-    let current: Node | null
-    while ((current = walker.nextNode())) {
-      const text = current as Text
-      const len = text.data.length
-      if (!startNode && remainingStart <= len) {
-        startNode = text
-        startOffset = remainingStart
-      }
-      if (!startNode) remainingStart -= len
-      if (!endNode && remainingEnd <= len) {
-        endNode = text
-        endOffset = remainingEnd
-        break
-      }
-      remainingEnd -= len
-    }
-    if (!startNode || !endNode) throw new Error('expected text nodes')
-    const range = document.createRange()
-    range.setStart(startNode, startOffset)
-    range.setEnd(endNode, endOffset)
-    const sel = window.getSelection()
-    sel?.removeAllRanges()
-    sel?.addRange(range)
-    document.dispatchEvent(new Event('selectionchange'))
-  }
-
   it('applies text-align from the toolbar as an inline style', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Align center' }))
 
     expect(visual.querySelector('p')).toHaveStyle({ textAlign: 'center' })
@@ -1302,7 +1241,7 @@ describe('Editor paragraph chrome', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Bullet list' }))
 
     expect(visual.querySelector('ul li')?.textContent).toBe('Hello')
@@ -1314,7 +1253,7 @@ describe('Editor paragraph chrome', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Numbered list' }))
 
     expect(visual.querySelector('ol li')?.textContent).toBe('Hello')
@@ -1325,7 +1264,7 @@ describe('Editor paragraph chrome', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Increase indent' }))
 
     expect(visual.querySelector('p')).toHaveStyle({ marginLeft: '40px' })
@@ -1349,7 +1288,7 @@ describe('Editor paragraph chrome', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
 
     await user.click(screen.getByRole('button', { name: 'Format menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Paragraph submenu' }))
@@ -1381,7 +1320,7 @@ describe('Editor paragraph chrome', () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
 
     await user.click(screen.getByRole('button', { name: 'Edit menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
@@ -1701,6 +1640,30 @@ describe('Editor onAutoSave', () => {
 
     expect(onAutoSave).toHaveBeenCalledTimes(1)
     expect(onAutoSave).toHaveBeenCalledWith('<p>Saved</p>')
+  })
+
+  it('does not fire multi-page auto-save again when nothing changed', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const onAutoSave = vi.fn()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onAutoSave={onAutoSave}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[0].innerHTML = '<p>Edited</p>'
+    fireEvent.input(surfaces[0])
+    await advanceAutoSaveTick()
+
+    expect(onAutoSave).toHaveBeenCalledTimes(1)
+    expect(onAutoSave).toHaveBeenCalledWith(['<p>Edited</p>', '<p>Two</p>'])
+
+    await advanceAutoSaveTick()
+
+    expect(onAutoSave).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -2107,44 +2070,10 @@ describe('Editor toolbar position', () => {
 })
 
 describe('Editor context menu', () => {
-  function selectVisualText(visual: HTMLElement, start: number, end: number) {
-    const walker = document.createTreeWalker(visual, NodeFilter.SHOW_TEXT)
-    let remainingStart = start
-    let remainingEnd = end
-    let startNode: Text | null = null
-    let startOffset = 0
-    let endNode: Text | null = null
-    let endOffset = 0
-    let current: Node | null
-    while ((current = walker.nextNode())) {
-      const text = current as Text
-      const len = text.data.length
-      if (!startNode && remainingStart <= len) {
-        startNode = text
-        startOffset = remainingStart
-      }
-      if (!startNode) remainingStart -= len
-      if (!endNode && remainingEnd <= len) {
-        endNode = text
-        endOffset = remainingEnd
-        break
-      }
-      remainingEnd -= len
-    }
-    if (!startNode || !endNode) throw new Error('expected text nodes')
-    const range = document.createRange()
-    range.setStart(startNode, startOffset)
-    range.setEnd(endNode, endOffset)
-    const sel = window.getSelection()
-    sel?.removeAllRanges()
-    sel?.addRange(range)
-    document.dispatchEvent(new Event('selectionchange'))
-  }
-
-  it('opens a custom menu on the visual surface and prevents the default', () => {
+  it('opens a custom menu on the visual surface and prevents the default', async () => {
     render(<Editor defaultValue="<p>Hello</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     const event = createEvent.contextMenu(visual)
     fireEvent(visual, event)
 
@@ -2228,7 +2157,7 @@ describe('Editor context menu', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     fireEvent.contextMenu(visual)
 
     await user.click(screen.getByRole('menuitem', { name: 'Font properties' }))
@@ -2239,7 +2168,7 @@ describe('Editor context menu', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     fireEvent.contextMenu(visual)
 
     await user.click(screen.getByRole('menuitem', { name: 'Link' }))
@@ -2291,7 +2220,7 @@ describe('Editor context menu', () => {
     )
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     const img = visual.querySelector('img') as HTMLImageElement
-    fireEvent.pointerDown(img)
+    await user.click(img)
 
     await user.click(screen.getByRole('button', { name: 'Format menu' }))
     expect(screen.getByRole('menuitem', { name: 'Image' })).toBeEnabled()
@@ -2304,7 +2233,7 @@ describe('Editor context menu', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
 
     await user.click(screen.getByRole('button', { name: 'Insert table' }))
     const dialog = screen.getByRole('dialog', { name: 'Insert table' })
@@ -2319,7 +2248,7 @@ describe('Editor context menu', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>HelloWorld</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
 
     await user.click(screen.getByRole('button', { name: 'Insert horizontal line' }))
 
@@ -2334,7 +2263,7 @@ describe('Editor context menu', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
 
     await user.click(screen.getByRole('button', { name: 'Insert menu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Horizontal line' }))
@@ -2346,7 +2275,7 @@ describe('Editor context menu', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
 
     await user.click(screen.getByRole('button', { name: 'Insert menu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Audio' }))
@@ -2364,7 +2293,7 @@ describe('Editor context menu', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 5, 5)
+    await selectVisualText(visual, 5, 5)
 
     await user.click(screen.getByRole('button', { name: 'Insert menu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'YouTube video' }))
@@ -2458,7 +2387,7 @@ describe('Editor context menu', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
-    selectVisualText(visual, 0, 5)
+    await selectVisualText(visual, 0, 5)
     fireEvent.contextMenu(visual)
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }))
 

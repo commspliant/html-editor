@@ -34,6 +34,10 @@ export function createEmptyPageInDocument(doc: Document): string {
 }
 
 export function queryPageSurface(container: HTMLElement, index: number): HTMLElement | null {
+  const indexed = container.querySelector<HTMLElement>(
+    `[${PAGE_SURFACE_ATTR}][data-page-index="${index}"]`,
+  )
+  if (indexed) return indexed
   const surfaces = [...container.querySelectorAll<HTMLElement>(`[${PAGE_SURFACE_ATTR}]`)]
   return surfaces[index] ?? null
 }

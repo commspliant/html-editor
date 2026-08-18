@@ -320,6 +320,9 @@ export function Editor({
   const history = historyRef.current
   const htmlRef = useRef(html)
   htmlRef.current = html
+  const documentDirtyRef = useRef(true)
+  const autoSaveSnapshotRef = useRef('')
+  const selectionRefreshRafRef = useRef<number | null>(null)
   const modeRef = useRef(mode)
   modeRef.current = mode
   const fullscreenRef = useRef(fullscreen)
@@ -591,6 +594,10 @@ export function Editor({
     () => collectPreviewFontStylesheets(html, fontFaces).join('\n'),
     [html, fontFaces],
   )
+  const visualPageBodies = useMemo(
+    () => splitPagesFromHtml(html).map((page) => extractFontStylesheets(page).body),
+    [html],
+  )
 
   useEffect(() => {
     const hrefs = previewFontKey ? previewFontKey.split('\n') : []
@@ -764,6 +771,9 @@ export function Editor({
   const commitHtml = useCallback(
     (next: string) => {
       const transformed = transformHtmlRef.current?.(next) ?? next
+      if (transformed !== htmlRef.current) {
+        documentDirtyRef.current = true
+      }
       setHtml(transformed)
       if (enableMultiPagesRef.current) {
         onPagesChangeRef.current?.(
@@ -1075,6 +1085,10 @@ export function Editor({
   }, [])
 
   useEffect(() => {
+    documentDirtyRef.current = true
+  }, [html])
+
+  useEffect(() => {
     if (mode === 'visual') {
       refreshMarkState()
       return
@@ -1096,7 +1110,7 @@ export function Editor({
     setListState({ type: null, mixed: false })
     setCanOutdentState(false)
     setHasTextSelectionState(false)
-  }, [mode, html, refreshMarkState])
+  }, [mode, refreshMarkState])
 
   const applyInsert = useCallback(
     (snapshot: SelectionSnapshot, content: string, asHtml: boolean) => {
@@ -1177,14 +1191,26 @@ export function Editor({
       if (!sel || sel.rangeCount === 0) return
       const node = sel.anchorNode
       if (!node || (!visualRootRef.current.contains(node) && visualRootRef.current !== node)) return
-      captureSelection()
-      clearPendingMarksIfSelectionMoved()
-      refreshMarkState()
-      setSelectedImage(imageAtSelection(visualRootRef.current))
-      refreshTableState(visualRootRef.current)
+      if (selectionRefreshRafRef.current !== null) return
+      selectionRefreshRafRef.current = window.requestAnimationFrame(() => {
+        selectionRefreshRafRef.current = null
+        const root = visualRootRef.current
+        if (!root || modeRef.current !== 'visual') return
+        captureSelection()
+        clearPendingMarksIfSelectionMoved()
+        refreshMarkState()
+        setSelectedImage(imageAtSelection(root))
+        refreshTableState(root)
+      })
     }
     document.addEventListener('selectionchange', onSelectionChange)
-    return () => document.removeEventListener('selectionchange', onSelectionChange)
+    return () => {
+      document.removeEventListener('selectionchange', onSelectionChange)
+      if (selectionRefreshRafRef.current !== null) {
+        window.cancelAnimationFrame(selectionRefreshRafRef.current)
+        selectionRefreshRafRef.current = null
+      }
+    }
   }, [captureSelection, clearPendingMarksIfSelectionMoved, refreshMarkState, refreshTableState])
 
   useEffect(() => {
@@ -1820,17 +1846,29 @@ export function Editor({
     return htmlRef.current
   }, [recordHtml])
 
+  const readAutoSaveMultiPageSnapshot = useCallback((): string => {
+    if (!documentDirtyRef.current && autoSaveSnapshotRef.current) {
+      return autoSaveSnapshotRef.current
+    }
+    const snapshot = JSON.stringify(getAllPagesHtml())
+    autoSaveSnapshotRef.current = snapshot
+    documentDirtyRef.current = false
+    return snapshot
+  }, [getAllPagesHtml])
+
   const getAutoSaveComparisonHtml = useCallback(() => {
     if (enableMultiPagesRef.current) {
-      return JSON.stringify(getAllPagesHtml())
+      return readAutoSaveMultiPageSnapshot()
     }
     return getDocumentHtml()
-  }, [getDocumentHtml, getAllPagesHtml])
+  }, [getDocumentHtml, readAutoSaveMultiPageSnapshot])
 
   useAutoSave({
     onAutoSave: onAutoSave
       ? () => {
-          const payload = enableMultiPagesRef.current ? getAllPagesHtml() : getDocumentHtml()
+          const payload = enableMultiPagesRef.current
+            ? (JSON.parse(readAutoSaveMultiPageSnapshot()) as string[])
+            : getDocumentHtml()
           return onAutoSave(payload)
         }
       : undefined,
@@ -2693,9 +2731,7 @@ export function Editor({
               enableMultiPages ? (
                 <MultiPageVisualSurface
                   ref={multiPageVisualRef}
-                  pages={splitPagesFromHtml(html).map(
-                    (page) => extractFontStylesheets(page).body,
-                  )}
+                  pages={visualPageBodies}
                   activePageIndex={activePageIndex}
                   onActivePageIndexChange={(index) => {
                     setActivePageIndex(index)
