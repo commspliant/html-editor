@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createDocumentHistory, HISTORY_COALESCE_MS } from './history'
+import {
+  createDocumentHistory,
+  HISTORY_COALESCE_MS,
+  HISTORY_MAX_PAST_ENTRIES,
+} from './history'
 
 describe('createDocumentHistory', () => {
   afterEach(() => {
@@ -118,5 +122,22 @@ describe('createDocumentHistory', () => {
     history.syncExternal('b')
 
     expect(history.undo()).toBe('a')
+  })
+
+  it('caps past entries to avoid unbounded memory growth', () => {
+    const history = createDocumentHistory('0')
+
+    for (let index = 1; index <= HISTORY_MAX_PAST_ENTRIES + 25; index += 1) {
+      history.record(String(index))
+    }
+
+    let undoCount = 0
+    while (history.canUndo()) {
+      history.undo()
+      undoCount += 1
+    }
+
+    expect(undoCount).toBe(HISTORY_MAX_PAST_ENTRIES)
+    expect(history.undo()).toBeNull()
   })
 })

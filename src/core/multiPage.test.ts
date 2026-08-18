@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   PAGE_SEPARATOR,
+  PAGE_SURFACE_ATTR,
   emptyPageHtml,
   joinPagesToHtml,
   normalizePages,
+  queryPageSurface,
   splitPagesFromHtml,
 } from './multiPage'
 
@@ -25,5 +27,20 @@ describe('multiPage', () => {
 
   it('joins a single page without a separator', () => {
     expect(joinPagesToHtml(['<p>One</p>'])).toBe('<p>One</p>')
+  })
+
+  it('queryPageSurface finds a page by data-page-index without scanning all surfaces', () => {
+    const container = document.createElement('div')
+    const first = document.createElement('div')
+    first.setAttribute(PAGE_SURFACE_ATTR, '')
+    first.setAttribute('data-page-index', '0')
+    const second = document.createElement('div')
+    second.setAttribute(PAGE_SURFACE_ATTR, '')
+    second.setAttribute('data-page-index', '1')
+    container.append(first, second)
+
+    expect(queryPageSurface(container, 1)).toBe(second)
+    expect(queryPageSurface(container, 0)).toBe(first)
+    expect(queryPageSurface(container, 2)).toBeNull()
   })
 })
