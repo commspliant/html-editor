@@ -332,6 +332,11 @@ export type Messages = {
   rowPropertiesHeight: string
   paragraphDialogTitle: string
   pageDialogTitle: string
+  pageDialogTabBackgroundImage: string
+  pageBackgroundImagePreview: string
+  pageBackgroundImagePreviewAlt: string
+  pageBackgroundImageClear: string
+  pageBackgroundImageCurrent: string
   paragraphDialogTabBorder: string
   paragraphDialogTabBackground: string
   paragraphDialogAlignment: string

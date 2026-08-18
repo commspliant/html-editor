@@ -7,7 +7,10 @@ import type {
   PagePropertiesApply,
   ParagraphDialogTab,
 } from '../../core/commandTypes'
-import type { ParagraphBoxApply } from '../../core/paragraphBox'
+import type { PageBackgroundImageApply } from '../../core/pageBackgroundImage'
+import {
+  emptyPageBackgroundImageApply,
+} from '../../core/pageBackgroundImage'
 import type { FontFace } from '../../core/fontFamily'
 import {
   emptyParagraphPropertiesApply,
@@ -18,6 +21,7 @@ import { FontPropertiesFields } from './FontPropertiesFields'
 import { PAGE_DIALOG_TABS } from './pageDialog'
 import { ParagraphPropertiesFields } from './ParagraphPropertiesFields'
 import styles from './FontPropertiesDialog.module.css'
+import type { CustomImagePicker } from '../../types'
 
 const FOCUSABLE =
   'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), select:not([disabled])'
@@ -48,6 +52,8 @@ export type PagePropertiesDialogProps = {
   value: PagePropertiesApply
   fonts?: readonly FontFace[]
   disabled?: boolean
+  customImagePicker?: CustomImagePicker
+  onCustomImagePick?: () => void
   onTabChange: (tab: PageDialogTab) => void
   onApply: (draft: PagePropertiesApply) => void
   onClose: () => void
@@ -59,6 +65,8 @@ export function PagePropertiesDialog({
   value,
   fonts,
   disabled,
+  customImagePicker,
+  onCustomImagePick,
   onTabChange,
   onApply,
   onClose,
@@ -70,6 +78,9 @@ export function PagePropertiesDialog({
   const [paragraphTab, setParagraphTab] = useState<ParagraphDialogTab>('spacing')
   const [fontDraft, setFontDraft] = useState<FontPropertiesApply>(value.font)
   const [boxDraft, setBoxDraft] = useState<ParagraphBoxApply>(value.box)
+  const [backgroundImageDraft, setBackgroundImageDraft] = useState<PageBackgroundImageApply>(
+    value.backgroundImage,
+  )
 
   useEffect(() => {
     if (!open) return
@@ -77,6 +88,7 @@ export function PagePropertiesDialog({
     setParagraphTab('spacing')
     setFontDraft(value.font)
     setBoxDraft(value.box)
+    setBackgroundImageDraft(value.backgroundImage ?? emptyPageBackgroundImageApply())
   }, [open, value])
 
   useEffect(() => {
@@ -169,6 +181,10 @@ export function PagePropertiesDialog({
               disabled={disabled}
               tabs={PAGE_TABS}
               tablistLabelKey="pageDialogTitle"
+              backgroundImage={backgroundImageDraft}
+              customImagePicker={customImagePicker}
+              onCustomImagePick={onCustomImagePick}
+              onBackgroundImageChange={setBackgroundImageDraft}
               onTabChange={(next) => {
                 if (next === 'general') return
                 setParagraphTab(next)
@@ -185,7 +201,13 @@ export function PagePropertiesDialog({
             type="button"
             className={`${styles.action} ${styles.actionPrimary}`}
             disabled={disabled}
-            onClick={() => onApply({ font: fontDraft, box: boxDraft })}
+            onClick={() =>
+              onApply({
+                font: fontDraft,
+                box: boxDraft,
+                backgroundImage: backgroundImageDraft,
+              })
+            }
           >
             {t('fontDialogOk')}
           </button>

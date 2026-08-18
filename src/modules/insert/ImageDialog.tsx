@@ -1,33 +1,14 @@
-import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
-import {
-  IMAGE_ACCEPT,
-  readImageFileAsDataUrl,
-  validateImageSrc,
-  type ImageAttrs,
-  type ImageFileError,
-  type ImageSrcError,
-} from '../../core/image'
+import { validateImageSrc, type ImageAttrs } from '../../core/image'
 import { CloseIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
-import type { MessageKey } from '../../i18n/types'
 import type { CustomImagePicker } from '../../types'
 import styles from '../format/FontPropertiesDialog.module.css'
+import { ImageSourcePicker, isImageSourceValid } from './ImageSourcePicker'
 
 const FOCUSABLE =
   'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([hidden]), select:not([disabled]), textarea:not([disabled])'
-
-const SRC_ERROR_KEYS: Record<ImageSrcError, MessageKey> = {
-  empty: 'imageDialogErrorEmpty',
-  invalid: 'imageDialogErrorInvalid',
-}
-
-const FILE_ERROR_KEYS: Record<ImageFileError, MessageKey> = {
-  type: 'imageDialogErrorType',
-  tooLarge: 'imageDialogErrorTooLarge',
-}
-
-type ImageSource = 'file' | 'url' | 'custom'
 
 export type ImageDialogProps = {
   open: boolean
@@ -48,32 +29,20 @@ export function ImageDialog({
 }: ImageDialogProps) {
   const t = useT()
   const titleId = useId()
-  const urlId = useId()
   const altId = useId()
   const titleFieldId = useId()
-  const errorId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [source, setSource] = useState<ImageSource>('file')
-  const [url, setUrl] = useState('')
-  const [fileSrc, setFileSrc] = useState('')
-  const [fileName, setFileName] = useState('')
+  const [src, setSrc] = useState('')
   const [alt, setAlt] = useState('')
   const [title, setTitle] = useState('')
-  const [fileError, setFileError] = useState<ImageFileError | null>(null)
-  const [reading, setReading] = useState(false)
+  const [source, setSource] = useState<'file' | 'url' | 'custom'>('file')
 
   useEffect(() => {
     if (!open) return
-    setSource('file')
-    setUrl('')
-    setFileSrc('')
-    setFileName('')
+    setSrc('')
     setAlt('')
     setTitle('')
-    setFileError(null)
-    setReading(false)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    setSource('file')
   }, [open])
 
   useEffect(() => {
@@ -109,59 +78,15 @@ export function ImageDialog({
 
   if (!open) return null
 
-  const activeSrc = source === 'file' ? fileSrc : source === 'url' ? url : ''
-  const srcError = source === 'custom' ? null : validateImageSrc(activeSrc)
-  const errorKey =
-    source === 'custom'
-      ? null
-      : source === 'file' && fileError
-        ? FILE_ERROR_KEYS[fileError]
-        : srcError && (source === 'file' || url.trim().length > 0)
-          ? SRC_ERROR_KEYS[srcError]
-          : null
-  const canApply =
-    source !== 'custom' &&
-    srcError === null &&
-    !(source === 'file' && fileError) &&
-    !disabled &&
-    !reading
-
-  const pickCustom = () => {
-    if (disabled || !customImagePicker) return
-    onCustomPick?.()
-  }
+  const canApply = isImageSourceValid(src) && !disabled
 
   const submit = () => {
     if (!canApply) return
     onApply({
-      src: activeSrc.trim(),
+      src: src.trim(),
       alt: alt.trim(),
       title: title.trim(),
     })
-  }
-
-  const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setReading(true)
-    setFileError(null)
-    void readImageFileAsDataUrl(file).then(
-      (dataUrl) => {
-        setFileSrc(dataUrl)
-        setFileName(file.name)
-        setSource('file')
-        setReading(false)
-      },
-      (error: unknown) => {
-        const code = error instanceof Error ? error.message : ''
-        setFileSrc('')
-        setFileName('')
-        setSource('file')
-        setFileError(code === 'tooLarge' || code === 'type' ? code : 'type')
-        setReading(false)
-        if (fileInputRef.current) fileInputRef.current.value = ''
-      },
-    )
   }
 
   return (
@@ -190,94 +115,14 @@ export function ImageDialog({
           </button>
         </div>
         <div className={styles.body}>
-          <fieldset className={styles.group}>
-            <legend className={styles.subLabel}>{t('imageDialogSource')}</legend>
-            <div className={styles.sizeRow} role="radiogroup" aria-label={t('imageDialogSource')}>
-              <button
-                type="button"
-                className={styles.action}
-                role="radio"
-                aria-checked={source === 'file'}
-                disabled={disabled}
-                onClick={() => setSource('file')}
-              >
-                {t('imageDialogFile')}
-              </button>
-              <button
-                type="button"
-                className={styles.action}
-                role="radio"
-                aria-checked={source === 'url'}
-                disabled={disabled}
-                onClick={() => setSource('url')}
-              >
-                {t('imageDialogUrl')}
-              </button>
-              {customImagePicker ? (
-                <button
-                  type="button"
-                  className={styles.action}
-                  role="radio"
-                  aria-checked={source === 'custom'}
-                  disabled={disabled}
-                  onClick={() => setSource('custom')}
-                >
-                  {customImagePicker.text}
-                </button>
-              ) : null}
-            </div>
-            {source === 'file' ? (
-              <div className={styles.fileRow}>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={IMAGE_ACCEPT}
-                  hidden
-                  disabled={disabled}
-                  aria-label={t('imageDialogChooseFile')}
-                  onChange={onFileChange}
-                />
-                <button
-                  type="button"
-                  className={styles.action}
-                  disabled={disabled || reading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {t('imageDialogChooseFile')}
-                </button>
-                {fileName ? <span className={styles.fileName}>{fileName}</span> : null}
-              </div>
-            ) : null}
-            {source === 'url' ? (
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor={urlId}>
-                  {t('imageDialogUrl')}
-                </label>
-                <input
-                  id={urlId}
-                  className={styles.textInput}
-                  value={url}
-                  disabled={disabled}
-                  aria-invalid={errorKey !== null}
-                  aria-describedby={errorKey ? errorId : undefined}
-                  onChange={(event) => setUrl(event.target.value)}
-                />
-              </div>
-            ) : null}
-            {source === 'custom' && customImagePicker ? (
-              <div className={styles.field}>
-                <p className={styles.emptyHint}>{customImagePicker.description}</p>
-                <button
-                  type="button"
-                  className={styles.action}
-                  disabled={disabled}
-                  onClick={pickCustom}
-                >
-                  {customImagePicker.buttonCaption}
-                </button>
-              </div>
-            ) : null}
-          </fieldset>
+          <ImageSourcePicker
+            src={src}
+            disabled={disabled}
+            customImagePicker={customImagePicker}
+            onCustomPick={onCustomPick}
+            onSourceChange={setSource}
+            onSrcChange={setSrc}
+          />
           {source !== 'custom' ? (
             <>
               <div className={styles.field}>
@@ -305,11 +150,6 @@ export function ImageDialog({
                 />
               </div>
             </>
-          ) : null}
-          {errorKey ? (
-            <p id={errorId} className={styles.error}>
-              {t(errorKey)}
-            </p>
           ) : null}
         </div>
         <div className={styles.actions}>

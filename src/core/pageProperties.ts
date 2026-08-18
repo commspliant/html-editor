@@ -10,7 +10,12 @@ import {
 import { fontFamiliesEqual } from './fontFamily'
 import { normalizeCssColor } from './inlineColor'
 import { emptyFontMarkState, type FontMarkState } from './marks'
-import { ensurePageShell, queryPageShell, syncPageHolderBackground } from './page'
+import { ensurePageShell, ensurePageShellLayout, queryPageShell, syncPageHolderBackground } from './page'
+import {
+  emptyPageBackgroundImageApply,
+  readPageBackgroundImage,
+  writePageBackgroundImage,
+} from './pageBackgroundImage'
 import {
   emptyParagraphBoxApply,
   readParagraphBox,
@@ -36,6 +41,7 @@ export function emptyPagePropertiesApply(): PagePropertiesApply {
   return {
     font: emptyFontPropertiesApply(),
     box: emptyParagraphBoxApply(),
+    backgroundImage: emptyPageBackgroundImageApply(),
   }
 }
 
@@ -177,6 +183,7 @@ export function queryPageProperties(root: HTMLElement): PagePropertiesApply {
       opacity: box.opacity,
       opacityMixed: false,
     },
+    backgroundImage: readPageBackgroundImage(shell),
   }
 }
 
@@ -194,13 +201,15 @@ export function applyPagePropertiesInDocument(
 
   const existed = queryPageShell(root)
   const shell = ensurePageShell(root)
+  ensurePageShellLayout(shell)
   const wroteFont = writePageFont(shell, draft.font)
   const wroteBox = writeParagraphBox(shell, boxWithPageFill(draft))
+  const wroteBackgroundImage = writePageBackgroundImage(shell, draft.backgroundImage)
   syncPageHolderBackground(root)
 
   if (start !== null && end !== null) {
     restoreOffsets(root, Math.min(start, end), Math.max(start, end))
   }
 
-  return !existed || wroteFont || wroteBox
+  return !existed || wroteFont || wroteBox || wroteBackgroundImage
 }

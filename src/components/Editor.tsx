@@ -2626,6 +2626,22 @@ export function Editor({
           value={pageDialog.value}
           fonts={fontFaces}
           disabled={locked}
+          customImagePicker={customImagePicker}
+          onCustomImagePick={() => {
+            customImagePicker?.onPick((image) => {
+              setPageDialog((prev) => ({
+                ...prev,
+                tab: 'paragraph',
+                value: {
+                  ...prev.value,
+                  backgroundImage: {
+                    ...prev.value.backgroundImage,
+                    src: image.src,
+                  },
+                },
+              }))
+            })
+          }}
           onTabChange={(tab) => setPageDialog({ ...pageDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyPageProperties(draft)}
           onClose={() => setPageDialog({ ...pageDialog, open: false })}
