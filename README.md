@@ -2,6 +2,8 @@
 
 **Try it out here:** [https://htmleditor.commspliant.com/](https://htmleditor.commspliant.com/)
 
+[![WYSIWYG editor screenshot](screenshot.png)](https://htmleditor.commspliant.com/)
+
 Reusable React + TypeScript editor with two base modes: **Visual** (`contenteditable`) and **HTML** (plain-text source). Downstream apps import the package; they do not copy source.
 
 ## Install
