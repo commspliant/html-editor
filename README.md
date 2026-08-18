@@ -107,14 +107,14 @@ import { Editor } from 'commspliant-html-editor'
 
 Format → Page → **Page properties** opens a dialog with **Font** and **Paragraph** tabs. Paragraph sub-tabs include **Spacing**, **Border**, **Background** (fill color and page opacity), and **Background Image**.
 
-The first time page properties are applied, content is wrapped in a single `<div data-page>` shell with `width: 100%` and `height: 100%`. Background **color** is written on that shell. Background **image** uses the same file, URL, or custom picker as Insert → Image, plus opacity, fit, and position controls (the same options as Image properties → Advanced). Rotation is not supported for page backgrounds.
+The first time page properties are applied, content is wrapped in a single `<div data-page>` shell with `width: 100%` and `height: 100%`. Background **color** is written on that shell. Background **image** uses the same file, URL, or custom picker as Insert → Image, plus independent width and height (default width `100%`, height unset), and opacity, fit, and position controls (the same options as Image properties → Advanced). Rotation is not supported for page backgrounds. Width and height write `background-size`; keyword fit values (`cover`, `contain`) replace those dimensions.
 
-When a background image is set, a managed first child `<div data-page-bg contenteditable="false">` holds the image layer so image opacity does not fade page text:
+When a background image is set, a single managed first child `<div id="commspliant-background" data-page-bg contenteditable="false">` holds the image layer so image opacity does not fade page text. If that id already exists in the editor, it is reused and extras are removed. The layer sits behind content (`z-index: -1`) so the document stays editable:
 
 ```html
-<div data-page style="width:100%;height:100%;position:relative;background-color:#fff">
-  <div data-page-bg contenteditable="false"
-       style="position:absolute;inset:0;z-index:0;pointer-events:none;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.9"></div>
+<div data-page style="width:100%;height:100%;position:relative;isolation:isolate;background-color:#fff">
+  <div id="commspliant-background" data-page-bg contenteditable="false"
+       style="position:absolute;inset:0;z-index:-1;pointer-events:none;user-select:none;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.9"></div>
   <p>Hello</p>
 </div>
 ```

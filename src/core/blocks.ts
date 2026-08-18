@@ -1,5 +1,5 @@
 import { isFormattingWrapper, isInside, textNodesInRange } from './inlineRange'
-import { contentRoot, isPageShell } from './page'
+import { contentRoot, isPageBackgroundLayer, isPageShell } from './page'
 import { rangeFromOffsets } from './selection'
 
 export const ALIGNABLE_TAGS = new Set([
@@ -121,7 +121,7 @@ export function clearEmptyStyle(el: HTMLElement): void {
 export function nearestAlignable(root: HTMLElement, node: Node): HTMLElement | null {
   let current = elementFromNode(node)
   while (current && current !== root) {
-    if (isPageShell(current, root)) {
+    if (isPageShell(current, root) || isPageBackgroundLayer(current)) {
       current = current.parentElement
       continue
     }
@@ -184,19 +184,30 @@ function phrasingRunAround(root: HTMLElement, child: Node): Node[] {
   return siblings.slice(start, end + 1)
 }
 
+function firstContentChild(wrapRoot: HTMLElement): Node | null {
+  for (const child of wrapRoot.childNodes) {
+    if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
+    return child
+  }
+  return null
+}
+
 function caretChildInWrapRoot(
   wrapRoot: HTMLElement,
   visualRoot: HTMLElement,
   range: Range,
 ): Node | null {
   if (range.startContainer === wrapRoot) {
-    return (
+    const node =
       wrapRoot.childNodes[Math.min(range.startOffset, Math.max(0, wrapRoot.childNodes.length - 1))] ??
       wrapRoot.firstChild
-    )
+    if (node instanceof HTMLElement && isPageBackgroundLayer(node)) {
+      return firstContentChild(wrapRoot)
+    }
+    return node
   }
   if (range.startContainer === visualRoot && wrapRoot !== visualRoot) {
-    return wrapRoot.firstChild
+    return firstContentChild(wrapRoot)
   }
   return childOfRoot(wrapRoot, range.startContainer)
 }
@@ -205,7 +216,7 @@ export function wrapLoosePhrasing(root: HTMLElement, range: Range): HTMLElement 
   const wrapRoot = contentRoot(root)
   if (isInsideSkipWrap(root, range.startContainer)) return null
 
-  if (!wrapRoot.firstChild) {
+  if (!firstContentChild(wrapRoot)) {
     const el = document.createElement('p')
     el.appendChild(document.createElement('br'))
     wrapRoot.appendChild(el)
@@ -214,7 +225,11 @@ export function wrapLoosePhrasing(root: HTMLElement, range: Range): HTMLElement 
 
   const caretChild = caretChildInWrapRoot(wrapRoot, root, range)
 
-  if (!caretChild || (caretChild instanceof Element && SKIP_WRAP_TAGS.has(tagName(caretChild)))) {
+  if (
+    !caretChild ||
+    (caretChild instanceof HTMLElement && isPageBackgroundLayer(caretChild)) ||
+    (caretChild instanceof Element && SKIP_WRAP_TAGS.has(tagName(caretChild)))
+  ) {
     return null
   }
   if (caretChild instanceof HTMLElement && ALIGNABLE_TAGS.has(tagName(caretChild))) return null

@@ -94,6 +94,8 @@ describe('PagePropertiesDialog', () => {
       expect.objectContaining({
         backgroundImage: expect.objectContaining({
           src: 'https://example.com/bg.png',
+          width: { value: 100, unit: '%' },
+          height: null,
         }),
       }),
     )

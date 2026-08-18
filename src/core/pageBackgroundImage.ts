@@ -4,6 +4,11 @@ import {
   IMAGE_OBJECT_POSITIONS,
   type ImageObjectFit,
 } from './imageProperties'
+import {
+  formatImageSize,
+  parseImageSize,
+  type ImageSizeLength,
+} from './imageSize'
 import { clearEmptyStyle } from './blocks'
 import {
   clampOpacity,
@@ -11,7 +16,9 @@ import {
 } from './paragraphBox'
 import {
   PAGE_BG_LAYER_ATTR,
+  PAGE_BG_LAYER_ID,
   queryPageBackgroundLayer,
+  queryPageBackgroundLayers,
 } from './page'
 
 export type PageBackgroundImageApply = {
@@ -19,13 +26,17 @@ export type PageBackgroundImageApply = {
   opacity: number | null
   fit: ImageObjectFit | null
   position: string | null
+  width: ImageSizeLength | null
+  height: ImageSizeLength | null
 }
+
+export const DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH: ImageSizeLength = { value: 100, unit: '%' }
 
 const OBJECT_FIT_SET = new Set<string>(IMAGE_OBJECT_FITS)
 const OBJECT_POSITION_SET = new Set<string>(IMAGE_OBJECT_POSITIONS)
+const KEYWORD_FITS = new Set<ImageObjectFit>(['cover', 'contain', 'scale-down', 'none'])
 
 const BG_SIZE_TO_FIT: Record<string, ImageObjectFit> = {
-  '100% 100%': 'fill',
   contain: 'contain',
   cover: 'cover',
   auto: 'none',
@@ -45,7 +56,13 @@ export function emptyPageBackgroundImageApply(): PageBackgroundImageApply {
     opacity: null,
     fit: null,
     position: null,
+    width: { ...DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH },
+    height: null,
   }
+}
+
+export function isKeywordPageBackgroundFit(fit: ImageObjectFit | null): boolean {
+  return fit != null && KEYWORD_FITS.has(fit)
 }
 
 function readOpacity(el: HTMLElement): number | null {
@@ -89,18 +106,67 @@ function writeBackgroundImage(el: HTMLElement, src: string | null): boolean {
   return true
 }
 
-function readBackgroundFit(el: HTMLElement): ImageObjectFit | null {
-  const raw = el.style.backgroundSize.trim().toLowerCase().replace(/\s+/g, ' ')
-  if (!raw) return null
-  if (BG_SIZE_TO_FIT[raw]) return BG_SIZE_TO_FIT[raw]
-  if (OBJECT_FIT_SET.has(raw)) return raw as ImageObjectFit
+function normalizeBackgroundSize(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function parseSizeToken(token: string): ImageSizeLength | null {
+  if (!token || token === 'auto') return null
+  return parseImageSize(token)
+}
+
+function formatBackgroundSizeValue(draft: PageBackgroundImageApply): string | null {
+  if (isKeywordPageBackgroundFit(draft.fit) && draft.fit) {
+    return FIT_TO_BG_SIZE[draft.fit]
+  }
+  if (draft.fit === 'fill') return FIT_TO_BG_SIZE.fill
+  if (draft.width && draft.height) {
+    return `${formatImageSize(draft.width)} ${formatImageSize(draft.height)}`
+  }
+  if (draft.width) return formatImageSize(draft.width)
+  if (draft.height) return `auto ${formatImageSize(draft.height)}`
   return null
 }
 
-function writeBackgroundFit(el: HTMLElement, fit: ImageObjectFit | null): boolean {
-  const current = readBackgroundFit(el)
-  if (current === fit) return false
-  if (fit) el.style.backgroundSize = FIT_TO_BG_SIZE[fit]
+function readBackgroundSize(el: HTMLElement): Pick<
+  PageBackgroundImageApply,
+  'fit' | 'width' | 'height'
+> {
+  const raw = normalizeBackgroundSize(el.style.backgroundSize)
+  if (!raw) return { fit: null, width: null, height: null }
+  if (raw === '100% 100%') {
+    return {
+      fit: 'fill',
+      width: { ...DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH },
+      height: { ...DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH },
+    }
+  }
+  if (BG_SIZE_TO_FIT[raw]) {
+    return { fit: BG_SIZE_TO_FIT[raw], width: null, height: null }
+  }
+  if (OBJECT_FIT_SET.has(raw)) {
+    return { fit: raw as ImageObjectFit, width: null, height: null }
+  }
+
+  const parts = raw.split(' ')
+  if (parts.length === 1) {
+    return { fit: null, width: parseSizeToken(parts[0]), height: null }
+  }
+  if (parts.length === 2) {
+    return {
+      fit: null,
+      width: parseSizeToken(parts[0]),
+      height: parseSizeToken(parts[1]),
+    }
+  }
+  return { fit: null, width: null, height: null }
+}
+
+function writeBackgroundSize(el: HTMLElement, draft: PageBackgroundImageApply): boolean {
+  const current = normalizeBackgroundSize(el.style.backgroundSize)
+  const next = formatBackgroundSizeValue(draft)
+  if (current === (next ?? '')) return false
+  if (next) el.style.backgroundSize = next
   else el.style.removeProperty('background-size')
   return true
 }
@@ -121,49 +187,99 @@ function writeBackgroundPosition(el: HTMLElement, position: string | null): bool
   return true
 }
 
-function ensureBackgroundLayerStyles(layer: HTMLElement): void {
-  layer.style.position = 'absolute'
-  layer.style.inset = '0'
-  layer.style.zIndex = '0'
-  layer.style.pointerEvents = 'none'
-  layer.style.backgroundRepeat = 'no-repeat'
+function stampBackgroundLayer(layer: HTMLElement): boolean {
+  let changed = false
+  if (layer.id !== PAGE_BG_LAYER_ID) {
+    layer.id = PAGE_BG_LAYER_ID
+    changed = true
+  }
+  if (!layer.hasAttribute(PAGE_BG_LAYER_ATTR)) {
+    layer.setAttribute(PAGE_BG_LAYER_ATTR, '')
+    changed = true
+  }
+  if (layer.getAttribute('contenteditable') !== 'false') {
+    layer.setAttribute('contenteditable', 'false')
+    changed = true
+  }
+  return changed
 }
 
-function ensureBackgroundLayer(shell: HTMLElement): HTMLElement {
-  const existing = queryPageBackgroundLayer(shell)
-  if (existing) return existing
+function ensureBackgroundLayerStyles(layer: HTMLElement): boolean {
+  const before = layer.getAttribute('style')
+  layer.style.position = 'absolute'
+  layer.style.inset = '0'
+  layer.style.zIndex = '-1'
+  layer.style.pointerEvents = 'none'
+  layer.style.userSelect = 'none'
+  layer.style.backgroundRepeat = 'no-repeat'
+  return layer.getAttribute('style') !== before
+}
+
+function ensureBackgroundLayer(shell: HTMLElement): { layer: HTMLElement; changed: boolean } {
+  const layers = queryPageBackgroundLayers(shell)
+  const existing = layers[0] ?? null
+  if (existing) {
+    let changed = stampBackgroundLayer(existing)
+    for (const extra of layers.slice(1)) {
+      extra.remove()
+      changed = true
+    }
+    if (existing.parentNode !== shell || existing !== shell.firstChild) {
+      shell.insertBefore(existing, shell.firstChild)
+      changed = true
+    }
+    return { layer: existing, changed }
+  }
 
   const layer = document.createElement('div')
-  layer.setAttribute(PAGE_BG_LAYER_ATTR, '')
-  layer.setAttribute('contenteditable', 'false')
+  stampBackgroundLayer(layer)
   ensureBackgroundLayerStyles(layer)
   shell.insertBefore(layer, shell.firstChild)
-  return layer
+  return { layer, changed: true }
 }
 
 function removeBackgroundLayer(shell: HTMLElement): boolean {
-  const layer = queryPageBackgroundLayer(shell)
-  if (!layer) return false
-  layer.remove()
+  const layers = queryPageBackgroundLayers(shell)
+  if (layers.length === 0) return false
+  for (const layer of layers) layer.remove()
   return true
 }
 
-function syncShellPosition(shell: HTMLElement): void {
+function syncShellPosition(shell: HTMLElement): boolean {
+  let changed = false
   if (queryPageBackgroundLayer(shell)) {
-    if (shell.style.position !== 'relative') shell.style.position = 'relative'
-  } else if (shell.style.position === 'relative') {
-    shell.style.removeProperty('position')
+    if (shell.style.position !== 'relative') {
+      shell.style.position = 'relative'
+      changed = true
+    }
+    if (shell.style.isolation !== 'isolate') {
+      shell.style.isolation = 'isolate'
+      changed = true
+    }
+  } else {
+    if (shell.style.position === 'relative') {
+      shell.style.removeProperty('position')
+      changed = true
+    }
+    if (shell.style.isolation === 'isolate') {
+      shell.style.removeProperty('isolation')
+      changed = true
+    }
   }
+  return changed
 }
 
 export function readPageBackgroundImage(shell: HTMLElement): PageBackgroundImageApply {
   const layer = queryPageBackgroundLayer(shell)
   if (!layer) return emptyPageBackgroundImageApply()
+  const size = readBackgroundSize(layer)
   return {
     src: readBackgroundImageUrl(layer),
     opacity: readOpacity(layer),
-    fit: readBackgroundFit(layer),
+    fit: size.fit,
     position: readBackgroundPosition(layer),
+    width: size.width,
+    height: size.height,
   }
 }
 
@@ -176,18 +292,20 @@ export function writePageBackgroundImage(
 
   if (!hasSrc) {
     const removed = removeBackgroundLayer(shell)
-    syncShellPosition(shell)
-    if (removed) clearEmptyStyle(shell)
-    return removed
+    const shellChanged = syncShellPosition(shell)
+    if (removed || shellChanged) clearEmptyStyle(shell)
+    return removed || shellChanged
   }
 
-  const layer = ensureBackgroundLayer(shell)
-  ensureBackgroundLayerStyles(layer)
-  syncShellPosition(shell)
+  const ensured = ensureBackgroundLayer(shell)
+  const layer = ensured.layer
+  let changed = ensured.changed
+  if (stampBackgroundLayer(layer)) changed = true
+  if (ensureBackgroundLayerStyles(layer)) changed = true
+  if (syncShellPosition(shell)) changed = true
 
-  let changed = false
   if (writeBackgroundImage(layer, src)) changed = true
-  if (writeBackgroundFit(layer, draft.fit)) changed = true
+  if (writeBackgroundSize(layer, draft)) changed = true
   if (writeBackgroundPosition(layer, draft.position)) changed = true
   if (writeOpacity(layer, draft.opacity)) changed = true
 
