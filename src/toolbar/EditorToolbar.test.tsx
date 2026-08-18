@@ -102,6 +102,7 @@ function renderToolbar(
     copy: vi.fn(),
     deleteSelection: vi.fn(),
     clearFormatting: vi.fn(),
+    toggleFormatBrush: vi.fn(),
     ...overrides.commands,
   }
   const queries = {
@@ -150,6 +151,7 @@ function renderToolbar(
     hasTextSelection: () => true,
     isReadingAloud: () => false,
     canReadAloud: () => true,
+    isFormatBrushActive: () => false,
     ...overrides.queries,
   }
   const toolbar = (
@@ -1049,6 +1051,25 @@ describe('EditorToolbar', () => {
     expect(commands.clearFormatting).toHaveBeenCalledTimes(2)
     expect(
       screen.getByRole('button', { name: 'Reset formatting' }).querySelector('[data-icon="clear-formatting"]'),
+    ).not.toBeNull()
+  })
+
+  it('marks the format brush as pressed when active', () => {
+    renderToolbar({
+      queries: { isFormatBrushActive: () => true },
+    })
+
+    expect(screen.getByRole('button', { name: 'Copy formatting' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('runs toggleFormatBrush from the fonts toolbar icon', async () => {
+    const user = userEvent.setup()
+    const { commands } = renderToolbar()
+
+    await user.click(screen.getByRole('button', { name: 'Copy formatting' }))
+    expect(commands.toggleFormatBrush).toHaveBeenCalledTimes(1)
+    expect(
+      screen.getByRole('button', { name: 'Copy formatting' }).querySelector('[data-icon="format-brush"]'),
     ).not.toBeNull()
   })
 

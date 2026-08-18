@@ -81,6 +81,7 @@ const meta = {
       copy: async () => undefined,
       deleteSelection: () => undefined,
       clearFormatting: () => undefined,
+      toggleFormatBrush: () => undefined,
     },
     queries: {
       isVisualMode: () => true,

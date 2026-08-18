@@ -85,6 +85,7 @@ const commands: EditorCommands = {
   copy: asyncNoop,
   deleteSelection: noop,
   clearFormatting: noop,
+  toggleFormatBrush: noop,
 }
 
 const meta = {

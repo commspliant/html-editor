@@ -16,12 +16,13 @@ type VisualSurfaceProps = {
   disabled?: boolean
   onBeforeInput?: (event: InputEvent) => void
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
+  onMouseUp?: (event: ReactMouseEvent<HTMLDivElement>) => void
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
 }
 
 export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
   function VisualSurface(
-    { html, onChange, placeholder, disabled, onBeforeInput, onPointerDown, onContextMenu },
+    { html, onChange, placeholder, disabled, onBeforeInput, onPointerDown, onMouseUp, onContextMenu },
     ref,
   ) {
     const t = useT()
@@ -69,6 +70,7 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
         aria-disabled={disabled || undefined}
         data-placeholder={placeholder}
         onPointerDown={onPointerDown}
+        onMouseUp={onMouseUp}
         onContextMenu={onContextMenu}
         onInput={(event) => {
           onChange(event.currentTarget.innerHTML)

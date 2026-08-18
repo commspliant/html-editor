@@ -104,12 +104,15 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     copy: vi.fn(),
     deleteSelection: vi.fn(),
     clearFormatting: vi.fn(),
+    toggleFormatBrush: vi.fn(),
     isLink: () => false,
     isImageSelected: () => false,
     isInTable: () => false,
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
+    toggleFormatBrush: vi.fn(),
+    isFormatBrushActive: () => false,
     ...overrides,
   }
 }

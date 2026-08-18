@@ -86,6 +86,7 @@ const meta = {
       copy: async () => undefined,
       deleteSelection: () => undefined,
       clearFormatting: () => undefined,
+      toggleFormatBrush: () => undefined,
     },
     queries: {
       isVisualMode: () => true,
@@ -133,6 +134,7 @@ const meta = {
       hasTextSelection: () => true,
       isReadingAloud: () => false,
       canReadAloud: () => true,
+      isFormatBrushActive: () => false,
     },
   },
   decorators: [
@@ -237,6 +239,7 @@ export const HtmlMode: Story = {
       hasTextSelection: () => true,
       isReadingAloud: () => false,
       canReadAloud: () => true,
+      isFormatBrushActive: () => false,
     },
   },
 }
@@ -299,6 +302,7 @@ export const HistoryAvailable: Story = {
       hasTextSelection: () => true,
       isReadingAloud: () => false,
       canReadAloud: () => true,
+      isFormatBrushActive: () => false,
     },
   },
 }
@@ -351,6 +355,7 @@ export const UndoOnly: Story = {
       hasTextSelection: () => true,
       isReadingAloud: () => false,
       canReadAloud: () => true,
+      isFormatBrushActive: () => false,
     },
   },
 }
@@ -403,6 +408,7 @@ export const FontMarksActive: Story = {
       hasTextSelection: () => true,
       isReadingAloud: () => false,
       canReadAloud: () => true,
+      isFormatBrushActive: () => false,
     },
   },
 }

@@ -109,6 +109,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
+    toggleFormatBrush: vi.fn(),
+    isFormatBrushActive: () => false,
     ...overrides,
   }
 }
@@ -133,6 +135,21 @@ describe('createFormatCommands', () => {
     commands.clearFormatting()
 
     expect(clearFormatting).toHaveBeenCalledTimes(1)
+  })
+
+  it('toggles the format brush', () => {
+    const toggleFormatBrush = vi.fn()
+    const commands = createFormatCommands(context({ toggleFormatBrush }))
+
+    commands.toggleFormatBrush()
+
+    expect(toggleFormatBrush).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports format brush active state', () => {
+    const queries = createFormatQueries(context({ isFormatBrushActive: () => true }))
+
+    expect(queries.isFormatBrushActive()).toBe(true)
   })
 
   it('sets font size and opens font properties', () => {

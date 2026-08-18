@@ -78,6 +78,7 @@ export type CommandName =
   | 'toggleUnderline'
   | 'toggleStrikethrough'
   | 'clearFormatting'
+  | 'toggleFormatBrush'
   | 'openFontProperties'
   | 'openCustomCss'
   | 'applyCustomCss'
@@ -147,6 +148,7 @@ export type QueryName =
   | 'hasTextSelection'
   | 'isReadingAloud'
   | 'canReadAloud'
+  | 'isFormatBrushActive'
 
 export type CommandContext = {
   getHtml: () => string
@@ -252,6 +254,8 @@ export type CommandContext = {
   canUnmergeCells: () => boolean
   clearFormatting: () => void
   hasTextSelection: () => boolean
+  toggleFormatBrush: () => void
+  isFormatBrushActive: () => boolean
 }
 
 export type EditorCommand = () => void | Promise<void>
@@ -333,6 +337,7 @@ export type EditorCommands = {
   copy: () => Promise<void>
   deleteSelection: () => void
   clearFormatting: () => void
+  toggleFormatBrush: () => void
 }
 
 export function runEditorCommand(commands: EditorCommands, name: string): void {
@@ -386,6 +391,7 @@ export type EditorQueries = {
   hasTextSelection: () => boolean
   isReadingAloud: () => boolean
   canReadAloud: () => boolean
+  isFormatBrushActive: () => boolean
 }
 
 export type { FontFace, FontFamilyQuery, FontSizeQuery, InlineColorQuery, ListType, ParagraphStyleTag, TextAlign, ParagraphPropertiesApply, ParagraphBoxApply, ImagePropertiesApply, TableApply, TablePropertiesApply, CellPropertiesApply, RowPropertiesApply }

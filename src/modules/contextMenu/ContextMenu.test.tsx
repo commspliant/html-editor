@@ -88,6 +88,7 @@ function stubCommands(overrides: Partial<EditorCommands> = {}): EditorCommands {
     copy: asyncNoop,
     deleteSelection: noop,
     clearFormatting: noop,
+    toggleFormatBrush: noop,
     ...overrides,
   }
 }

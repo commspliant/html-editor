@@ -36,6 +36,7 @@ export const BUILTIN_TOOLBAR_ITEM_IDS = new Set([
   'underline',
   'strikethrough',
   'clearFormatting',
+  'formatBrush',
   'fontSize',
   'fontFamily',
   'paragraphStyle',

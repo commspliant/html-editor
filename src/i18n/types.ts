@@ -124,6 +124,8 @@ export type Messages = {
   commandStrikethroughAria: string
   commandClearFormatting: string
   commandClearFormattingAria: string
+  commandFormatBrush: string
+  commandFormatBrushAria: string
   commandFontSize: string
   commandFontSizeAria: string
   commandFontSizeUnitAria: string

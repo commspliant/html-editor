@@ -119,7 +119,7 @@ export const defaultToolbarLayout: ToolbarLayout = {
     { id: 'edit', items: ['undo', 'redo'] },
     { id: 'insert', items: ['link', 'bookmark', 'image', 'table', 'horizontalRule'] },
     { id: 'table', items: ['mergeCells', 'unmergeCells'] },
-    { id: 'font', items: ['fontFamily', 'paragraphStyle', 'fontSize', 'fontColor', 'highlightColor', 'customCss', 'bold', 'italic', 'underline', 'strikethrough', 'clearFormatting'] },
+    { id: 'font', items: ['fontFamily', 'paragraphStyle', 'fontSize', 'fontColor', 'highlightColor', 'customCss', 'formatBrush', 'bold', 'italic', 'underline', 'strikethrough', 'clearFormatting'] },
     { id: 'align', items: ['alignLeft', 'alignCenter', 'alignRight', 'alignJustify'] },
     { id: 'paragraph', items: ['indent', 'outdent', 'bulletList', 'numberedList'] },
     { id: 'view', items: ['visual', 'html', 'preview', 'readAloud'] },

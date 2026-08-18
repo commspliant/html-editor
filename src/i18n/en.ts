@@ -124,6 +124,8 @@ export const en: Messages = {
   commandStrikethroughAria: 'Strikethrough',
   commandClearFormatting: 'Reset formatting',
   commandClearFormattingAria: 'Reset formatting',
+  commandFormatBrush: 'Format brush',
+  commandFormatBrushAria: 'Copy formatting',
   commandFontSize: 'Font size',
   commandFontSizeAria: 'Font size',
   commandFontSizeUnitAria: 'Font size unit',
