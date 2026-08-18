@@ -232,6 +232,30 @@
   background: #f7f7f7;
 }
 
+.root .multiPageContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+}
+
+.root .pageBlock {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.root .pageGap {
+  flex-shrink: 0;
+  height: 1.5rem;
+  background: var(--wysiwyg-toolbar-background, var(--wysiwyg-chrome-toolbar, #f4f4f4));
+}
+
+.root .pageSurface {
+  flex-shrink: 0;
+  min-height: 12rem;
+}
+
 .root .html {
   display: block;
   appearance: none;

@@ -1,8 +1,10 @@
 import { writeDocumentHtml } from '../../core/documentStyles'
+import { extractFontStylesheets } from '../../core/fontFamily'
+import { collectPageAtRulesForPrint } from '../../core/pageAtRule'
 
 const CLEANUP_MS = 1000
 
-export function printHtml(html: string): void {
+function mountPrintIframe(): { iframe: HTMLIFrameElement; doc: Document; win: Window } | null {
   const iframe = document.createElement('iframe')
   iframe.setAttribute('aria-hidden', 'true')
   iframe.setAttribute('data-wysiwyg-print', '')
@@ -18,9 +20,12 @@ export function printHtml(html: string): void {
   const win = iframe.contentWindow
   if (!doc || !win) {
     iframe.remove()
-    return
+    return null
   }
+  return { iframe, doc, win }
+}
 
+function runPrint(doc: Document, win: Window, iframe: HTMLIFrameElement, html: string): void {
   writeDocumentHtml(doc, html)
 
   let cleaned = false
@@ -35,4 +40,41 @@ export function printHtml(html: string): void {
   win.focus()
   win.print()
   window.setTimeout(cleanup, CLEANUP_MS)
+}
+
+export function printHtml(html: string): void {
+  const mounted = mountPrintIframe()
+  if (!mounted) return
+  runPrint(mounted.doc, mounted.win, mounted.iframe, html)
+}
+
+export function printPagesHtml(pages: readonly string[]): void {
+  const mounted = mountPrintIframe()
+  if (!mounted) return
+
+  const hrefs: string[] = []
+  const bodies: string[] = []
+  for (const page of pages) {
+    const extracted = extractFontStylesheets(page)
+    hrefs.push(...extracted.hrefs)
+    bodies.push(extracted.body)
+  }
+
+  const bodyHtml = bodies
+    .map((body, index) => {
+      const breakStyle = index < bodies.length - 1 ? 'page-break-after: always;' : ''
+      return `<div style="${breakStyle}">${body}</div>`
+    })
+    .join('')
+
+  const atRuleCss = collectPageAtRulesForPrint(pages)
+  const combinedHtml = [
+    atRuleCss ? `<style>${atRuleCss}</style>` : '',
+    ...Array.from(new Set(hrefs)).map((href) => `<link rel="stylesheet" href="${href}" />`),
+    bodyHtml,
+  ]
+    .filter(Boolean)
+    .join('')
+
+  runPrint(mounted.doc, mounted.win, mounted.iframe, combinedHtml)
 }

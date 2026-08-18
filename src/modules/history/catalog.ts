@@ -1,5 +1,5 @@
 import type { ToolbarCatalog } from '../../toolbar/types'
-import { RedoIcon, UndoIcon } from '../../icons'
+import { PagePropertiesIcon, RedoIcon, UndoIcon } from '../../icons'
 
 export const historyCatalog: ToolbarCatalog = {
   menus: {
@@ -7,6 +7,13 @@ export const historyCatalog: ToolbarCatalog = {
       id: 'edit',
       labelKey: 'menuEdit',
       ariaKey: 'menuEditAria',
+    },
+  },
+  submenus: {
+    page: {
+      id: 'page',
+      labelKey: 'menuPage',
+      ariaKey: 'menuPageAria',
     },
   },
   groups: {
@@ -31,6 +38,14 @@ export const historyCatalog: ToolbarCatalog = {
       labelKey: 'commandRedo',
       ariaKey: 'commandRedoAria',
       enabled: 'canRedo',
+    },
+    pageProperties: {
+      id: 'pageProperties',
+      command: 'openPageProperties',
+      icon: PagePropertiesIcon,
+      labelKey: 'commandPageProperties',
+      ariaKey: 'commandPagePropertiesAria',
+      enabled: 'isVisualMode',
     },
   },
 }

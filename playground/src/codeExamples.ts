@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -99,6 +99,39 @@ const allowedChrome: AllowedChrome = {
     return response.text()
   }}
 />`,
+    ],
+  },
+  multiPages: {
+    titleKey: 'multiPagesAria',
+    bodyKey: 'multiPagesExampleBody',
+    snippets: [
+      `import { useState } from 'react'
+import { Editor } from 'commspliant-html-editor'
+
+export function MultiPageEditor() {
+  const [pages, setPages] = useState(['<p>Page one</p>', '<p>Page two</p>'])
+
+  return (
+    <Editor
+      enableMultiPages
+      pages={pages}
+      onPagesChange={(nextPages) => setPages(nextPages)}
+      onSave={async (payload) => {
+        if (Array.isArray(payload)) {
+          await fetch('/api/documents/current/pages', {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+          })
+        }
+      }}
+      onOpen={async () => {
+        const response = await fetch('/api/documents/current/pages')
+        if (!response.ok) return null
+        return response.json() as Promise<string[]>
+      }}
+    />
+  )
+}`,
     ],
   },
   customActions: {

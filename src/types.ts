@@ -226,19 +226,21 @@ export type EditorProps = {
    * auto-save, calls this with the current HTML (same as `onChange`, after
    * `transformHtml`). Omit to disable. The callback is not awaited.
    */
-  onAutoSave?: (html: string) => void | Promise<void>
+  onAutoSave?: (html: string | string[]) => void | Promise<void>
   /**
    * When set, File → Save calls this with the current document HTML (same as
    * `onChange`, after `transformHtml`) instead of the built-in local file picker.
+   * When `enableMultiPages` is true, receives all pages as a string array.
    * The callback is awaited. Omit to keep the default save-to-file behavior.
    */
-  onSave?: (html: string) => void | Promise<void>
+  onSave?: (html: string | string[]) => void | Promise<void>
   /**
    * When set, File → Open calls this instead of the built-in local file picker.
-   * Return document HTML to replace the editor, or `null` to cancel. The callback
-   * is awaited. Omit to keep the default open-from-file behavior.
+   * Return document HTML to replace the editor, or `null` to cancel. When
+   * `enableMultiPages` is true, return all pages as a string array.
+   * The callback is awaited. Omit to keep the default open-from-file behavior.
    */
-  onOpen?: () => string | null | Promise<string | null>
+  onOpen?: () => string | string[] | null | Promise<string | null>
   mode?: EditorMode
   defaultMode?: EditorMode
   onModeChange?: (mode: EditorMode) => void
@@ -361,4 +363,15 @@ export type EditorProps = {
    * the library does not use localStorage. Omit to persist in the browser.
    */
   toolbarPositionPersistence?: ToolbarPositionPersistence
+  /**
+   * When true, the editor manages multiple independent HTML pages in visual mode.
+   * Default `false` (single document, unchanged behavior).
+   */
+  enableMultiPages?: boolean
+  /** Controlled page HTML strings when `enableMultiPages` is true. */
+  pages?: string[]
+  /** Initial pages when uncontrolled and `enableMultiPages` is true. */
+  defaultPages?: string[]
+  /** Fires when any page changes while `enableMultiPages` is true. */
+  onPagesChange?: (pages: string[], activePageIndex: number) => void
 }

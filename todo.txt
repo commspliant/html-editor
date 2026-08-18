@@ -23,9 +23,14 @@ add custom CSS popup for selected element (IN PROGRESS)
 insert  -video,  -audio (DONE)
 format brush (DONE)
 The save, load is now file, add two buttons (customizable what is shown, with save to API and load from API) (DONE)
-backround image, backround image position, crop, background image zoom (In progress)
+backround image, backround image position, crop, background image zoom (DONE)
+Done but not exactly I thought, will see how can I utilize.
+! Add header, footer and body possibilities for commspiant, so this will not be separate partial and tab.
+Better user experience. This means we can edit totally separate pages, with separate html,
+and may add @page properties as well for printing as properities panel
 
 
+--- Not done
 Not only add table, but add responsive grid system, editable properties for mobile devices.
 customizable auto sanitize Javascipt, including javascript: in tags
 Animation library
@@ -33,7 +38,7 @@ Add special HTML block, like toggle, (witch custom CSS provided by us), configur
 Fit, % zoom on screen only
 Add comments to specific lines, especially for commspliant. and this can be shown with show comments, or hide.
 
-! Add header, footer and body possibilities for commspiant, so this will not be separate partial and tab. Better user experience. This means we can edit totally separate pages, with separate html, and may add @page properties as well for printing as properities panel
+
 
 
 // Optional

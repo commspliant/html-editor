@@ -11,6 +11,7 @@ vi.mock('./fileDialogs', () => ({
 
 vi.mock('./printHtml', () => ({
   printHtml: vi.fn(),
+  printPagesHtml: vi.fn(),
 }))
 
 function fileContext(overrides: Partial<CommandContext> = {}): CommandContext {
@@ -92,6 +93,10 @@ function fileContext(overrides: Partial<CommandContext> = {}): CommandContext {
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
     insertHorizontalRule: vi.fn(),
+    insertPage: vi.fn(),
+    isMultiPagesEnabled: () => false,
+    getActivePageHtml: () => '',
+    getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -211,6 +216,10 @@ describe('createFileCommands', () => {
       openImageProperties: vi.fn(),
       applyImageProperties: vi.fn(),
       insertHorizontalRule: vi.fn(),
+    insertPage: vi.fn(),
+    isMultiPagesEnabled: () => false,
+    getActivePageHtml: () => '',
+    getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -238,7 +247,6 @@ describe('createFileCommands', () => {
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
-    toggleFormatBrush: vi.fn(),
     isFormatBrushActive: () => false,
     })
 
@@ -329,6 +337,10 @@ describe('createFileCommands', () => {
       openImageProperties: vi.fn(),
       applyImageProperties: vi.fn(),
       insertHorizontalRule: vi.fn(),
+    insertPage: vi.fn(),
+    isMultiPagesEnabled: () => false,
+    getActivePageHtml: () => '',
+    getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -356,7 +368,6 @@ describe('createFileCommands', () => {
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
-    toggleFormatBrush: vi.fn(),
     isFormatBrushActive: () => false,
     })
 
@@ -446,6 +457,10 @@ describe('createFileCommands', () => {
       openImageProperties: vi.fn(),
       applyImageProperties: vi.fn(),
       insertHorizontalRule: vi.fn(),
+    insertPage: vi.fn(),
+    isMultiPagesEnabled: () => false,
+    getActivePageHtml: () => '',
+    getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -473,7 +488,6 @@ describe('createFileCommands', () => {
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
-    toggleFormatBrush: vi.fn(),
     isFormatBrushActive: () => false,
     })
 
@@ -562,6 +576,10 @@ describe('createFileCommands', () => {
       openImageProperties: vi.fn(),
       applyImageProperties: vi.fn(),
       insertHorizontalRule: vi.fn(),
+    insertPage: vi.fn(),
+    isMultiPagesEnabled: () => false,
+    getActivePageHtml: () => '',
+    getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -589,7 +607,6 @@ describe('createFileCommands', () => {
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
-    toggleFormatBrush: vi.fn(),
     isFormatBrushActive: () => false,
     })
 
@@ -644,5 +661,36 @@ describe('createFileCommands', () => {
 
     expect(setHtml).not.toHaveBeenCalled()
     expect(loadHtml).not.toHaveBeenCalled()
+  })
+
+  it('saves only the active page when multi-page is enabled without onSave', async () => {
+    const commands = createFileCommands(
+      fileContext({
+        getHtml: () => '<p>All</p>\n<!-- wysiwyg-page-separator -->\n<p>Two</p>',
+        isMultiPagesEnabled: () => true,
+        getActivePageHtml: () => '<p>Active</p>',
+      }),
+    )
+
+    await commands.save()
+
+    expect(saveHtml).toHaveBeenCalledWith('<p>Active</p>')
+  })
+
+  it('passes all pages to onSave when multi-page is enabled', async () => {
+    const onSave = vi.fn(async () => undefined)
+    const pages = ['<p>One</p>', '<p>Two</p>']
+    const commands = createFileCommands(
+      fileContext({
+        isMultiPagesEnabled: () => true,
+        getAllPagesHtml: () => pages,
+        onSave,
+      }),
+    )
+
+    await commands.save()
+
+    expect(onSave).toHaveBeenCalledWith(pages)
+    expect(saveHtml).not.toHaveBeenCalled()
   })
 })

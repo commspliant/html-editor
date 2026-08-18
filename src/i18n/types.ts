@@ -91,6 +91,8 @@ export type Messages = {
   commandTableAria: string
   commandHorizontalRule: string
   commandHorizontalRuleAria: string
+  commandInsertPage: string
+  commandInsertPageAria: string
   commandTableProperties: string
   commandTablePropertiesAria: string
   commandCellProperties: string
@@ -333,6 +335,22 @@ export type Messages = {
   paragraphDialogTitle: string
   pageDialogTitle: string
   pageDialogTabBackgroundImage: string
+  pageDialogTabPrint: string
+  pageAtRuleSize: string
+  pageAtRuleSizeAuto: string
+  pageAtRuleSizeA4: string
+  pageAtRuleSizeLetter: string
+  pageAtRuleSizeLegal: string
+  pageAtRuleSizeCustom: string
+  pageAtRuleWidth: string
+  pageAtRuleHeight: string
+  pageAtRuleOrientation: string
+  pageAtRuleOrientationNone: string
+  pageAtRuleOrientationPortrait: string
+  pageAtRuleOrientationLandscape: string
+  pageAtRuleMargins: string
+  pageAtRuleReset: string
+  pageAtRuleResetAria: string
   pageBackgroundImagePreview: string
   pageBackgroundImagePreviewAlt: string
   pageBackgroundImageClear: string

@@ -1,4 +1,10 @@
 export { Editor } from './components/Editor'
+export {
+  PAGE_SEPARATOR,
+  joinPagesToHtml,
+  splitPagesFromHtml,
+} from './core/multiPage'
+export type { PageAtRuleApply, PageSizePreset } from './core/pageAtRule'
 export type {
   AllowedChrome,
   CustomAction,

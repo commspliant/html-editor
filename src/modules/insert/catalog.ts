@@ -1,3 +1,4 @@
+import { PagePropertiesIcon } from '../../icons'
 import type { ToolbarCatalog } from '../../toolbar/types'
 import { AudioIcon, BookmarkIcon, HorizontalRuleIcon, ImageIcon, LinkIcon, YoutubeIcon } from '../../icons'
 
@@ -65,6 +66,14 @@ export const insertCatalog: ToolbarCatalog = {
       labelKey: 'commandHorizontalRule',
       ariaKey: 'commandHorizontalRuleAria',
       enabled: 'isVisualMode',
+    },
+    insertPage: {
+      id: 'insertPage',
+      command: 'insertPage',
+      icon: PagePropertiesIcon,
+      labelKey: 'commandInsertPage',
+      ariaKey: 'commandInsertPageAria',
+      enabled: 'canInsertPage',
     },
   },
 }

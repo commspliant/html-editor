@@ -171,16 +171,16 @@ async function savePlaygroundToolbarPosition(position: ToolbarPosition) {
   playgroundToolbarPosition = position
 }
 
-let playgroundDocumentHtml: string | null = null
-
 const PLAYGROUND_FILE_DELAY_MS = 400
 
-async function savePlaygroundDocument(html: string) {
+let playgroundDocumentHtml: string | string[] | null = null
+
+async function savePlaygroundDocument(html: string | string[]) {
   await delay(PLAYGROUND_FILE_DELAY_MS)
   playgroundDocumentHtml = html
 }
 
-async function loadPlaygroundDocument() {
+async function loadPlaygroundDocument(): Promise<string | string[] | null> {
   await delay(PLAYGROUND_FILE_DELAY_MS)
   return playgroundDocumentHtml ?? PLAYGROUND_HOST_OPEN_SAMPLE
 }
@@ -259,6 +259,7 @@ export function App() {
   const [autoSave, setAutoSave] = useState(false)
   const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
   const [fileCallbacksMode, setFileCallbacksMode] = useState<FileCallbacksMode>('local')
+  const [multiPagesEnabled, setMultiPagesEnabled] = useState(false)
   const [lastHostSaveAt, setLastHostSaveAt] = useState<number | null>(null)
   const [hostDocumentStored, setHostDocumentStored] = useState(() => playgroundDocumentHtml !== null)
   const [customActionsEnabled, setCustomActionsEnabled] = useState(true)
@@ -419,11 +420,11 @@ export function App() {
     }
   }, [toolbarPositionPersistMode])
 
-  const onAutoSave = useCallback((_html: string) => {
+  const onAutoSave = useCallback((_html: string | string[]) => {
     setLastAutoSaveAt(Date.now())
   }, [])
 
-  const onSave = useCallback(async (html: string) => {
+  const onSave = useCallback(async (html: string | string[]) => {
     await savePlaygroundDocument(html)
     setLastHostSaveAt(Date.now())
     setHostDocumentStored(true)
@@ -628,6 +629,31 @@ export function App() {
                       onClick={() => setDisableHtmlFileDrop(true)}
                     >
                       {t.htmlFileDropDisabled}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.multiPagesAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('multiPages')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.multiPagesAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!multiPagesEnabled}
+                      onClick={() => setMultiPagesEnabled(false)}
+                    >
+                      {t.multiPagesOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={multiPagesEnabled}
+                      onClick={() => setMultiPagesEnabled(true)}
+                    >
+                      {t.multiPagesOn}
                     </button>
                   </div>
                 </div>
@@ -1109,6 +1135,7 @@ export function App() {
               onFullscreenChange={setFullscreen}
               readOnly={readOnly}
               disableHtmlFileDrop={disableHtmlFileDrop}
+              enableMultiPages={multiPagesEnabled}
               onAutoSave={autoSave ? onAutoSave : undefined}
               onSave={fileCallbacksMode === 'host' ? onSave : undefined}
               onOpen={fileCallbacksMode === 'host' ? onOpen : undefined}

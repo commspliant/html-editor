@@ -38,6 +38,9 @@ export type PlaygroundMessages = {
   fileCallbacksNever: string
   fileCallbacksStored: string
   fileCallbacksEmpty: string
+  multiPagesAria: string
+  multiPagesOff: string
+  multiPagesOn: string
   customActionsAria: string
   customActionsOn: string
   customActionsOff: string
@@ -98,6 +101,7 @@ export type PlaygroundMessages = {
   htmlFileDropExampleBody: string
   autoSaveExampleBody: string
   fileCallbacksExampleBody: string
+  multiPagesExampleBody: string
   customActionsExampleBody: string
   menuExampleBody: string
   borderExampleBody: string
@@ -179,6 +183,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     fileCallbacksNever: 'Never',
     fileCallbacksStored: 'Mock storage has a document',
     fileCallbacksEmpty: 'Mock storage is empty (Open loads a sample)',
+    multiPagesAria: 'Multi-page editing',
+    multiPagesOff: 'Single page',
+    multiPagesOn: 'Multi-page',
     customActionsAria: 'Custom actions',
     customActionsOn: 'On',
     customActionsOff: 'Off',
@@ -245,6 +252,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Pass onAutoSave to persist the document HTML. The editor polls every second and calls the callback only when the HTML changed. Omit the prop to disable. The callback is not awaited, so editing is not blocked.',
     fileCallbacksExampleBody:
       'By default, File → Save and Open use the built-in local HTML file picker. Pass onSave and/or onOpen to delegate to the host instead. The two props are independent. HTML file drag-drop is unchanged.',
+    multiPagesExampleBody:
+      'Set enableMultiPages to edit multiple independent HTML pages in visual mode. Host onSave, onOpen, and onAutoSave receive all pages as a string array. Built-in file save/open still operate on the focused page only. HTML source mode shows all pages separated by <!-- wysiwyg-page-separator -->.',
     customActionsExampleBody:
       'Pass a customActions array to add host buttons, menu items, or both. Labels and tooltips are your copy — the library does not translate them.',
     menuExampleBody:
@@ -336,6 +345,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     fileCallbacksNever: 'Nunca',
     fileCallbacksStored: 'El almacenamiento simulado tiene un documento',
     fileCallbacksEmpty: 'El almacenamiento simulado está vacío (Abrir carga un ejemplo)',
+    multiPagesAria: 'Edición multipágina',
+    multiPagesOff: 'Una página',
+    multiPagesOn: 'Multipágina',
     customActionsAria: 'Acciones personalizadas',
     customActionsOn: 'Activado',
     customActionsOff: 'Desactivado',
@@ -402,6 +414,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Pasa onAutoSave para persistir el HTML del documento. El editor consulta cada segundo y llama al callback solo si el HTML cambió. Omite la propiedad para desactivarlo. El callback no se espera, así que la edición no se bloquea.',
     fileCallbacksExampleBody:
       'Por defecto, Archivo → Guardar y Abrir usan el selector de archivo HTML integrado. Pasa onSave y/o onOpen para delegar en el anfitrión. Las dos propiedades son independientes. Soltar un archivo HTML no cambia.',
+    multiPagesExampleBody:
+      'Con enableMultiPages puedes editar varias páginas HTML independientes en modo visual. Los callbacks del anfitrión onSave, onOpen y onAutoSave reciben todas las páginas como un array de cadenas. Guardar/abrir integrado sigue operando solo en la página activa. El modo HTML muestra todas las páginas separadas por <!-- wysiwyg-page-separator -->.',
     customActionsExampleBody:
       'Pasa un array customActions para añadir botones y elementos de menú de la aplicación. Las etiquetas y descripciones emergentes son tu texto: la biblioteca no las traduce.',
     menuExampleBody:

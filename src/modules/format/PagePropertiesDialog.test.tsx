@@ -190,4 +190,26 @@ describe('PagePropertiesDialog', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
     expect(onApply).not.toHaveBeenCalled()
   })
+
+  it('shows the Print tab and calls onResetAtRule', async () => {
+    const user = userEvent.setup()
+    const onResetAtRule = vi.fn()
+    render(
+      <LocaleProvider>
+        <PagePropertiesDialog
+          open
+          tab="print"
+          value={emptyPagePropertiesApply()}
+          onTabChange={() => undefined}
+          onApply={() => undefined}
+          onResetAtRule={onResetAtRule}
+          onClose={() => undefined}
+        />
+      </LocaleProvider>,
+    )
+
+    expect(screen.getByRole('tab', { name: 'Print' })).toHaveAttribute('aria-selected', 'true')
+    await user.click(screen.getByRole('button', { name: 'Remove @page print settings from this page' }))
+    expect(onResetAtRule).toHaveBeenCalledTimes(1)
+  })
 })

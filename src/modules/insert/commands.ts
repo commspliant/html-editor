@@ -17,6 +17,7 @@ export function createInsertCommands(
   | 'openImageProperties'
   | 'applyImageProperties'
   | 'insertHorizontalRule'
+  | 'insertPage'
 > {
   return {
     openLinkDialog: (tab?: LinkDialogTab) => {
@@ -58,12 +59,19 @@ export function createInsertCommands(
     insertHorizontalRule: () => {
       ctx.insertHorizontalRule()
     },
+    insertPage: () => {
+      ctx.insertPage()
+    },
   }
 }
 
-export function createInsertQueries(ctx: CommandContext): Pick<EditorQueries, 'isLink' | 'isImageSelected'> {
+export function createInsertQueries(
+  ctx: CommandContext,
+): Pick<EditorQueries, 'isLink' | 'isImageSelected' | 'isMultiPagesEnabled' | 'canInsertPage'> {
   return {
     isLink: () => ctx.isLink(),
     isImageSelected: () => ctx.isImageSelected(),
+    isMultiPagesEnabled: () => ctx.isMultiPagesEnabled(),
+    canInsertPage: () => ctx.isMultiPagesEnabled() && ctx.getMode() === 'visual',
   }
 }
