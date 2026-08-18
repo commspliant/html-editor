@@ -204,11 +204,6 @@ describe('mergeCustomActions', () => {
         ],
       },
       MENU_SEPARATOR,
-      {
-        submenu: 'page',
-        items: ['pageProperties'],
-      },
-      MENU_SEPARATOR,
       'imageProperties',
       MENU_SEPARATOR,
       'ai',

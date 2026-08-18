@@ -82,6 +82,10 @@ function renderToolbar(
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
     insertHorizontalRule: vi.fn(),
+    insertPage: vi.fn(),
+    isMultiPagesEnabled: () => false,
+    getActivePageHtml: () => '',
+    getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -152,6 +156,8 @@ function renderToolbar(
     isReadingAloud: () => false,
     canReadAloud: () => true,
     isFormatBrushActive: () => false,
+    isMultiPagesEnabled: () => false,
+    canInsertPage: () => false,
     ...overrides.queries,
   }
   const toolbar = (
@@ -645,12 +651,16 @@ describe('EditorToolbar', () => {
     expect(screen.getAllByRole('separator')).toHaveLength(1)
   })
 
-  it('does not separate Edit menu items', async () => {
+  it('separates Page submenu from undo and redo in the Edit menu', async () => {
     const user = userEvent.setup()
     renderToolbar()
 
     await user.click(screen.getByRole('button', { name: 'Edit menu' }))
-    expect(screen.queryByRole('separator')).not.toBeInTheDocument()
+
+    const entries = [...screen.getByRole('menu').children].map((el) => el.getAttribute('role'))
+    expect(entries).toEqual(['menuitem', 'menuitem', 'separator', null])
+    expect(screen.getAllByRole('separator')).toHaveLength(1)
+    expect(screen.getByRole('menuitem', { name: 'Page submenu' })).toBeInTheDocument()
   })
 
   it('places bold italic underline and strikethrough in a fonts icon group', () => {
@@ -734,7 +744,7 @@ describe('EditorToolbar', () => {
     const user = userEvent.setup()
     const { commands } = renderToolbar()
 
-    await user.click(screen.getByRole('button', { name: 'Format menu' }))
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
 

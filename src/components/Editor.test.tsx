@@ -1365,7 +1365,7 @@ describe('Editor paragraph chrome', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
 
-    await user.click(screen.getByRole('button', { name: 'Format menu' }))
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
 
@@ -1383,7 +1383,7 @@ describe('Editor paragraph chrome', () => {
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     selectVisualText(visual, 0, 5)
 
-    await user.click(screen.getByRole('button', { name: 'Format menu' }))
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
     await user.click(screen.getByRole('tab', { name: 'Paragraph' }))
@@ -1407,6 +1407,11 @@ describe('Editor paragraph chrome', () => {
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     expect(visual).toHaveStyle({ backgroundColor: 'rgb(204, 255, 255)' })
     expect(visual.innerHTML).toContain('data-page')
+  })
+
+  it('renders multiple visual surfaces when enableMultiPages is true', () => {
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
   })
 })
 

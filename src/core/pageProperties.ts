@@ -17,6 +17,12 @@ import {
   writePageBackgroundImage,
 } from './pageBackgroundImage'
 import {
+  applyPageAtRule,
+  emptyPageAtRuleApply,
+  queryPageAtRule,
+  resetPageAtRule,
+} from './pageAtRule'
+import {
   emptyParagraphBoxApply,
   readParagraphBox,
   writeParagraphBox,
@@ -42,6 +48,7 @@ export function emptyPagePropertiesApply(): PagePropertiesApply {
     font: emptyFontPropertiesApply(),
     box: emptyParagraphBoxApply(),
     backgroundImage: emptyPageBackgroundImageApply(),
+    atRule: emptyPageAtRuleApply(),
   }
 }
 
@@ -184,6 +191,7 @@ export function queryPageProperties(root: HTMLElement): PagePropertiesApply {
       opacityMixed: false,
     },
     backgroundImage: readPageBackgroundImage(shell),
+    atRule: queryPageAtRule(root.innerHTML),
   }
 }
 
@@ -207,9 +215,24 @@ export function applyPagePropertiesInDocument(
   const wroteBackgroundImage = writePageBackgroundImage(shell, draft.backgroundImage)
   syncPageHolderBackground(root)
 
+  const previousAtRule = queryPageAtRule(root.innerHTML)
+  const nextHtml = applyPageAtRule(root.innerHTML, draft.atRule)
+  if (nextHtml !== root.innerHTML) {
+    root.innerHTML = nextHtml
+  }
+  const wroteAtRule = JSON.stringify(previousAtRule) !== JSON.stringify(draft.atRule)
+
   if (start !== null && end !== null) {
     restoreOffsets(root, Math.min(start, end), Math.max(start, end))
   }
 
-  return !existed || wroteFont || wroteBox || wroteBackgroundImage
+  return !existed || wroteFont || wroteBox || wroteBackgroundImage || wroteAtRule
+}
+
+export function resetPageAtRuleInDocument(root: HTMLElement): boolean {
+  const nextHtml = resetPageAtRule(root.innerHTML)
+  if (nextHtml === root.innerHTML) return false
+  root.innerHTML = nextHtml
+  syncPageHolderBackground(root)
+  return true
 }

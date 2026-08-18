@@ -44,9 +44,9 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `value` | `string` | — | Controlled HTML document |
 | `defaultValue` | `string` | `''` | Initial HTML when uncontrolled |
 | `onChange` | `(html: string) => void` | — | Fires when either surface edits the document |
-| `onAutoSave` | `(html: string) => void` | — | Polls every 1s; calls only when the document HTML changed. See [Auto save](#auto-save) |
-| `onSave` | `(html: string) => void` | — | File → Save host callback. See [Save and open](#save-and-open) |
-| `onOpen` | `() => string \| null` | — | File → Open host callback. See [Save and open](#save-and-open) |
+| `onAutoSave` | `(html: string \| string[]) => void` | — | Polls every 1s; calls only when the document HTML changed. See [Auto save](#auto-save) |
+| `onSave` | `(html: string \| string[]) => void` | — | File → Save host callback. See [Save and open](#save-and-open) |
+| `onOpen` | `() => string \| string[] \| null` | — | File → Open host callback. See [Save and open](#save-and-open) |
 | `mode` | `'visual' \| 'html'` | — | Controlled mode |
 | `defaultMode` | `'visual' \| 'html'` | `'visual'` | Initial mode when uncontrolled |
 | `onModeChange` | `(mode: EditorMode) => void` | — | Fires when the built-in Visual / HTML toggle is used |
@@ -82,11 +82,15 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `customVideoPicker` | `CustomVideoPicker` | — | Optional third Insert YouTube video source. See [Custom video picker](#custom-video-picker) |
 | `disableBuiltinVideoInsert` | `boolean` | `false` | Skip the Insert YouTube video dialog and call `customVideoPicker.onPick` from the Insert menu |
 | `disableHtmlFileDrop` | `boolean` | `false` | When true, dropping an HTML file on the editor does not replace the document. File → Open is unchanged |
+| `enableMultiPages` | `boolean` | `false` | When true, edit multiple independent HTML pages in visual mode. See [Multi-page editing](#multi-page-editing) |
+| `pages` | `string[]` | — | Controlled page HTML strings when `enableMultiPages` is true |
+| `defaultPages` | `string[]` | — | Initial pages when uncontrolled and `enableMultiPages` is true |
+| `onPagesChange` | `(pages: string[], activePageIndex: number) => void` | — | Fires when any page changes while multi-page mode is enabled |
 | `toolbarCustomization` | `ToolbarCustomizationPersistence` | — | Host load/save for icon-toolbar layout. Omit to persist in `localStorage`. See [Customize toolbar](#customize-toolbar) |
 | `darkMode` | `boolean` | `false` | Initial chrome theme when nothing is persisted (`true` = dark). See [Dark mode](#dark-mode) |
 | `darkModePersistence` | `DarkModePersistence` | — | Host load/save for the chrome theme. Omit to persist in `localStorage`. See [Dark mode](#dark-mode) |
 
-`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Audio, YouTube video, Table, and Horizontal line), a Table menu (Insert table, row and column items, Merge cells, Unmerge cells, and table/cell/row properties), a View menu (Visual, HTML, Toolbar customize and position, Light/Dark mode, Preview, Read aloud, and Full screen), and a Format menu (paragraph styles, font, clear formatting, paragraph, page, and image properties), unless `menuVisible` is `false`. The icon toolbar has File (Save and Load), Print, Edit (Undo and Redo), Insert (Link, Bookmark, Image, Table, and Horizontal line), Table (Merge cells and Unmerge cells), Font, Align, Paragraph, and View (Visual | HTML | Preview | Read aloud) groups, with Full screen pinned last, unless `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. By default, Save writes the current document to an HTML file and Load replaces it from an HTML file; pass `onSave` and/or `onOpen` to delegate to host callbacks instead (see [Save and open](#save-and-open)). Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Read aloud (View menu and View icon group) uses the browser’s built-in speech synthesis to read the current selection, or the full document when nothing is selected; click again to stop. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons where both exist. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Audio and YouTube video are available from the Insert menu only (no toolbar buttons). Horizontal line inserts an `<hr>` at the caret.
+`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo, Redo, and Page properties), an Insert menu (Link, Bookmark, Image, Audio, YouTube video, Table, and Horizontal line), a Table menu (Insert table, row and column items, Merge cells, Unmerge cells, and table/cell/row properties), a View menu (Visual, HTML, Toolbar customize and position, Light/Dark mode, Preview, Read aloud, and Full screen), and a Format menu (paragraph styles, font, clear formatting, paragraph, and image properties), unless `menuVisible` is `false`. The icon toolbar has File (Save and Load), Print, Edit (Undo and Redo), Insert (Link, Bookmark, Image, Table, and Horizontal line), Table (Merge cells and Unmerge cells), Font, Align, Paragraph, and View (Visual | HTML | Preview | Read aloud) groups, with Full screen pinned last, unless `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. By default, Save writes the current document to an HTML file and Load replaces it from an HTML file; pass `onSave` and/or `onOpen` to delegate to host callbacks instead (see [Save and open](#save-and-open)). Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Read aloud (View menu and View icon group) uses the browser’s built-in speech synthesis to read the current selection, or the full document when nothing is selected; click again to stop. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons where both exist. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Audio and YouTube video are available from the Insert menu only (no toolbar buttons). Horizontal line inserts an `<hr>` at the caret.
 
 `menuColor`, `menuBackground`, `menuFontSize`, and `menuFontFamily` restyle the dropdown menu bar and panels only — not the icon toolbar. `border` is the outer editor box and is ignored in fullscreen. Custom menu fonts must already be available on the page.
 
@@ -105,7 +109,7 @@ import { Editor } from 'commspliant-html-editor'
 
 ### Page properties
 
-Format → Page → **Page properties** opens a dialog with **Font** and **Paragraph** tabs. Paragraph sub-tabs include **Spacing**, **Border**, **Background** (fill color and page opacity), and **Background Image**.
+Edit → Page → **Page properties** opens a dialog with **Font**, **Paragraph**, and **Print** tabs. Paragraph sub-tabs include **Spacing**, **Border**, **Background** (fill color and page opacity), and **Background Image**. The **Print** tab edits `@page` size, orientation, and margins.
 
 The first time page properties are applied, content is wrapped in a single `<div data-page>` shell with `width: 100%` and `height: 100%`. Background **color** is written on that shell. Background **image** uses the same file, URL, or custom picker as Insert → Image, plus independent width and height (default width `100%`, height unset), and opacity, fit, and position controls (the same options as Image properties → Advanced). Rotation is not supported for page backgrounds. Width and height write `background-size`; keyword fit values (`cover`, `contain`) replace those dimensions.
 
@@ -125,7 +129,7 @@ The visual editor holder mirrors the shell fill and background image for display
 import { Editor } from 'commspliant-html-editor'
 
 <Editor />
-// Format → Page → Page properties → Paragraph → Background Image
+// Edit → Page → Page properties → Paragraph → Background Image
 ```
 
 ### Editor chrome
@@ -171,6 +175,8 @@ The **Format brush** icon (`formatBrush`) is toolbar-only. Select source text, c
 If `toolbar` is set, custom action ids must be listed to appear on the icon bar.
 
 Empty arrays hide that surface (`menus: []` shows no dropdowns; `toolbar: []` shows no icons). The right-click context menu is not filtered. Commands stay registered; this only hides chrome.
+
+Page properties (including the Print / `@page` tab) live under **Edit → Page**. Hosts that allow only `format` in `allowedChrome` will not show Page properties unless `edit` is included too.
 
 View → Toolbar → Customize toolbar and its persistence still work as they do today, on the allowed toolbar subset. The dialog lists only allowed icon-toolbar items.
 
@@ -399,6 +405,49 @@ import { Editor } from 'commspliant-html-editor'
 />
 ```
 
+### Multi-page editing
+
+Set `enableMultiPages` to edit several independent HTML pages in visual mode. Pages appear stacked with toolbar-colored gaps between them. Use Insert → Page to add a page after the focused one. Edit → Page → Page properties includes a Print tab for `@page` size, orientation, and margins; Reset removes the print rule from the active page.
+
+When multi-page mode is off (default), behavior is unchanged.
+
+**HTML source mode** shows all pages in one textarea, separated by:
+
+```html
+<!-- wysiwyg-page-separator -->
+```
+
+**Persistence:**
+
+- Built-in File → Save / Open operate on the **focused page only** (single `.html` file).
+- Host `onSave`, `onOpen`, and `onAutoSave` receive **all pages** as a `string[]` when `enableMultiPages` is true.
+- Use `onPagesChange` for controlled multi-page state. Export helpers: `splitPagesFromHtml`, `joinPagesToHtml`, and `PAGE_SEPARATOR` from the package.
+
+```tsx
+import { useState } from 'react'
+import { Editor } from 'commspliant-html-editor'
+
+export function MultiPageEditor() {
+  const [pages, setPages] = useState(['<p>Page one</p>', '<p>Page two</p>'])
+
+  return (
+    <Editor
+      enableMultiPages
+      pages={pages}
+      onPagesChange={(nextPages) => setPages(nextPages)}
+      onSave={async (payload) => {
+        if (Array.isArray(payload)) {
+          await fetch('/api/documents/pages', {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+          })
+        }
+      }}
+    />
+  )
+}
+```
+
 ### Custom actions
 
 Pass a `customActions` array to add host buttons, menu items, or both. Labels and tooltips are your copy — the library does not translate them.
@@ -496,7 +545,7 @@ Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInse
 
 `insertImage` uses the same insert path as File and URL: an `<img>` with inline `max-width: 100%; height: auto`, then any host `css`. `src` must be `http(s)`, a relative path, or a raster `data:` URL.
 
-`onPick` from Page properties (Format → Page properties → Background Image) leaves the editor dialog open so the picked URL can fill the draft. If your picker is a modal overlay, give it a `z-index` above editor dialogs (`1200`).
+`onPick` from Page properties (Edit → Page → Page properties → Background Image) leaves the editor dialog open so the picked URL can fill the draft. If your picker is a modal overlay, give it a `z-index` above editor dialogs (`1200`).
 
 ### Custom audio picker
 

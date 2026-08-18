@@ -44,7 +44,16 @@ import {
   applyPagePropertiesInDocument,
   emptyPagePropertiesApply,
   queryPageProperties,
+  resetPageAtRuleInDocument,
 } from '../core/pageProperties'
+import { emptyPageAtRuleApply } from '../core/pageAtRule'
+import {
+  joinPagesToHtml,
+  normalizePages,
+  queryPageSurface,
+  splitPagesFromHtml,
+  emptyPageHtml,
+} from '../core/multiPage'
 import {
   queryTextAlign,
   setTextAlignInDocument,
@@ -216,6 +225,10 @@ import type {
 } from '../types'
 import { HtmlSurface } from './HtmlSurface'
 import { VisualSurface } from './VisualSurface'
+import {
+  MultiPageVisualSurface,
+  type MultiPageVisualSurfaceHandle,
+} from './MultiPageVisualSurface'
 import styles from './Editor.module.css'
 
 export function Editor({
@@ -263,12 +276,22 @@ export function Editor({
   darkModePersistence,
   toolbarPosition = 'top',
   toolbarPositionPersistence,
+  enableMultiPages = false,
+  pages: pagesProp,
+  defaultPages,
+  onPagesChange,
 }: EditorProps) {
   const locked = Boolean(disabled || readOnly)
+  const initialPages = normalizePages(
+    defaultPages ?? (defaultValue.trim() ? [defaultValue] : [emptyPageHtml()]),
+  )
+  const initialHtml = enableMultiPages ? joinPagesToHtml(initialPages) : defaultValue
+  const controlledHtml =
+    enableMultiPages && pagesProp !== undefined ? joinPagesToHtml(normalizePages(pagesProp)) : value
   const [html, setHtml] = useControllableState({
-    value,
-    defaultValue,
-    onChange,
+    value: controlledHtml,
+    defaultValue: initialHtml,
+    onChange: enableMultiPages ? undefined : onChange,
   })
   const [mode, setMode] = useControllableState<EditorMode>({
     value: modeProp,
@@ -280,8 +303,16 @@ export function Editor({
     defaultValue: defaultFullscreen,
     onChange: onFullscreenChange,
   })
-  const visualRef = useRef<HTMLDivElement>(null)
+  const visualRootRef = useRef<HTMLDivElement | null>(null)
+  const multiPageVisualRef = useRef<MultiPageVisualSurfaceHandle>(null)
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null)
+  const enableMultiPagesRef = useRef(enableMultiPages)
+  enableMultiPagesRef.current = enableMultiPages
+  const onPagesChangeRef = useRef(onPagesChange)
+  onPagesChangeRef.current = onPagesChange
+  const [activePageIndex, setActivePageIndex] = useState(0)
+  const activePageIndexRef = useRef(activePageIndex)
+  activePageIndexRef.current = activePageIndex
   const historyRef = useRef<ReturnType<typeof createDocumentHistory> | null>(null)
   if (historyRef.current === null) {
     historyRef.current = createDocumentHistory(html)
@@ -734,6 +765,12 @@ export function Editor({
     (next: string) => {
       const transformed = transformHtmlRef.current?.(next) ?? next
       setHtml(transformed)
+      if (enableMultiPagesRef.current) {
+        onPagesChangeRef.current?.(
+          splitPagesFromHtml(transformed),
+          activePageIndexRef.current,
+        )
+      }
       return transformed
     },
     [setHtml],
@@ -750,6 +787,14 @@ export function Editor({
 
   const onHtmlFileDrop = useCallback(
     (next: string) => {
+      if (enableMultiPagesRef.current) {
+        const currentPages = splitPagesFromHtml(htmlRef.current)
+        const index = activePageIndexRef.current
+        const nextPages = [...currentPages]
+        nextPages[index] = next
+        recordHtml(joinPagesToHtml(nextPages), false)
+        return
+      }
       recordHtml(next, false)
     },
     [recordHtml],
@@ -772,6 +817,78 @@ export function Editor({
     [recordHtml],
   )
 
+  const serializePageBody = useCallback((body: string, previousPageHtml: string) => {
+    return prependFontStylesheets(
+      body,
+      collectDocumentFontStylesheets(body, previousPageHtml, fontFacesRef.current),
+    )
+  }, [])
+
+  const flushMultiPageHtml = useCallback(() => {
+    const multi = multiPageVisualRef.current
+    const container = multi?.getContainer()
+    if (!container) return splitPagesFromHtml(htmlRef.current)
+    const currentPages = splitPagesFromHtml(htmlRef.current)
+    return currentPages.map((previous, index) => {
+      const flushed = multi?.flushPageHtml(index)
+      if (flushed === null) return previous
+      return serializePageBody(flushed, previous)
+    })
+  }, [serializePageBody])
+
+  const recordPageVisualHtml = useCallback(
+    (index: number, body: string, coalesce: boolean) => {
+      const currentPages = splitPagesFromHtml(htmlRef.current)
+      const nextPages = [...currentPages]
+      nextPages[index] = serializePageBody(body, currentPages[index] ?? '')
+      recordHtml(joinPagesToHtml(nextPages), coalesce)
+    },
+    [recordHtml, serializePageBody],
+  )
+
+  const recordVisualHtmlFromRoot = useCallback(
+    (root: HTMLElement, coalesce: boolean) => {
+      if (!enableMultiPagesRef.current) {
+        recordVisualHtml(root.innerHTML, coalesce)
+        return
+      }
+      const container = multiPageVisualRef.current?.getContainer()
+      if (!container) {
+        recordVisualHtml(root.innerHTML, coalesce)
+        return
+      }
+      for (let index = 0; index < splitPagesFromHtml(htmlRef.current).length; index += 1) {
+        if (queryPageSurface(container, index) === root) {
+          recordPageVisualHtml(index, root.innerHTML, coalesce)
+          return
+        }
+      }
+      recordVisualHtml(root.innerHTML, coalesce)
+    },
+    [recordPageVisualHtml, recordVisualHtml],
+  )
+
+  const getActivePageHtml = useCallback(() => {
+    const pages = enableMultiPagesRef.current
+      ? flushMultiPageHtml()
+      : splitPagesFromHtml(htmlRef.current)
+    return pages[activePageIndexRef.current] ?? pages[0] ?? ''
+  }, [flushMultiPageHtml])
+
+  const getAllPagesHtml = useCallback(() => {
+    return enableMultiPagesRef.current ? flushMultiPageHtml() : [htmlRef.current]
+  }, [flushMultiPageHtml])
+
+  const insertPageAfterActive = useCallback(() => {
+    if (!enableMultiPagesRef.current || modeRef.current !== 'visual') return
+    const currentPages = flushMultiPageHtml()
+    const insertAt = activePageIndexRef.current + 1
+    const nextPages = [...currentPages]
+    nextPages.splice(insertAt, 0, emptyPageHtml())
+    recordHtml(joinPagesToHtml(nextPages), false)
+    setActivePageIndex(insertAt)
+  }, [flushMultiPageHtml, recordHtml])
+
   const undo = useCallback(() => {
     const next = history.undo()
     if (next === null) return
@@ -793,7 +910,7 @@ export function Editor({
   const captureSelection = useCallback(() => {
     selectionRef.current = snapshotSelection({
       mode: modeRef.current,
-      visualEl: visualRef.current,
+      visualEl: visualRootRef.current,
       htmlEl: htmlAreaRef.current,
     })
   }, [])
@@ -813,7 +930,7 @@ export function Editor({
   const captureChromeSelection = useCallback(() => {
     const next = snapshotSelection({
       mode: modeRef.current,
-      visualEl: visualRef.current,
+      visualEl: visualRootRef.current,
       htmlEl: htmlAreaRef.current,
     })
     const prev = selectionRef.current
@@ -822,7 +939,7 @@ export function Editor({
   }, [])
 
   const refreshFontSizeState = useCallback(() => {
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (modeRef.current !== 'visual' || !root) {
       setFontSizeState({ value: null, unit: preferredUnitRef.current, mixed: false })
       return
@@ -842,7 +959,7 @@ export function Editor({
   }, [])
 
   const refreshFontFamilyState = useCallback(() => {
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (modeRef.current !== 'visual' || !root) {
       setFontFamilyState({ value: null, mixed: false })
       return
@@ -858,7 +975,7 @@ export function Editor({
   }, [])
 
   const refreshColorState = useCallback(() => {
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (modeRef.current !== 'visual' || !root) {
       setFontColorState({ value: null, mixed: false })
       setHighlightColorState({ value: null, mixed: false })
@@ -883,7 +1000,7 @@ export function Editor({
   }, [])
 
   const refreshParagraphStyleState = useCallback(() => {
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (modeRef.current !== 'visual' || !root) {
       setParagraphStyleState({ tag: null, mixed: false })
       return
@@ -893,7 +1010,7 @@ export function Editor({
   }, [])
 
   const refreshParagraphChromeState = useCallback(() => {
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (modeRef.current !== 'visual' || !root) {
       setTextAlignState({ align: null, mixed: false })
       setListState({ type: null, mixed: false })
@@ -914,7 +1031,7 @@ export function Editor({
   }, [])
 
   const refreshMarkState = useCallback(() => {
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (modeRef.current !== 'visual' || !root) {
       setMarkState(emptyFontMarkState())
       setHasTextSelectionState(false)
@@ -985,11 +1102,11 @@ export function Editor({
     (snapshot: SelectionSnapshot, content: string, asHtml: boolean) => {
       insertAtSelection({
         snapshot,
-        visualEl: visualRef.current,
+        visualEl: visualRootRef.current,
         htmlEl: htmlAreaRef.current,
         getHtml: () => {
-          if (modeRef.current === 'visual' && visualRef.current) {
-            return visualRef.current.innerHTML
+          if (modeRef.current === 'visual' && visualRootRef.current) {
+            return visualRootRef.current.innerHTML
           }
           return htmlRef.current
         },
@@ -1009,19 +1126,26 @@ export function Editor({
 
   const handleModeChange = useCallback(
     (next: EditorMode) => {
-      if (modeRef.current === 'visual' && next === 'html' && visualRef.current) {
-        const flushed = visualRef.current.innerHTML
-        const serialized = prependFontStylesheets(
-          flushed,
-          collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
-        )
-        if (serialized !== htmlRef.current) {
-          recordHtml(serialized, true)
+      if (modeRef.current === 'visual' && next === 'html') {
+        if (enableMultiPagesRef.current) {
+          const joined = joinPagesToHtml(flushMultiPageHtml())
+          if (joined !== htmlRef.current) {
+            recordHtml(joined, true)
+          }
+        } else if (visualRootRef.current) {
+          const flushed = visualRootRef.current.innerHTML
+          const serialized = prependFontStylesheets(
+            flushed,
+            collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
+          )
+          if (serialized !== htmlRef.current) {
+            recordHtml(serialized, true)
+          }
         }
       }
       setMode(next)
     },
-    [recordHtml, setMode],
+    [recordHtml, setMode, flushMultiPageHtml],
   )
 
   useEffect(() => {
@@ -1048,16 +1172,16 @@ export function Editor({
 
   useEffect(() => {
     const onSelectionChange = () => {
-      if (modeRef.current !== 'visual' || !visualRef.current) return
+      if (modeRef.current !== 'visual' || !visualRootRef.current) return
       const sel = window.getSelection()
       if (!sel || sel.rangeCount === 0) return
       const node = sel.anchorNode
-      if (!node || (!visualRef.current.contains(node) && visualRef.current !== node)) return
+      if (!node || (!visualRootRef.current.contains(node) && visualRootRef.current !== node)) return
       captureSelection()
       clearPendingMarksIfSelectionMoved()
       refreshMarkState()
-      setSelectedImage(imageAtSelection(visualRef.current))
-      refreshTableState(visualRef.current)
+      setSelectedImage(imageAtSelection(visualRootRef.current))
+      refreshTableState(visualRootRef.current)
     }
     document.addEventListener('selectionchange', onSelectionChange)
     return () => document.removeEventListener('selectionchange', onSelectionChange)
@@ -1083,7 +1207,7 @@ export function Editor({
       setSelectedImage(null)
       return
     }
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (!root) return
     const live = imageAtSelection(root)
     setSelectedImage((prev) => {
@@ -1133,7 +1257,7 @@ export function Editor({
       return
     }
     if (modeRef.current !== 'visual') return
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (!root) return
     captureSelection()
     const snapshot = selectionRef.current
@@ -1141,7 +1265,7 @@ export function Editor({
     if (selectionRangesEqual(snapshot, formatBrushSourceRef.current)) return
     restoreVisualRange(root)
     applyCopiedFormat(root, copiedFormatRef.current)
-    recordVisualHtml(root.innerHTML, false)
+    recordVisualHtmlFromRoot(root, false)
     captureSelection()
     refreshMarkState()
     deactivateFormatBrush()
@@ -1156,7 +1280,7 @@ export function Editor({
       deactivateFormatBrush()
       return
     }
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (!root) {
       deactivateFormatBrush()
       return
@@ -1185,7 +1309,7 @@ export function Editor({
   const applyFontSize = useCallback(
     (size: number, unit?: FontSizeUnit) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       const nextUnit = unit ?? preferredUnitRef.current
       const clamped = clampFontSize(size, nextUnit)
@@ -1202,7 +1326,7 @@ export function Editor({
 
       pendingFontSizeRef.current = null
       if (!setFontSizeInDocument(root, clamped.value, clamped.unit)) return
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1212,7 +1336,7 @@ export function Editor({
   const applyFontFamily = useCallback(
     (family: string | null) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       const snapshot = restoreVisualRange(root)
 
@@ -1225,7 +1349,7 @@ export function Editor({
 
       pendingFontFamilyRef.current = null
       if (!setFontFamilyInDocument(root, family)) return
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1235,7 +1359,7 @@ export function Editor({
   const applyInlineColor = useCallback(
     (kind: InlineColorKind, color: string | null) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       const snapshot = restoreVisualRange(root)
       const pendingRef = kind === 'color' ? pendingFontColorRef : pendingHighlightColorRef
@@ -1249,7 +1373,7 @@ export function Editor({
 
       pendingRef.current = null
       if (!setInlineColorInDocument(root, kind, color)) return
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1259,7 +1383,7 @@ export function Editor({
   const applyProperties = useCallback(
     (draft: FontPropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       const snapshot = restoreVisualRange(root)
       setFontDialog({ open: false, tab: 'general' })
@@ -1320,7 +1444,7 @@ export function Editor({
       if (!draft.highlightColorMixed) {
         setInlineColorInDocument(root, 'backgroundColor', draft.highlightColor)
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1330,7 +1454,7 @@ export function Editor({
   const applyParagraphProperties = useCallback(
     (draft: ParagraphPropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setParagraphDialog((prev) => ({ ...prev, open: false }))
@@ -1339,7 +1463,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1349,7 +1473,7 @@ export function Editor({
   const applyCustomCss = useCallback(
     (css: string) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       const snapshot = restoreVisualRange(root)
       setCustomCssDialog((prev) => ({ ...prev, open: false }))
@@ -1372,7 +1496,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1382,7 +1506,7 @@ export function Editor({
   const applyPageProperties = useCallback(
     (draft: PagePropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setPageDialog((prev) => ({ ...prev, open: false }))
@@ -1391,7 +1515,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1401,7 +1525,7 @@ export function Editor({
   const applyLink = useCallback(
     (draft: LinkApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setLinkDialog((prev) => ({ ...prev, open: false }))
@@ -1410,7 +1534,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1420,7 +1544,7 @@ export function Editor({
   const applyBookmark = useCallback(
     (name: string) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setBookmarkDialog((prev) => ({ ...prev, open: false }))
@@ -1429,7 +1553,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1439,7 +1563,7 @@ export function Editor({
   const applyImage = useCallback(
     (draft: ImageApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setImageDialog({ open: false })
@@ -1448,7 +1572,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1458,7 +1582,7 @@ export function Editor({
   const applyAudio = useCallback(
     (draft: AudioApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setAudioDialog({ open: false })
@@ -1467,7 +1591,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1477,7 +1601,7 @@ export function Editor({
   const applyYoutube = useCallback(
     (draft: YoutubeApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setYoutubeDialog({ open: false })
@@ -1486,7 +1610,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1496,7 +1620,7 @@ export function Editor({
   const applyTable = useCallback(
     (draft: TableApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setTableDialog({ open: false })
@@ -1505,7 +1629,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
       refreshTableState(root)
@@ -1516,7 +1640,7 @@ export function Editor({
   const applyTableProperties = useCallback(
     (draft: TablePropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setTableProperties((prev) => ({ ...prev, open: false }))
@@ -1525,7 +1649,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1535,7 +1659,7 @@ export function Editor({
   const applyCellProperties = useCallback(
     (draft: CellPropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setCellProperties((prev) => ({ ...prev, open: false }))
@@ -1544,7 +1668,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
       refreshTableState(root)
@@ -1555,7 +1679,7 @@ export function Editor({
   const applyRowProperties = useCallback(
     (draft: RowPropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setRowProperties((prev) => ({ ...prev, open: false }))
@@ -1564,7 +1688,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1574,7 +1698,7 @@ export function Editor({
   const runTableStructure = useCallback(
     (mutate: (root: HTMLElement) => boolean) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       if (!mutate(root)) {
@@ -1582,7 +1706,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
       refreshTableState(root)
@@ -1616,7 +1740,7 @@ export function Editor({
   const insertCustomVideo = useCallback(
     (video: CustomVideoInsert) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setYoutubeDialog({ open: false })
@@ -1629,7 +1753,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1639,7 +1763,7 @@ export function Editor({
   const applyImageProperties = useCallback(
     (draft: ImagePropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setImageProperties((prev) => ({ ...prev, open: false }))
@@ -1648,7 +1772,7 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(root.innerHTML, false)
+      recordVisualHtmlFromRoot(root, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1664,17 +1788,27 @@ export function Editor({
   )
 
   const handleImageResizeEnd = useCallback(() => {
-    const root = visualRef.current
+    const root = visualRootRef.current
     if (!root || !selectedImage?.isConnected) return
-    recordVisualHtml(root.innerHTML, false)
+    recordVisualHtmlFromRoot(root, false)
     selectImageInDocument(root, selectedImage)
     captureSelection()
     refreshMarkState()
   }, [selectedImage, recordVisualHtml, captureSelection, refreshMarkState])
 
   const getDocumentHtml = useCallback(() => {
-    if (modeRef.current === 'visual' && visualRef.current) {
-      const flushed = visualRef.current.innerHTML
+    if (enableMultiPagesRef.current) {
+      if (modeRef.current === 'visual') {
+        const nextPages = flushMultiPageHtml()
+        const joined = joinPagesToHtml(nextPages)
+        if (joined !== htmlRef.current) {
+          return recordHtml(joined, true)
+        }
+      }
+      return htmlRef.current
+    }
+    if (modeRef.current === 'visual' && visualRootRef.current) {
+      const flushed = visualRootRef.current.innerHTML
       const serialized = prependFontStylesheets(
         flushed,
         collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
@@ -1686,7 +1820,22 @@ export function Editor({
     return htmlRef.current
   }, [recordHtml])
 
-  useAutoSave({ onAutoSave, getHtml: getDocumentHtml })
+  const getAutoSaveComparisonHtml = useCallback(() => {
+    if (enableMultiPagesRef.current) {
+      return JSON.stringify(getAllPagesHtml())
+    }
+    return getDocumentHtml()
+  }, [getDocumentHtml, getAllPagesHtml])
+
+  useAutoSave({
+    onAutoSave: onAutoSave
+      ? () => {
+          const payload = enableMultiPagesRef.current ? getAllPagesHtml() : getDocumentHtml()
+          return onAutoSave(payload)
+        }
+      : undefined,
+    getHtml: getAutoSaveComparisonHtml,
+  })
 
   useEffect(() => {
     return () => {
@@ -1725,7 +1874,7 @@ export function Editor({
           selectionRef.current ??
           snapshotSelection({
             mode: modeRef.current,
-            visualEl: visualRef.current,
+            visualEl: visualRootRef.current,
             htmlEl: htmlAreaRef.current,
           })
         const text = resolveReadAloudText(describeSelection(snapshot), getDocumentHtml())
@@ -1739,7 +1888,7 @@ export function Editor({
           selectionRef.current ??
           snapshotSelection({
             mode: modeRef.current,
-            visualEl: visualRef.current,
+            visualEl: visualRootRef.current,
             htmlEl: htmlAreaRef.current,
           })
         return resolveReadAloudText(describeSelection(snapshot), getDocumentHtml()) !== null
@@ -1753,7 +1902,7 @@ export function Editor({
           selectionRef.current ??
           snapshotSelection({
             mode: modeRef.current,
-            visualEl: visualRef.current,
+            visualEl: visualRootRef.current,
             htmlEl: htmlAreaRef.current,
           })
         return describeSelection(snapshot)
@@ -1763,7 +1912,7 @@ export function Editor({
           selectionRef.current ??
           snapshotSelection({
             mode: modeRef.current,
-            visualEl: visualRef.current,
+            visualEl: visualRootRef.current,
             htmlEl: htmlAreaRef.current,
           })
         applyInsert(snapshot, text, false)
@@ -1773,7 +1922,7 @@ export function Editor({
           selectionRef.current ??
           snapshotSelection({
             mode: modeRef.current,
-            visualEl: visualRef.current,
+            visualEl: visualRootRef.current,
             htmlEl: htmlAreaRef.current,
           })
         const asHtml = formattedText === undefined
@@ -1781,7 +1930,7 @@ export function Editor({
       },
       toggleFontMark: (mark: FontMark) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         const snapshot = restoreVisualRange(root)
 
@@ -1796,13 +1945,13 @@ export function Editor({
         pendingMarksRef.current = {}
         pendingAnchorRef.current = null
         if (!toggleFontMarkInDocument(root, mark)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
       clearFormatting: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         const snapshot = restoreVisualRange(root)
         if (snapshot.collapsed) return
@@ -1814,7 +1963,7 @@ export function Editor({
         pendingCustomCssRef.current = null
         pendingAnchorRef.current = null
         if (!clearFormattingInDocument(root)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
@@ -1826,7 +1975,7 @@ export function Editor({
         applyFontSize(size, unit)
       },
       setFontSizeUnit: (unit: FontSizeUnit) => {
-        const root = visualRef.current
+        const root = visualRootRef.current
         const current = fontSizeStateRef.current
         if (modeRef.current !== 'visual' || !root || current.value === null || current.mixed) {
           preferredUnitRef.current = unit
@@ -1865,11 +2014,11 @@ export function Editor({
       isHighlightColorMixed: () => highlightColorStateRef.current.mixed,
       setParagraphStyle: (tag: ParagraphStyleTag) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         if (!setBlockFormatInDocument(root, tag)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
@@ -1877,11 +2026,11 @@ export function Editor({
       isParagraphStyleMixed: () => paragraphStyleStateRef.current.mixed,
       setTextAlign: (align: TextAlign) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         if (!setTextAlignInDocument(root, align)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
@@ -1889,32 +2038,32 @@ export function Editor({
       isTextAlignMixed: () => textAlignStateRef.current.mixed,
       indent: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         if (!indentInDocument(root)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
       outdent: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         if (!outdentInDocument(root)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
       canOutdent: () => modeRef.current === 'visual' && canOutdentStateRef.current,
       toggleList: (type: ListType) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         if (!toggleListInDocument(root, type)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
@@ -1929,7 +2078,7 @@ export function Editor({
       },
       openCustomCss: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         const query = root ? queryCustomCssAtSelection(root) : { value: null, mixed: false }
         const value =
@@ -1941,7 +2090,7 @@ export function Editor({
       },
       openParagraphProperties: (tab?: ParagraphDialogTab) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         setParagraphDialog({
           open: true,
@@ -1954,7 +2103,7 @@ export function Editor({
       },
       openPageProperties: (tab?: PageDialogTab) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         setPageDialog({
           open: true,
@@ -1974,7 +2123,7 @@ export function Editor({
           setCustomStyleDialog({ open: true, mode: 'edit', style })
           return
         }
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         setCustomStyleDialog({
           open: true,
@@ -2009,11 +2158,11 @@ export function Editor({
           highlightColorMixed: false,
         })
         if (!style.paragraph) return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root || modeRef.current !== 'visual') return
         restoreVisualRange(root)
         if (!applyCustomParagraphInDocument(root, style.paragraph)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
@@ -2022,7 +2171,7 @@ export function Editor({
       isCustomParagraphStylesLoading: () => customStylesLoadingRef.current,
       openLinkDialog: (tab?: LinkDialogTab) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         const attrs = root ? queryLinkAtSelection(root) : defaultLinkAttrs()
         const bookmarks = root ? listBookmarks(root) : []
@@ -2048,7 +2197,7 @@ export function Editor({
       },
       openBookmarkDialog: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         setBookmarkDialog({
           open: true,
@@ -2060,7 +2209,7 @@ export function Editor({
       },
       openImageDialog: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         const picker = customImagePickerRef.current
         if (disableBuiltinImageInsertRef.current && picker) {
@@ -2074,7 +2223,7 @@ export function Editor({
       },
       openAudioDialog: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         const picker = customAudioPickerRef.current
         if (disableBuiltinAudioInsertRef.current && picker) {
@@ -2088,7 +2237,7 @@ export function Editor({
       },
       openYoutubeDialog: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         const picker = customVideoPickerRef.current
         if (disableBuiltinVideoInsertRef.current && picker) {
@@ -2102,7 +2251,7 @@ export function Editor({
       },
       openImageProperties: (tab?: ImageDialogTab) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         const img = imageAtSelection(root)
@@ -2120,17 +2269,23 @@ export function Editor({
       },
       insertHorizontalRule: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         if (!insertHorizontalRuleInDocument(root)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
+      insertPage: () => {
+        insertPageAfterActive()
+      },
+      isMultiPagesEnabled: () => enableMultiPagesRef.current,
+      getActivePageHtml: () => getActivePageHtml(),
+      getAllPagesHtml: () => getAllPagesHtml(),
       openTableDialog: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         setTableDialog({ open: true })
       },
@@ -2139,7 +2294,7 @@ export function Editor({
       },
       openTableProperties: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         const value = queryTableAtSelection(root)
@@ -2151,7 +2306,7 @@ export function Editor({
       },
       openCellProperties: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         const value = queryCellAtSelection(root)
@@ -2163,7 +2318,7 @@ export function Editor({
       },
       openRowProperties: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         const value = queryRowAtSelection(root)
@@ -2199,28 +2354,28 @@ export function Editor({
       },
       cut: async () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         if (!(await cutSelectionInDocument(root))) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
       copy: async () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         await copySelectionInDocument(root)
       },
       deleteSelection: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         restoreVisualRange(root)
         if (!deleteSelectionInDocument(root)) return
-        recordVisualHtml(root.innerHTML, false)
+        recordVisualHtmlFromRoot(root, false)
         captureSelection()
         refreshMarkState()
       },
@@ -2229,10 +2384,18 @@ export function Editor({
       isInTable: () => modeRef.current === 'visual' && inTableRef.current,
       canMergeCells: () => modeRef.current === 'visual' && canMergeCellsRef.current,
       canUnmergeCells: () => modeRef.current === 'visual' && canUnmergeCellsRef.current,
-      ...(onSave != null ? { onSave: (html: string) => onSaveRef.current!(html) } : {}),
-      ...(onOpen != null ? { onOpen: () => onOpenRef.current!() } : {}),
+      ...(onSave != null
+        ? {
+            onSave: (payload: string | string[]) => onSaveRef.current!(payload),
+          }
+        : {}),
+      ...(onOpen != null
+        ? {
+            onOpen: () => onOpenRef.current!(),
+          }
+        : {}),
     }),
-    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, toggleFormatBrush, onSave, onOpen],
+    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, insertPageAfterActive, toggleFormatBrush, onSave, onOpen],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2240,7 +2403,7 @@ export function Editor({
       selectionRef.current ??
       snapshotSelection({
         mode: modeRef.current,
-        visualEl: visualRef.current,
+        visualEl: visualRootRef.current,
         htmlEl: htmlAreaRef.current,
       })
     return {
@@ -2307,7 +2470,7 @@ export function Editor({
       ) {
         return
       }
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       event.preventDefault()
       applyPendingFontMarksOnInsert(
@@ -2329,7 +2492,7 @@ export function Editor({
       pendingHighlightColorRef.current = null
       pendingCustomCssRef.current = null
       pendingAnchorRef.current = null
-      recordVisualHtml(root.innerHTML, true)
+      recordVisualHtmlFromRoot(root, true)
       captureSelection()
       refreshMarkState()
     },
@@ -2342,7 +2505,7 @@ export function Editor({
       if (!shouldOpenEditorContextMenu(event, lastVisualPointerTypeRef.current)) return
       event.preventDefault()
       event.stopPropagation()
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       const img = closestImage(root, event.target as Node)
@@ -2388,7 +2551,7 @@ export function Editor({
     (event: ReactPointerEvent<HTMLDivElement>) => {
       lastVisualPointerTypeRef.current = event.pointerType
       if (locked) return
-      const root = visualRef.current
+      const root = visualRootRef.current
       if (!root) return
       const img = closestImage(root, event.target as Node)
       if (!img) {
@@ -2408,7 +2571,7 @@ export function Editor({
       if (locked) return
       if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey) {
         if (modeRef.current !== 'visual') return
-        const root = visualRef.current
+        const root = visualRootRef.current
         if (!root) return
         const target = event.target
         if (!(target instanceof Node) || !root.contains(target)) return
@@ -2417,7 +2580,7 @@ export function Editor({
         if (!result) return
         event.preventDefault()
         if (typeof result === 'object' && result.changed) {
-          recordVisualHtml(root.innerHTML, false)
+          recordVisualHtmlFromRoot(root, false)
         }
         captureSelection()
         refreshMarkState()
@@ -2527,17 +2690,46 @@ export function Editor({
             onDrop={htmlFileDrop.onDrop}
           >
             {mode === 'visual' ? (
-              <VisualSurface
-                ref={visualRef}
-                html={extractFontStylesheets(html).body}
-                onChange={(next) => recordVisualHtml(next, true)}
-                onBeforeInput={handleVisualBeforeInput}
-                onPointerDown={handleVisualPointerDown}
-                onMouseUp={handleVisualMouseUp}
-                onContextMenu={handleVisualContextMenu}
-                placeholder={placeholder}
-                disabled={locked}
-              />
+              enableMultiPages ? (
+                <MultiPageVisualSurface
+                  ref={multiPageVisualRef}
+                  pages={splitPagesFromHtml(html).map(
+                    (page) => extractFontStylesheets(page).body,
+                  )}
+                  activePageIndex={activePageIndex}
+                  onActivePageIndexChange={(index) => {
+                    setActivePageIndex(index)
+                    const surface = multiPageVisualRef.current?.getActivePageRoot()
+                    if (surface instanceof HTMLDivElement) {
+                      visualRootRef.current = surface
+                    }
+                  }}
+                  onPageChange={(index, next) => recordPageVisualHtml(index, next, true)}
+                  onBeforeInput={handleVisualBeforeInput}
+                  onPointerDown={(event) => {
+                    if (event.currentTarget instanceof HTMLDivElement) {
+                      visualRootRef.current = event.currentTarget
+                    }
+                    handleVisualPointerDown(event)
+                  }}
+                  onMouseUp={handleVisualMouseUp}
+                  onContextMenu={handleVisualContextMenu}
+                  placeholder={placeholder}
+                  disabled={locked}
+                />
+              ) : (
+                <VisualSurface
+                  ref={visualRootRef}
+                  html={extractFontStylesheets(html).body}
+                  onChange={(next) => recordVisualHtml(next, true)}
+                  onBeforeInput={handleVisualBeforeInput}
+                  onPointerDown={handleVisualPointerDown}
+                  onMouseUp={handleVisualMouseUp}
+                  onContextMenu={handleVisualContextMenu}
+                  placeholder={placeholder}
+                  disabled={locked}
+                />
+              )
             ) : (
               <HtmlSurface
                 ref={htmlAreaRef}
@@ -2644,6 +2836,19 @@ export function Editor({
           }}
           onTabChange={(tab) => setPageDialog({ ...pageDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyPageProperties(draft)}
+          onResetAtRule={() => {
+            const root = visualRootRef.current
+            if (!root || modeRef.current !== 'visual') return
+            if (!resetPageAtRuleInDocument(root)) return
+            recordVisualHtmlFromRoot(root, false)
+            setPageDialog((prev) => ({
+              ...prev,
+              value: {
+                ...prev.value,
+                atRule: emptyPageAtRuleApply(),
+              },
+            }))
+          }}
           onClose={() => setPageDialog({ ...pageDialog, open: false })}
         />
         <CustomParagraphStyleDialog

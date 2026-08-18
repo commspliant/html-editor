@@ -3,7 +3,7 @@ import { MENU_SEPARATOR, type ToolbarLayout } from './types'
 export const defaultToolbarLayout: ToolbarLayout = {
   menus: [
     { id: 'file', items: ['save', 'open', MENU_SEPARATOR, 'print'] },
-    { id: 'edit', items: ['undo', 'redo'] },
+    { id: 'edit', items: ['undo', 'redo', MENU_SEPARATOR, { submenu: 'page', items: ['pageProperties'] }] },
     {
       id: 'insert',
       items: [
@@ -15,6 +15,7 @@ export const defaultToolbarLayout: ToolbarLayout = {
         'youtube',
         'table',
         'horizontalRule',
+        'insertPage',
       ],
     },
     {
@@ -102,11 +103,6 @@ export const defaultToolbarLayout: ToolbarLayout = {
             'bulletList',
             'numberedList',
           ],
-        },
-        MENU_SEPARATOR,
-        {
-          submenu: 'page',
-          items: ['pageProperties'],
         },
         MENU_SEPARATOR,
         'imageProperties',

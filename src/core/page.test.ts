@@ -60,6 +60,7 @@ function apply(overrides: Partial<ParagraphBoxApply> = {}): PagePropertiesApply 
     font: empty.font,
     box: { ...empty.box, ...overrides },
     backgroundImage: empty.backgroundImage,
+    atRule: empty.atRule,
   }
 }
 
@@ -72,6 +73,7 @@ function applyFont(
     font: { ...empty.font, ...font },
     box: { ...empty.box, ...box },
     backgroundImage: empty.backgroundImage,
+    atRule: empty.atRule,
   }
 }
 

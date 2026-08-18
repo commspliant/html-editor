@@ -81,6 +81,10 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
     insertHorizontalRule: vi.fn(),
+    insertPage: vi.fn(),
+    isMultiPagesEnabled: () => false,
+    getActivePageHtml: () => '',
+    getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
     applyTable: vi.fn(),
     openTableProperties: vi.fn(),
@@ -108,7 +112,6 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
-    toggleFormatBrush: vi.fn(),
     isFormatBrushActive: () => false,
     ...overrides,
   }

@@ -19,7 +19,6 @@ import {
   ItalicIcon,
   NumberedListIcon,
   OutdentIcon,
-  PagePropertiesIcon,
   ParagraphPropertiesIcon,
   ParagraphStyleIcon,
   StrikethroughIcon,
@@ -63,11 +62,6 @@ export const formatCatalog: ToolbarCatalog = {
       id: 'paragraph',
       labelKey: 'menuParagraph',
       ariaKey: 'menuParagraphAria',
-    },
-    page: {
-      id: 'page',
-      labelKey: 'menuPage',
-      ariaKey: 'menuPageAria',
     },
   },
   groups: {
@@ -131,14 +125,6 @@ export const formatCatalog: ToolbarCatalog = {
       icon: ParagraphPropertiesIcon,
       labelKey: 'commandParagraphProperties',
       ariaKey: 'commandParagraphPropertiesAria',
-      enabled: 'isVisualMode',
-    },
-    pageProperties: {
-      id: 'pageProperties',
-      command: 'openPageProperties',
-      icon: PagePropertiesIcon,
-      labelKey: 'commandPageProperties',
-      ariaKey: 'commandPagePropertiesAria',
       enabled: 'isVisualMode',
     },
     imageProperties: {

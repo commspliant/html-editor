@@ -15,13 +15,16 @@ import type { InlineColorQuery } from './inlineColor'
 import type { ListType } from './lists'
 import type { FontMark, FontMarkState } from './marks'
 import type { ParagraphPropertiesApply } from './paragraphProperties'
+import type { ParagraphBoxApply } from './paragraphBox'
+import type { TextAlign } from './textAlign'
 import type { PageBackgroundImageApply } from './pageBackgroundImage'
+import type { PageAtRuleApply } from './pageAtRule'
 
 export type FontDialogTab = 'general'
 
 export type ParagraphDialogTab = 'general' | 'spacing' | 'border' | 'background' | 'backgroundImage'
 
-export type PageDialogTab = 'font' | 'paragraph'
+export type PageDialogTab = 'font' | 'paragraph' | 'print'
 
 export type LinkDialogTab = 'link' | 'bookmark'
 
@@ -53,6 +56,7 @@ export type PagePropertiesApply = {
   font: FontPropertiesApply
   box: ParagraphBoxApply
   backgroundImage: PageBackgroundImageApply
+  atRule: PageAtRuleApply
 }
 
 export type CommandName =
@@ -92,6 +96,7 @@ export type CommandName =
   | 'openYoutubeDialog'
   | 'openImageProperties'
   | 'insertHorizontalRule'
+  | 'insertPage'
   | 'openTableDialog'
   | 'openTableProperties'
   | 'openCellProperties'
@@ -149,6 +154,8 @@ export type QueryName =
   | 'isReadingAloud'
   | 'canReadAloud'
   | 'isFormatBrushActive'
+  | 'isMultiPagesEnabled'
+  | 'canInsertPage'
 
 export type CommandContext = {
   getHtml: () => string
@@ -228,6 +235,10 @@ export type CommandContext = {
   openImageProperties: (tab?: ImageDialogTab) => void
   applyImageProperties: (draft: ImagePropertiesApply) => void
   insertHorizontalRule: () => void
+  insertPage: () => void
+  isMultiPagesEnabled: () => boolean
+  getActivePageHtml: () => string
+  getAllPagesHtml: () => string[]
   openTableDialog: () => void
   applyTable: (draft: TableApply) => void
   openTableProperties: () => void
@@ -256,8 +267,8 @@ export type CommandContext = {
   hasTextSelection: () => boolean
   toggleFormatBrush: () => void
   isFormatBrushActive: () => boolean
-  onSave?: (html: string) => void | Promise<void>
-  onOpen?: () => string | null | Promise<string | null>
+  onSave?: (html: string | string[]) => void | Promise<void>
+  onOpen?: () => string | string[] | null | Promise<string | null>
 }
 
 export type EditorCommand = () => void | Promise<void>
@@ -319,6 +330,7 @@ export type EditorCommands = {
   openImageProperties: (tab?: ImageDialogTab) => void
   applyImageProperties: (draft: ImagePropertiesApply) => void
   insertHorizontalRule: () => void
+  insertPage: () => void
   openTableDialog: () => void
   applyTable: (draft: TableApply) => void
   openTableProperties: () => void
@@ -394,6 +406,9 @@ export type EditorQueries = {
   isReadingAloud: () => boolean
   canReadAloud: () => boolean
   isFormatBrushActive: () => boolean
+  isMultiPagesEnabled: () => boolean
+  canInsertPage: () => boolean
 }
 
 export type { FontFace, FontFamilyQuery, FontSizeQuery, InlineColorQuery, ListType, ParagraphStyleTag, TextAlign, ParagraphPropertiesApply, ParagraphBoxApply, ImagePropertiesApply, TableApply, TablePropertiesApply, CellPropertiesApply, RowPropertiesApply }
+export type { PageAtRuleApply } from './pageAtRule'

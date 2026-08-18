@@ -11,6 +11,7 @@ import type { PageBackgroundImageApply } from '../../core/pageBackgroundImage'
 import {
   emptyPageBackgroundImageApply,
 } from '../../core/pageBackgroundImage'
+import { emptyPageAtRuleApply, type PageAtRuleApply } from '../../core/pageAtRule'
 import type { FontFace } from '../../core/fontFamily'
 import {
   emptyParagraphPropertiesApply,
@@ -20,6 +21,7 @@ import { useT } from '../../i18n/LocaleProvider'
 import { FontPropertiesFields } from './FontPropertiesFields'
 import { PAGE_DIALOG_TABS } from './pageDialog'
 import { ParagraphPropertiesFields } from './ParagraphPropertiesFields'
+import { PageAtRuleFields } from './PageAtRuleFields'
 import styles from './FontPropertiesDialog.module.css'
 import type { CustomImagePicker } from '../../types'
 
@@ -56,6 +58,7 @@ export type PagePropertiesDialogProps = {
   onCustomImagePick?: () => void
   onTabChange: (tab: PageDialogTab) => void
   onApply: (draft: PagePropertiesApply) => void
+  onResetAtRule?: () => void
   onClose: () => void
 }
 
@@ -69,6 +72,7 @@ export function PagePropertiesDialog({
   onCustomImagePick,
   onTabChange,
   onApply,
+  onResetAtRule,
   onClose,
 }: PagePropertiesDialogProps) {
   const t = useT()
@@ -81,6 +85,9 @@ export function PagePropertiesDialog({
   const [backgroundImageDraft, setBackgroundImageDraft] = useState<PageBackgroundImageApply>(
     value.backgroundImage,
   )
+  const [atRuleDraft, setAtRuleDraft] = useState<PageAtRuleApply>(
+    value.atRule ?? emptyPageAtRuleApply(),
+  )
 
   useEffect(() => {
     if (!open) return
@@ -89,6 +96,7 @@ export function PagePropertiesDialog({
     setFontDraft(value.font)
     setBoxDraft(value.box)
     setBackgroundImageDraft(value.backgroundImage ?? emptyPageBackgroundImageApply())
+    setAtRuleDraft(value.atRule ?? emptyPageAtRuleApply())
   }, [open, value])
 
   useEffect(() => {
@@ -161,6 +169,15 @@ export function PagePropertiesDialog({
           >
             {t('customStyleDialogTabParagraph')}
           </button>
+          <button
+            type="button"
+            className={styles.tab}
+            role="tab"
+            aria-selected={tab === 'print'}
+            onClick={() => onTabChange('print')}
+          >
+            {t('pageDialogTabPrint')}
+          </button>
         </div>
         {tab === 'font' ? (
           <div className={styles.nestedPanel}>
@@ -173,7 +190,7 @@ export function PagePropertiesDialog({
               onChange={setFontDraft}
             />
           </div>
-        ) : (
+        ) : tab === 'paragraph' ? (
           <div className={styles.nestedPanel}>
             <ParagraphPropertiesFields
               tab={paragraphTab}
@@ -192,6 +209,18 @@ export function PagePropertiesDialog({
               onChange={(next) => setBoxDraft(fieldsToBox(next))}
             />
           </div>
+        ) : (
+          <div className={styles.nestedPanel}>
+            <PageAtRuleFields
+              value={atRuleDraft}
+              disabled={disabled}
+              onChange={setAtRuleDraft}
+              onReset={() => {
+                setAtRuleDraft(emptyPageAtRuleApply())
+                onResetAtRule?.()
+              }}
+            />
+          </div>
         )}
         <div className={styles.actions}>
           <button type="button" className={styles.action} onClick={onClose}>
@@ -206,6 +235,7 @@ export function PagePropertiesDialog({
                 font: fontDraft,
                 box: boxDraft,
                 backgroundImage: backgroundImageDraft,
+                atRule: atRuleDraft,
               })
             }
           >
