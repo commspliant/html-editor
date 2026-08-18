@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -78,6 +78,25 @@ const allowedChrome: AllowedChrome = {
   defaultValue="<p>Hello</p>"
   onAutoSave={(html) => {
     void fetch('/save', { method: 'POST', body: html })
+  }}
+/>`,
+    ],
+  },
+  fileCallbacks: {
+    titleKey: 'fileCallbacksAria',
+    bodyKey: 'fileCallbacksExampleBody',
+    snippets: [
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor
+  defaultValue="<p>Hello</p>"
+  onSave={async (html) => {
+    await fetch('/api/documents/current', { method: 'PUT', body: html })
+  }}
+  onOpen={async () => {
+    const response = await fetch('/api/documents/current')
+    if (!response.ok) return null
+    return response.text()
   }}
 />`,
     ],

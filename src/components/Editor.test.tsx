@@ -561,6 +561,31 @@ describe('Editor file commands', () => {
 
     expect(screen.getByRole('textbox', { name: 'Visual editor' })).toContainHTML('<p>From file</p>')
   })
+
+  it('calls onSave instead of saveHtml when set', async () => {
+    const user = userEvent.setup()
+    const onSave = vi.fn(async () => undefined)
+    vi.mocked(saveHtml).mockClear()
+    render(<Editor defaultValue="<p>Host save</p>" onSave={onSave} />)
+
+    await user.click(screen.getByRole('button', { name: 'Save as HTML file' }))
+
+    expect(onSave).toHaveBeenCalledWith('<p>Host save</p>')
+    expect(saveHtml).not.toHaveBeenCalled()
+  })
+
+  it('calls onOpen instead of loadHtml when set', async () => {
+    const user = userEvent.setup()
+    const onOpen = vi.fn(async () => '<p>From host</p>')
+    vi.mocked(loadHtml).mockClear()
+    render(<Editor defaultValue="<p>Old</p>" onOpen={onOpen} />)
+
+    await user.click(screen.getByRole('button', { name: 'Open HTML file' }))
+
+    expect(onOpen).toHaveBeenCalled()
+    expect(loadHtml).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox', { name: 'Visual editor' })).toContainHTML('<p>From host</p>')
+  })
 })
 
 function fileDataTransfer(files: File[]) {

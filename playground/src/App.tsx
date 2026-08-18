@@ -35,6 +35,9 @@ type ToolbarPersistMode = 'browser' | 'api'
 type DarkModePersistMode = 'browser' | 'api'
 type ToolbarPositionPersistMode = 'browser' | 'api'
 type AllowedChromePreset = 'all' | 'fileEdit' | 'format'
+type FileCallbacksMode = 'local' | 'host'
+
+const PLAYGROUND_HOST_OPEN_SAMPLE = '<p>Sample document from mock host storage</p>'
 
 const FILE_EDIT_CHROME: AllowedChrome = {
   menus: ['file', 'edit'],
@@ -168,6 +171,20 @@ async function savePlaygroundToolbarPosition(position: ToolbarPosition) {
   playgroundToolbarPosition = position
 }
 
+let playgroundDocumentHtml: string | null = null
+
+const PLAYGROUND_FILE_DELAY_MS = 400
+
+async function savePlaygroundDocument(html: string) {
+  await delay(PLAYGROUND_FILE_DELAY_MS)
+  playgroundDocumentHtml = html
+}
+
+async function loadPlaygroundDocument() {
+  await delay(PLAYGROUND_FILE_DELAY_MS)
+  return playgroundDocumentHtml ?? PLAYGROUND_HOST_OPEN_SAMPLE
+}
+
 const exampleMenu = {
   menuColor: '#1e3a5f',
   menuBackground: '#fef3c7',
@@ -241,6 +258,9 @@ export function App() {
   const [disableHtmlFileDrop, setDisableHtmlFileDrop] = useState(false)
   const [autoSave, setAutoSave] = useState(false)
   const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
+  const [fileCallbacksMode, setFileCallbacksMode] = useState<FileCallbacksMode>('local')
+  const [lastHostSaveAt, setLastHostSaveAt] = useState<number | null>(null)
+  const [hostDocumentStored, setHostDocumentStored] = useState(() => playgroundDocumentHtml !== null)
   const [customActionsEnabled, setCustomActionsEnabled] = useState(true)
   const [customParagraphStylesEnabled, setCustomParagraphStylesEnabled] = useState(true)
   const [menuAppearance, setMenuAppearance] = useState<MenuAppearance>('default')
@@ -403,6 +423,14 @@ export function App() {
     setLastAutoSaveAt(Date.now())
   }, [])
 
+  const onSave = useCallback(async (html: string) => {
+    await savePlaygroundDocument(html)
+    setLastHostSaveAt(Date.now())
+    setHostDocumentStored(true)
+  }, [])
+
+  const onOpen = useCallback(async () => loadPlaygroundDocument(), [])
+
   const autoSaveWhen =
     lastAutoSaveAt == null
       ? t.autoSaveNever
@@ -410,6 +438,16 @@ export function App() {
           dateStyle: 'medium',
           timeStyle: 'medium',
         })
+
+  const hostSaveWhen =
+    lastHostSaveAt == null
+      ? t.fileCallbacksNever
+      : new Date(lastHostSaveAt).toLocaleString(locale, {
+          dateStyle: 'medium',
+          timeStyle: 'medium',
+        })
+
+  const hostStorageStatus = hostDocumentStored ? t.fileCallbacksStored : t.fileCallbacksEmpty
 
   return (
     <main className="page">
@@ -592,6 +630,39 @@ export function App() {
                       {t.htmlFileDropDisabled}
                     </button>
                   </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.fileCallbacksAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('fileCallbacks')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.fileCallbacksAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={fileCallbacksMode === 'local'}
+                      onClick={() => setFileCallbacksMode('local')}
+                    >
+                      {t.fileCallbacksLocal}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={fileCallbacksMode === 'host'}
+                      onClick={() => setFileCallbacksMode('host')}
+                    >
+                      {t.fileCallbacksHost}
+                    </button>
+                  </div>
+                  {fileCallbacksMode === 'host' ? (
+                    <>
+                      <p className="control-group-status">
+                        {t.fileCallbacksLastSave}: {hostSaveWhen}
+                      </p>
+                      <p className="control-group-status">{hostStorageStatus}</p>
+                    </>
+                  ) : null}
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
@@ -1039,6 +1110,8 @@ export function App() {
               readOnly={readOnly}
               disableHtmlFileDrop={disableHtmlFileDrop}
               onAutoSave={autoSave ? onAutoSave : undefined}
+              onSave={fileCallbacksMode === 'host' ? onSave : undefined}
+              onOpen={fileCallbacksMode === 'host' ? onOpen : undefined}
               {...(menuAppearance === 'example' ? exampleMenu : {})}
               border={
                 borderAppearance === 'none'

@@ -223,6 +223,8 @@ export function Editor({
   defaultValue = '',
   onChange,
   onAutoSave,
+  onSave,
+  onOpen,
   mode: modeProp,
   defaultMode = 'visual',
   onModeChange,
@@ -518,6 +520,10 @@ export function Editor({
   onSaveCustomParagraphStyleRef.current = onSaveCustomParagraphStyle
   const onDeleteCustomParagraphStyleRef = useRef(onDeleteCustomParagraphStyle)
   onDeleteCustomParagraphStyleRef.current = onDeleteCustomParagraphStyle
+  const onSaveRef = useRef(onSave)
+  onSaveRef.current = onSave
+  const onOpenRef = useRef(onOpen)
+  onOpenRef.current = onOpen
   const customImagePickerRef = useRef(customImagePicker)
   customImagePickerRef.current = customImagePicker
   const customAudioPickerRef = useRef(customAudioPicker)
@@ -2223,8 +2229,10 @@ export function Editor({
       isInTable: () => modeRef.current === 'visual' && inTableRef.current,
       canMergeCells: () => modeRef.current === 'visual' && canMergeCellsRef.current,
       canUnmergeCells: () => modeRef.current === 'visual' && canUnmergeCellsRef.current,
+      ...(onSave != null ? { onSave: (html: string) => onSaveRef.current!(html) } : {}),
+      ...(onOpen != null ? { onOpen: () => onOpenRef.current!() } : {}),
     }),
-    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, toggleFormatBrush],
+    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, toggleFormatBrush, onSave, onOpen],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {

@@ -31,6 +31,13 @@ export type PlaygroundMessages = {
   autoSaveOff: string
   autoSaveLast: string
   autoSaveNever: string
+  fileCallbacksAria: string
+  fileCallbacksLocal: string
+  fileCallbacksHost: string
+  fileCallbacksLastSave: string
+  fileCallbacksNever: string
+  fileCallbacksStored: string
+  fileCallbacksEmpty: string
   customActionsAria: string
   customActionsOn: string
   customActionsOff: string
@@ -90,6 +97,7 @@ export type PlaygroundMessages = {
   readOnlyExampleBody: string
   htmlFileDropExampleBody: string
   autoSaveExampleBody: string
+  fileCallbacksExampleBody: string
   customActionsExampleBody: string
   menuExampleBody: string
   borderExampleBody: string
@@ -164,6 +172,13 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     autoSaveOff: 'Off',
     autoSaveLast: 'Last auto save',
     autoSaveNever: 'Never',
+    fileCallbacksAria: 'Save and open',
+    fileCallbacksLocal: 'Local file',
+    fileCallbacksHost: 'Host callbacks',
+    fileCallbacksLastSave: 'Last host save',
+    fileCallbacksNever: 'Never',
+    fileCallbacksStored: 'Mock storage has a document',
+    fileCallbacksEmpty: 'Mock storage is empty (Open loads a sample)',
     customActionsAria: 'Custom actions',
     customActionsOn: 'On',
     customActionsOff: 'Off',
@@ -228,6 +243,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Dropping an HTML file onto the document replaces it, the same as File → Open. Set disableHtmlFileDrop to ignore drops. File → Open is unchanged.',
     autoSaveExampleBody:
       'Pass onAutoSave to persist the document HTML. The editor polls every second and calls the callback only when the HTML changed. Omit the prop to disable. The callback is not awaited, so editing is not blocked.',
+    fileCallbacksExampleBody:
+      'By default, File → Save and Open use the built-in local HTML file picker. Pass onSave and/or onOpen to delegate to the host instead. The two props are independent. HTML file drag-drop is unchanged.',
     customActionsExampleBody:
       'Pass a customActions array to add host buttons, menu items, or both. Labels and tooltips are your copy — the library does not translate them.',
     menuExampleBody:
@@ -312,6 +329,13 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     autoSaveOff: 'Desactivado',
     autoSaveLast: 'Último autoguardado',
     autoSaveNever: 'Nunca',
+    fileCallbacksAria: 'Guardar y abrir',
+    fileCallbacksLocal: 'Archivo local',
+    fileCallbacksHost: 'Callbacks del anfitrión',
+    fileCallbacksLastSave: 'Último guardado del anfitrión',
+    fileCallbacksNever: 'Nunca',
+    fileCallbacksStored: 'El almacenamiento simulado tiene un documento',
+    fileCallbacksEmpty: 'El almacenamiento simulado está vacío (Abrir carga un ejemplo)',
     customActionsAria: 'Acciones personalizadas',
     customActionsOn: 'Activado',
     customActionsOff: 'Desactivado',
@@ -376,6 +400,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Soltar un archivo HTML sobre el documento lo reemplaza, igual que Archivo → Abrir. Con disableHtmlFileDrop se ignoran las sueltas. Archivo → Abrir no cambia.',
     autoSaveExampleBody:
       'Pasa onAutoSave para persistir el HTML del documento. El editor consulta cada segundo y llama al callback solo si el HTML cambió. Omite la propiedad para desactivarlo. El callback no se espera, así que la edición no se bloquea.',
+    fileCallbacksExampleBody:
+      'Por defecto, Archivo → Guardar y Abrir usan el selector de archivo HTML integrado. Pasa onSave y/o onOpen para delegar en el anfitrión. Las dos propiedades son independientes. Soltar un archivo HTML no cambia.',
     customActionsExampleBody:
       'Pasa un array customActions para añadir botones y elementos de menú de la aplicación. Las etiquetas y descripciones emergentes son tu texto: la biblioteca no las traduce.',
     menuExampleBody:

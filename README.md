@@ -45,6 +45,8 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `defaultValue` | `string` | `''` | Initial HTML when uncontrolled |
 | `onChange` | `(html: string) => void` | — | Fires when either surface edits the document |
 | `onAutoSave` | `(html: string) => void` | — | Polls every 1s; calls only when the document HTML changed. See [Auto save](#auto-save) |
+| `onSave` | `(html: string) => void` | — | File → Save host callback. See [Save and open](#save-and-open) |
+| `onOpen` | `() => string \| null` | — | File → Open host callback. See [Save and open](#save-and-open) |
 | `mode` | `'visual' \| 'html'` | — | Controlled mode |
 | `defaultMode` | `'visual' \| 'html'` | `'visual'` | Initial mode when uncontrolled |
 | `onModeChange` | `(mode: EditorMode) => void` | — | Fires when the built-in Visual / HTML toggle is used |
@@ -84,7 +86,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `darkMode` | `boolean` | `false` | Initial chrome theme when nothing is persisted (`true` = dark). See [Dark mode](#dark-mode) |
 | `darkModePersistence` | `DarkModePersistence` | — | Host load/save for the chrome theme. Omit to persist in `localStorage`. See [Dark mode](#dark-mode) |
 
-`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Audio, YouTube video, Table, and Horizontal line), a Table menu (Insert table, row and column items, Merge cells, Unmerge cells, and table/cell/row properties), a View menu (Visual, HTML, Toolbar customize and position, Light/Dark mode, Preview, Read aloud, and Full screen), and a Format menu (paragraph styles, font, clear formatting, paragraph, page, and image properties), unless `menuVisible` is `false`. The icon toolbar has File (Save and Load), Print, Edit (Undo and Redo), Insert (Link, Bookmark, Image, Table, and Horizontal line), Table (Merge cells and Unmerge cells), Font, Align, Paragraph, and View (Visual | HTML | Preview | Read aloud) groups, with Full screen pinned last, unless `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Read aloud (View menu and View icon group) uses the browser’s built-in speech synthesis to read the current selection, or the full document when nothing is selected; click again to stop. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons where both exist. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Audio and YouTube video are available from the Insert menu only (no toolbar buttons). Horizontal line inserts an `<hr>` at the caret.
+`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Audio, YouTube video, Table, and Horizontal line), a Table menu (Insert table, row and column items, Merge cells, Unmerge cells, and table/cell/row properties), a View menu (Visual, HTML, Toolbar customize and position, Light/Dark mode, Preview, Read aloud, and Full screen), and a Format menu (paragraph styles, font, clear formatting, paragraph, page, and image properties), unless `menuVisible` is `false`. The icon toolbar has File (Save and Load), Print, Edit (Undo and Redo), Insert (Link, Bookmark, Image, Table, and Horizontal line), Table (Merge cells and Unmerge cells), Font, Align, Paragraph, and View (Visual | HTML | Preview | Read aloud) groups, with Full screen pinned last, unless `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. By default, Save writes the current document to an HTML file and Load replaces it from an HTML file; pass `onSave` and/or `onOpen` to delegate to host callbacks instead (see [Save and open](#save-and-open)). Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Read aloud (View menu and View icon group) uses the browser’s built-in speech synthesis to read the current selection, or the full document when nothing is selected; click again to stop. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons where both exist. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Audio and YouTube video are available from the Insert menu only (no toolbar buttons). Horizontal line inserts an `<hr>` at the caret.
 
 `menuColor`, `menuBackground`, `menuFontSize`, and `menuFontFamily` restyle the dropdown menu bar and panels only — not the icon toolbar. `border` is the outer editor box and is ignored in fullscreen. Custom menu fonts must already be available on the page.
 
@@ -342,6 +344,32 @@ import { Editor } from 'commspliant-html-editor'
   defaultValue="<p>Hello</p>"
   onAutoSave={(html) => {
     void fetch('/save', { method: 'POST', body: html })
+  }}
+/>
+```
+
+### Save and open
+
+By default, File → Save and the Save toolbar button write the document to a local HTML file (browser save picker or download). File → Open and the Open toolbar button load from a local HTML file. Omit both callbacks to keep that behavior.
+
+Pass `onSave` to persist through the host instead of the built-in file picker. It receives the current document HTML (same as `onChange`, after `transformHtml`) and is awaited.
+
+Pass `onOpen` to load through the host instead of the built-in file picker. Return document HTML to replace the editor, or `null` to cancel. The callback is awaited. HTML file drag-drop is unchanged — it still reads a local file and does not call `onOpen`.
+
+The two props are independent: set only `onSave` to keep Open on the local picker, or only `onOpen` to keep Save on the local picker.
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor
+  defaultValue="<p>Hello</p>"
+  onSave={async (html) => {
+    await fetch('/api/documents/current', { method: 'PUT', body: html })
+  }}
+  onOpen={async () => {
+    const response = await fetch('/api/documents/current')
+    if (!response.ok) return null
+    return response.text()
   }}
 />
 ```

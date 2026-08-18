@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CommandContext } from '../../core/commandTypes'
 import { createFileCommands } from './commands'
 import { loadHtml, saveHtml } from './fileDialogs'
 import { printHtml } from './printHtml'
@@ -12,7 +13,124 @@ vi.mock('./printHtml', () => ({
   printHtml: vi.fn(),
 }))
 
+function fileContext(overrides: Partial<CommandContext> = {}): CommandContext {
+  return {
+    getHtml: () => '',
+    setHtml: vi.fn(),
+    getMode: () => 'visual',
+    setMode: vi.fn(),
+    getFullscreen: () => false,
+    setFullscreen: vi.fn(),
+    getDarkMode: () => false,
+    setDarkMode: vi.fn(),
+    getToolbarPosition: () => 'top',
+    setToolbarPosition: vi.fn(),
+    openCustomizeToolbar: vi.fn(),
+    openDocumentPreview: vi.fn(),
+    toggleReadAloud: vi.fn(),
+    isReadingAloud: () => false,
+    canReadAloud: () => true,
+    getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),
+    insertText: vi.fn(),
+    insertHtml: vi.fn(),
+    undo: vi.fn(),
+    redo: vi.fn(),
+    canUndo: () => false,
+    canRedo: () => false,
+    toggleFontMark: vi.fn(),
+    isFontMarkActive: () => false,
+    setFontSize: vi.fn(),
+    setFontSizeUnit: vi.fn(),
+    getFontSize: () => null,
+    getFontSizeUnit: () => 'pt',
+    isFontSizeMixed: () => false,
+    setFontFamily: vi.fn(),
+    getFontFamily: () => null,
+    isFontFamilyMixed: () => false,
+    getFontFaces: () => [],
+    setFontColor: vi.fn(),
+    setHighlightColor: vi.fn(),
+    getFontColor: () => null,
+    isFontColorMixed: () => false,
+    getHighlightColor: () => null,
+    isHighlightColorMixed: () => false,
+    setParagraphStyle: vi.fn(),
+    getParagraphStyle: () => null,
+    isParagraphStyleMixed: () => false,
+    setTextAlign: vi.fn(),
+    getTextAlign: () => null,
+    isTextAlignMixed: () => false,
+    indent: vi.fn(),
+    outdent: vi.fn(),
+    canOutdent: () => false,
+    toggleList: vi.fn(),
+    isBulletList: () => false,
+    isNumberedList: () => false,
+    openFontProperties: vi.fn(),
+    applyFontProperties: vi.fn(),
+    openCustomCss: vi.fn(),
+    applyCustomCss: vi.fn(),
+    openParagraphProperties: vi.fn(),
+    applyParagraphProperties: vi.fn(),
+    openPageProperties: vi.fn(),
+    applyPageProperties: vi.fn(),
+    openCustomParagraphStyleDialog: vi.fn(),
+    applyCustomParagraphStyle: vi.fn(),
+    customParagraphStylesEnabled: () => false,
+    getCustomParagraphStyles: () => [],
+    isCustomParagraphStylesLoading: () => false,
+    openLinkDialog: vi.fn(),
+    applyLink: vi.fn(),
+    openBookmarkDialog: vi.fn(),
+    applyBookmark: vi.fn(),
+    openImageDialog: vi.fn(),
+    applyImage: vi.fn(),
+    openAudioDialog: vi.fn(),
+    applyAudio: vi.fn(),
+    openYoutubeDialog: vi.fn(),
+    applyYoutube: vi.fn(),
+    openImageProperties: vi.fn(),
+    applyImageProperties: vi.fn(),
+    insertHorizontalRule: vi.fn(),
+    openTableDialog: vi.fn(),
+    applyTable: vi.fn(),
+    openTableProperties: vi.fn(),
+    applyTableProperties: vi.fn(),
+    openCellProperties: vi.fn(),
+    applyCellProperties: vi.fn(),
+    openRowProperties: vi.fn(),
+    applyRowProperties: vi.fn(),
+    insertRowBelow: vi.fn(),
+    insertRowBefore: vi.fn(),
+    deleteRow: vi.fn(),
+    insertColumnAfter: vi.fn(),
+    insertColumnBefore: vi.fn(),
+    deleteColumn: vi.fn(),
+    mergeCells: vi.fn(),
+    unmergeCells: vi.fn(),
+    cut: vi.fn(),
+    copy: vi.fn(),
+    deleteSelection: vi.fn(),
+    clearFormatting: vi.fn(),
+    toggleFormatBrush: vi.fn(),
+    isLink: () => false,
+    isImageSelected: () => false,
+    isInTable: () => false,
+    canMergeCells: () => false,
+    canUnmergeCells: () => false,
+    hasTextSelection: () => false,
+    isFormatBrushActive: () => false,
+    ...overrides,
+  }
+}
+
 describe('createFileCommands', () => {
+  beforeEach(() => {
+    vi.mocked(saveHtml).mockClear()
+    vi.mocked(loadHtml).mockClear()
+    vi.mocked(printHtml).mockClear()
+  })
+
   it('saves the current html', async () => {
     const setHtml = vi.fn()
     const commands = createFileCommands({
@@ -479,5 +597,52 @@ describe('createFileCommands', () => {
 
     expect(printHtml).toHaveBeenCalledWith('<p>Doc</p>')
     expect(setHtml).not.toHaveBeenCalled()
+  })
+
+  it('calls onSave instead of saveHtml when set', async () => {
+    const onSave = vi.fn(async () => undefined)
+    const commands = createFileCommands(
+      fileContext({
+        getHtml: () => '<p>Doc</p>',
+        onSave,
+      }),
+    )
+
+    await commands.save()
+
+    expect(onSave).toHaveBeenCalledWith('<p>Doc</p>')
+    expect(saveHtml).not.toHaveBeenCalled()
+  })
+
+  it('calls onOpen instead of loadHtml when set', async () => {
+    const setHtml = vi.fn()
+    const onOpen = vi.fn(async () => '<p>From host</p>')
+    const commands = createFileCommands(
+      fileContext({
+        setHtml,
+        onOpen,
+      }),
+    )
+
+    await commands.open()
+
+    expect(onOpen).toHaveBeenCalled()
+    expect(loadHtml).not.toHaveBeenCalled()
+    expect(setHtml).toHaveBeenCalledWith('<p>From host</p>')
+  })
+
+  it('does not replace html when onOpen returns null', async () => {
+    const setHtml = vi.fn()
+    const commands = createFileCommands(
+      fileContext({
+        setHtml,
+        onOpen: async () => null,
+      }),
+    )
+
+    await commands.open()
+
+    expect(setHtml).not.toHaveBeenCalled()
+    expect(loadHtml).not.toHaveBeenCalled()
   })
 })
