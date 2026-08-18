@@ -10,6 +10,10 @@ export function createInsertCommands(
   | 'applyBookmark'
   | 'openImageDialog'
   | 'applyImage'
+  | 'openAudioDialog'
+  | 'applyAudio'
+  | 'openYoutubeDialog'
+  | 'applyYoutube'
   | 'openImageProperties'
   | 'applyImageProperties'
   | 'insertHorizontalRule'
@@ -32,6 +36,18 @@ export function createInsertCommands(
     },
     applyImage: (draft) => {
       ctx.applyImage(draft)
+    },
+    openAudioDialog: () => {
+      ctx.openAudioDialog()
+    },
+    applyAudio: (draft) => {
+      ctx.applyAudio(draft)
+    },
+    openYoutubeDialog: () => {
+      ctx.openYoutubeDialog()
+    },
+    applyYoutube: (draft) => {
+      ctx.applyYoutube(draft)
     },
     openImageProperties: (tab?: ImageDialogTab) => {
       ctx.openImageProperties(tab)

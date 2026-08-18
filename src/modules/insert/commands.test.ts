@@ -76,6 +76,10 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     applyBookmark: vi.fn(),
     openImageDialog: vi.fn(),
     applyImage: vi.fn(),
+    openAudioDialog: vi.fn(),
+    applyAudio: vi.fn(),
+    openYoutubeDialog: vi.fn(),
+    applyYoutube: vi.fn(),
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
     insertHorizontalRule: vi.fn(),
@@ -153,6 +157,39 @@ describe('createInsertCommands', () => {
       src: 'https://example.com/a.png',
       alt: 'Chart',
       title: 'Q1',
+    })
+  })
+
+  it('opens and applies the audio dialog', () => {
+    const openAudioDialog = vi.fn()
+    const applyAudio = vi.fn()
+    const commands = createInsertCommands(context({ openAudioDialog, applyAudio }))
+
+    commands.openAudioDialog()
+    commands.applyAudio({ src: 'https://example.com/track.mp3', title: 'Intro' })
+
+    expect(openAudioDialog).toHaveBeenCalledTimes(1)
+    expect(applyAudio).toHaveBeenCalledWith({
+      src: 'https://example.com/track.mp3',
+      title: 'Intro',
+    })
+  })
+
+  it('opens and applies the youtube dialog', () => {
+    const openYoutubeDialog = vi.fn()
+    const applyYoutube = vi.fn()
+    const commands = createInsertCommands(context({ openYoutubeDialog, applyYoutube }))
+
+    commands.openYoutubeDialog()
+    commands.applyYoutube({
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      title: 'Demo',
+    })
+
+    expect(openYoutubeDialog).toHaveBeenCalledTimes(1)
+    expect(applyYoutube).toHaveBeenCalledWith({
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      title: 'Demo',
     })
   })
 

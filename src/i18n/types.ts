@@ -81,6 +81,10 @@ export type Messages = {
   commandBookmarkAria: string
   commandImage: string
   commandImageAria: string
+  commandAudio: string
+  commandAudioAria: string
+  commandYoutube: string
+  commandYoutubeAria: string
   commandImageProperties: string
   commandImagePropertiesAria: string
   commandTable: string
@@ -236,6 +240,23 @@ export type Messages = {
   imageDialogErrorInvalid: string
   imageDialogErrorType: string
   imageDialogErrorTooLarge: string
+  audioDialogTitle: string
+  audioDialogSource: string
+  audioDialogFile: string
+  audioDialogChooseFile: string
+  audioDialogUrl: string
+  audioDialogTitleField: string
+  audioDialogCloseAria: string
+  audioDialogErrorEmpty: string
+  audioDialogErrorInvalid: string
+  audioDialogErrorType: string
+  audioDialogErrorTooLarge: string
+  youtubeDialogTitle: string
+  youtubeDialogUrl: string
+  youtubeDialogTitleField: string
+  youtubeDialogCloseAria: string
+  youtubeDialogErrorEmpty: string
+  youtubeDialogErrorInvalid: string
   imagePropertiesDialogTitle: string
   imagePropertiesDialogCloseAria: string
   imagePropertiesTabAlignment: string

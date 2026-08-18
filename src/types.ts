@@ -140,6 +140,46 @@ export type CustomImagePicker = {
   onPick: (insertImage: (image: CustomImageInsert) => void) => void
 }
 
+export type CustomAudioInsert = {
+  /** http(s), relative path, or audio data URL */
+  src: string
+  title?: string
+  /** Extra inline CSS on the inserted `<audio>` */
+  css?: string
+}
+
+export type CustomAudioPicker = {
+  text: string
+  description: string
+  buttonCaption: string
+  /**
+   * Called when the custom source button is clicked, or when
+   * `disableBuiltinAudioInsert` is set and Insert → Audio runs.
+   * Call `insertAudio` when the host picker finishes.
+   */
+  onPick: (insertAudio: (audio: CustomAudioInsert) => void) => void
+}
+
+export type CustomVideoInsert = {
+  /** YouTube watch/embed URL, or http(s) video URL */
+  src: string
+  title?: string
+  /** Extra inline CSS on the inserted `<iframe>` or `<video>` */
+  css?: string
+}
+
+export type CustomVideoPicker = {
+  text: string
+  description: string
+  buttonCaption: string
+  /**
+   * Called when the custom source button is clicked, or when
+   * `disableBuiltinVideoInsert` is set and Insert → YouTube video runs.
+   * Call `insertVideo` when the host picker finishes.
+   */
+  onPick: (insertVideo: (video: CustomVideoInsert) => void) => void
+}
+
 export type ToolbarCustomization = {
   /** Icon group ids in display order. Full screen is always pinned last. */
   groupOrder: string[]
@@ -259,6 +299,26 @@ export type EditorProps = {
    * toolbar or Insert menu. Has no effect unless `customImagePicker` is set.
    */
   disableBuiltinImageInsert?: boolean
+  /**
+   * Optional third Insert audio source. Omit to keep File and URL only.
+   * Host copy (`text`, `description`, `buttonCaption`) is not translated.
+   */
+  customAudioPicker?: CustomAudioPicker
+  /**
+   * Skip the Insert audio dialog and call `customAudioPicker.onPick` from the
+   * Insert menu. Has no effect unless `customAudioPicker` is set.
+   */
+  disableBuiltinAudioInsert?: boolean
+  /**
+   * Optional third Insert YouTube video source. Omit to keep URL only.
+   * Host copy (`text`, `description`, `buttonCaption`) is not translated.
+   */
+  customVideoPicker?: CustomVideoPicker
+  /**
+   * Skip the Insert YouTube video dialog and call `customVideoPicker.onPick` from the
+   * Insert menu. Has no effect unless `customVideoPicker` is set.
+   */
+  disableBuiltinVideoInsert?: boolean
   /**
    * When true, dropping an HTML file on the editor does not replace the document.
    * File → Open is unchanged. Default `false` (drop is allowed).

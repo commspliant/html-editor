@@ -1,6 +1,8 @@
 import type { CustomActionSelection, CustomParagraphStyle, EditorMode, ToolbarPosition } from '../types'
 import type { LinkAttrs } from './link'
 import type { ImageAttrs } from './image'
+import type { AudioAttrs } from './audio'
+import type { YoutubeAttrs, VideoAttrs } from './youtube'
 import type { ImagePropertiesApply } from './imageProperties'
 import type { TableApply } from './table'
 import type { TablePropertiesApply } from './tableProperties'
@@ -29,6 +31,12 @@ export type ImageDialogTab = 'general' | 'alignment' | 'border' | 'advanced' | '
 export type LinkApply = LinkAttrs
 
 export type ImageApply = ImageAttrs
+
+export type AudioApply = AudioAttrs
+
+export type YoutubeApply = YoutubeAttrs
+
+export type VideoApply = VideoAttrs
 
 export type FontPropertiesApply = {
   size: number | null
@@ -79,6 +87,8 @@ export type CommandName =
   | 'openLinkDialog'
   | 'openBookmarkDialog'
   | 'openImageDialog'
+  | 'openAudioDialog'
+  | 'openYoutubeDialog'
   | 'openImageProperties'
   | 'insertHorizontalRule'
   | 'openTableDialog'
@@ -209,6 +219,10 @@ export type CommandContext = {
   applyBookmark: (name: string) => void
   openImageDialog: () => void
   applyImage: (draft: ImageApply) => void
+  openAudioDialog: () => void
+  applyAudio: (draft: AudioApply) => void
+  openYoutubeDialog: () => void
+  applyYoutube: (draft: YoutubeApply) => void
   openImageProperties: (tab?: ImageDialogTab) => void
   applyImageProperties: (draft: ImagePropertiesApply) => void
   insertHorizontalRule: () => void
@@ -292,6 +306,10 @@ export type EditorCommands = {
   applyBookmark: (name: string) => void
   openImageDialog: () => void
   applyImage: (draft: ImageApply) => void
+  openAudioDialog: () => void
+  applyAudio: (draft: AudioApply) => void
+  openYoutubeDialog: () => void
+  applyYoutube: (draft: YoutubeApply) => void
   openImageProperties: (tab?: ImageDialogTab) => void
   applyImageProperties: (draft: ImagePropertiesApply) => void
   insertHorizontalRule: () => void

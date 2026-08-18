@@ -75,12 +75,16 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `transformHtml` | `(html: string) => string` | — | Optional map over document HTML before it is stored and passed to `onChange`. See [Transform HTML](#transform-html) |
 | `customImagePicker` | `CustomImagePicker` | — | Optional third Insert image source. See [Custom image picker](#custom-image-picker) |
 | `disableBuiltinImageInsert` | `boolean` | `false` | Skip the Insert image dialog and call `customImagePicker.onPick` from the toolbar or Insert menu |
+| `customAudioPicker` | `CustomAudioPicker` | — | Optional third Insert audio source. See [Custom audio picker](#custom-audio-picker) |
+| `disableBuiltinAudioInsert` | `boolean` | `false` | Skip the Insert audio dialog and call `customAudioPicker.onPick` from the Insert menu |
+| `customVideoPicker` | `CustomVideoPicker` | — | Optional third Insert YouTube video source. See [Custom video picker](#custom-video-picker) |
+| `disableBuiltinVideoInsert` | `boolean` | `false` | Skip the Insert YouTube video dialog and call `customVideoPicker.onPick` from the Insert menu |
 | `disableHtmlFileDrop` | `boolean` | `false` | When true, dropping an HTML file on the editor does not replace the document. File → Open is unchanged |
 | `toolbarCustomization` | `ToolbarCustomizationPersistence` | — | Host load/save for icon-toolbar layout. Omit to persist in `localStorage`. See [Customize toolbar](#customize-toolbar) |
 | `darkMode` | `boolean` | `false` | Initial chrome theme when nothing is persisted (`true` = dark). See [Dark mode](#dark-mode) |
 | `darkModePersistence` | `DarkModePersistence` | — | Host load/save for the chrome theme. Omit to persist in `localStorage`. See [Dark mode](#dark-mode) |
 
-`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Table, and Horizontal line), a Table menu (Insert table, row and column items, Merge cells, Unmerge cells, and table/cell/row properties), a View menu (Visual, HTML, Toolbar customize and position, Light/Dark mode, Preview, Read aloud, and Full screen), and a Format menu (paragraph styles, font, clear formatting, paragraph, page, and image properties), unless `menuVisible` is `false`. The icon toolbar has File (Save and Load), Print, Edit (Undo and Redo), Insert (Link, Bookmark, Image, Table, and Horizontal line), Table (Merge cells and Unmerge cells), Font, Align, Paragraph, and View (Visual | HTML | Preview | Read aloud) groups, with Full screen pinned last, unless `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Read aloud (View menu and View icon group) uses the browser’s built-in speech synthesis to read the current selection, or the full document when nothing is selected; click again to stop. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Horizontal line inserts an `<hr>` at the caret.
+`mode`, `value`, and `fullscreen` are optional. Omit them for internal state; pass them to control from the parent. Chrome includes a File menu (Save, Load, and Print), an Edit menu (Undo and Redo), an Insert menu (Link, Bookmark, Image, Audio, YouTube video, Table, and Horizontal line), a Table menu (Insert table, row and column items, Merge cells, Unmerge cells, and table/cell/row properties), a View menu (Visual, HTML, Toolbar customize and position, Light/Dark mode, Preview, Read aloud, and Full screen), and a Format menu (paragraph styles, font, clear formatting, paragraph, page, and image properties), unless `menuVisible` is `false`. The icon toolbar has File (Save and Load), Print, Edit (Undo and Redo), Insert (Link, Bookmark, Image, Table, and Horizontal line), Table (Merge cells and Unmerge cells), Font, Align, Paragraph, and View (Visual | HTML | Preview | Read aloud) groups, with Full screen pinned last, unless `toolbarVisible` is `false`. Hide both to drop the chrome slot entirely. View → Toolbar → Position docks the icon toolbar (the menu bar stays at the top). Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column and grow the editor instead of wrapping into extra columns. Full screen covers the host page with a fixed overlay; an X control (and Escape) returns to the in-page layout. Visual and HTML mode stay independent of the overlay. Save writes the current document to an HTML file; Load replaces it from an HTML file. Dropping an `.html` / `.htm` file onto the document surface does the same as Load, unless `disableHtmlFileDrop` is set. Print opens the browser print dialog for the document HTML only (not the editor chrome). Preview (View menu and View icon group) opens a large dialog with a scrollable rendering of the current document HTML. Read aloud (View menu and View icon group) uses the browser’s built-in speech synthesis to read the current selection, or the full document when nothing is selected; click again to stop. Undo and Redo walk document HTML history; they are grayed out when there is nothing to undo or redo. The File, Edit, and Insert menu items use the same icons as the toolbar buttons where both exist. Link wraps the selection (or inserts the URL as the visible text at the caret) in an `<a href>` tag; an optional title becomes the native hover tooltip, and opening in a new tab sets `target="_blank"`. Bookmark inserts a named destination (`id`) at the caret or around the selection. Audio and YouTube video are available from the Insert menu only (no toolbar buttons). Horizontal line inserts an `<hr>` at the caret.
 
 `menuColor`, `menuBackground`, `menuFontSize`, and `menuFontFamily` restyle the dropdown menu bar and panels only — not the icon toolbar. `border` is the outer editor box and is ignored in fullscreen. Custom menu fonts must already be available on the page.
 
@@ -436,6 +440,86 @@ Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInse
 ```
 
 `insertImage` uses the same insert path as File and URL: an `<img>` with inline `max-width: 100%; height: auto`, then any host `css`. `src` must be `http(s)`, a relative path, or a raster `data:` URL.
+
+### Custom audio picker
+
+Pass `customAudioPicker` to add a third Insert audio source. Labels are your copy — the library does not translate them. When the host finishes picking, call the `insertAudio` function received by `onPick`.
+
+```tsx
+import { Editor, type CustomAudioPicker } from 'commspliant-html-editor'
+
+const library: CustomAudioPicker = {
+  text: 'Library',
+  description: 'Choose from your audio library.',
+  buttonCaption: 'Open library',
+  onPick: (insertAudio) => {
+    openHostLibrary().then((picked) => {
+      insertAudio({
+        src: picked.url,
+        title: picked.title,
+        css: 'width: 100%',
+      })
+    })
+  },
+}
+
+<Editor customAudioPicker={library} />
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `text` | `string` | Third source / navigation button label |
+| `description` | `string` | Shown on the custom source panel |
+| `buttonCaption` | `string` | Caption of the button that starts the host picker |
+| `onPick` | `(insertAudio) => void` | Called when that button is clicked. Call `insertAudio` with a URL or audio `data:` URL, plus optional `title` and inline `css` |
+
+Omit `customAudioPicker` to keep File and URL only. Set `disableBuiltinAudioInsert` to skip the dialog: Insert → Audio calls `onPick` immediately.
+
+```tsx
+<Editor customAudioPicker={library} disableBuiltinAudioInsert />
+```
+
+`insertAudio` uses the same insert path as File and URL: an `<audio controls>` with inline `max-width: 100%`, then any host `css`. `src` must be `http(s)`, a relative path, or an audio `data:` URL.
+
+### Custom video picker
+
+Pass `customVideoPicker` to add a third Insert YouTube video source. Labels are your copy — the library does not translate them. When the host finishes picking, call the `insertVideo` function received by `onPick`.
+
+```tsx
+import { Editor, type CustomVideoPicker } from 'commspliant-html-editor'
+
+const library: CustomVideoPicker = {
+  text: 'Library',
+  description: 'Choose from your video library.',
+  buttonCaption: 'Open library',
+  onPick: (insertVideo) => {
+    openHostLibrary().then((picked) => {
+      insertVideo({
+        src: picked.url,
+        title: picked.title,
+        css: 'max-width: 100%',
+      })
+    })
+  },
+}
+
+<Editor customVideoPicker={library} />
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `text` | `string` | Third source / navigation button label |
+| `description` | `string` | Shown on the custom source panel |
+| `buttonCaption` | `string` | Caption of the button that starts the host picker |
+| `onPick` | `(insertVideo) => void` | Called when that button is clicked. Call `insertVideo` when the host picker finishes |
+
+Omit `customVideoPicker` to keep URL only. Set `disableBuiltinVideoInsert` to skip the dialog: Insert → YouTube video calls `onPick` immediately.
+
+```tsx
+<Editor customVideoPicker={library} disableBuiltinVideoInsert />
+```
+
+The built-in dialog accepts YouTube watch, embed, shorts, and `youtu.be` URLs and inserts an `<iframe>` embed with inline sizing. From the host picker, a YouTube URL inserts the same iframe; other `http(s)` video URLs insert a `<video controls>` element. Both use inline styles in the serialized HTML.
 
 ### Customize toolbar
 

@@ -2255,6 +2255,91 @@ describe('Editor context menu', () => {
     expect(visual.querySelector('hr')).not.toBeNull()
   })
 
+  it('inserts audio from the Insert menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    selectVisualText(visual, 5, 5)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Audio' }))
+    const dialog = screen.getByRole('dialog', { name: 'Insert audio' })
+    await user.click(within(dialog).getByRole('radio', { name: 'Audio URL' }))
+    await user.type(within(dialog).getByLabelText('Audio URL'), 'https://example.com/track.mp3')
+    await user.click(within(dialog).getByRole('button', { name: 'OK' }))
+
+    const audio = visual.querySelector('audio')
+    expect(audio).not.toBeNull()
+    expect(audio?.getAttribute('src')).toBe('https://example.com/track.mp3')
+  })
+
+  it('inserts a YouTube video from the Insert menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    selectVisualText(visual, 5, 5)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'YouTube video' }))
+    const dialog = screen.getByRole('dialog', { name: 'Insert YouTube video' })
+    await user.type(
+      within(dialog).getByLabelText('YouTube URL'),
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    )
+    await user.click(within(dialog).getByRole('button', { name: 'OK' }))
+
+    const iframe = visual.querySelector('iframe')
+    expect(iframe).not.toBeNull()
+    expect(iframe?.getAttribute('src')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ')
+  })
+
+  it('shows a third audio source when customAudioPicker is set', async () => {
+    const user = userEvent.setup()
+    const onPick = vi.fn()
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        customAudioPicker={{
+          text: 'Library',
+          description: 'Choose from the audio library',
+          buttonCaption: 'Open library',
+          onPick,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Audio' }))
+    const dialog = screen.getByRole('dialog', { name: 'Insert audio' })
+    await user.click(within(dialog).getByRole('radio', { name: 'Library' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Open library' }))
+
+    expect(onPick).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips the audio dialog when builtin insert is disabled', async () => {
+    const user = userEvent.setup()
+    const onPick = vi.fn()
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        disableBuiltinAudioInsert
+        customAudioPicker={{
+          text: 'Library',
+          description: 'Choose from the audio library',
+          buttonCaption: 'Open library',
+          onPick,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Audio' }))
+
+    expect(onPick).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog', { name: 'Insert audio' })).not.toBeInTheDocument()
+  })
+
   it('enables table properties from the context menu inside a table', async () => {
     const user = userEvent.setup()
     render(
