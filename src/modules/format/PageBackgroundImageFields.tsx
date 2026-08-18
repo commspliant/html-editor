@@ -1,7 +1,14 @@
-import type { PageBackgroundImageApply } from '../../core/pageBackgroundImage'
+import type { ImageObjectFit } from '../../core/imageProperties'
+import {
+  DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH,
+  isKeywordPageBackgroundFit,
+  type PageBackgroundImageApply,
+} from '../../core/pageBackgroundImage'
+import type { ImageSizeLength } from '../../core/imageSize'
 import { useT } from '../../i18n/LocaleProvider'
 import type { CustomImagePicker } from '../../types'
 import { ImageAdvancedFields } from '../insert/ImageAdvancedFields'
+import { ImageSizeField } from '../insert/ImageSizeField'
 import { ImageSourcePicker } from '../insert/ImageSourcePicker'
 import styles from './FontPropertiesDialog.module.css'
 
@@ -13,6 +20,20 @@ export type PageBackgroundImageFieldsProps = {
   onChange: (next: PageBackgroundImageApply) => void
 }
 
+function sizeFromFit(fit: ImageObjectFit | null): Pick<PageBackgroundImageApply, 'width' | 'height'> {
+  if (isKeywordPageBackgroundFit(fit)) return { width: null, height: null }
+  if (fit === 'fill') {
+    return {
+      width: { ...DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH },
+      height: { ...DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH },
+    }
+  }
+  return {
+    width: { ...DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH },
+    height: null,
+  }
+}
+
 export function PageBackgroundImageFields({
   value,
   disabled,
@@ -22,6 +43,14 @@ export function PageBackgroundImageFields({
 }: PageBackgroundImageFieldsProps) {
   const t = useT()
   const src = value.src ?? ''
+
+  const changeSize = (side: 'width' | 'height', next: ImageSizeLength | null) => {
+    onChange({
+      ...value,
+      fit: null,
+      [side]: next,
+    })
+  }
 
   return (
     <>
@@ -55,23 +84,44 @@ export function PageBackgroundImageFields({
         }}
       />
       {src ? (
-        <ImageAdvancedFields
-          legendKey="pageDialogTabBackgroundImage"
-          value={{
-            opacity: value.opacity,
-            fit: value.fit,
-            position: value.position,
-          }}
-          disabled={disabled}
-          onChange={(next) => {
-            onChange({
-              ...value,
-              opacity: next.opacity,
-              fit: next.fit,
-              position: next.position,
-            })
-          }}
-        />
+        <>
+          <ImageSizeField
+            label={t('imagePropertiesWidth')}
+            inputAria={t('imagePropertiesWidthAria')}
+            value={value.width}
+            disabled={disabled}
+            onChange={(width) => changeSize('width', width)}
+          />
+          <ImageSizeField
+            label={t('imagePropertiesHeight')}
+            inputAria={t('imagePropertiesHeightAria')}
+            value={value.height}
+            disabled={disabled}
+            onChange={(height) => changeSize('height', height)}
+          />
+          <ImageAdvancedFields
+            legendKey="pageDialogTabBackgroundImage"
+            value={{
+              opacity: value.opacity,
+              fit: value.fit,
+              position: value.position,
+            }}
+            disabled={disabled}
+            onChange={(next) => {
+              const size =
+                next.fit === value.fit
+                  ? { width: value.width, height: value.height }
+                  : sizeFromFit(next.fit)
+              onChange({
+                ...value,
+                opacity: next.opacity,
+                fit: next.fit,
+                position: next.position,
+                ...size,
+              })
+            }}
+          />
+        </>
       ) : null}
     </>
   )

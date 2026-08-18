@@ -1,16 +1,37 @@
 export const PAGE_SHELL_ATTR = 'data-page'
 export const PAGE_BG_LAYER_ATTR = 'data-page-bg'
+export const PAGE_BG_LAYER_ID = 'commspliant-background'
 
 export function isPageBackgroundLayer(el: Element): boolean {
-  return el instanceof HTMLElement && el.hasAttribute(PAGE_BG_LAYER_ATTR)
+  return (
+    el instanceof HTMLElement &&
+    (el.id === PAGE_BG_LAYER_ID || el.hasAttribute(PAGE_BG_LAYER_ATTR))
+  )
 }
 
-export function queryPageBackgroundLayer(shell: HTMLElement): HTMLElement | null {
-  return (
-    [...shell.children].find(
-      (el): el is HTMLElement => el instanceof HTMLElement && isPageBackgroundLayer(el),
-    ) ?? null
-  )
+function backgroundSearchRoot(from: HTMLElement): HTMLElement {
+  if (from.hasAttribute(PAGE_SHELL_ATTR) && from.parentElement) return from.parentElement
+  return from
+}
+
+export function queryPageBackgroundLayers(from: HTMLElement): HTMLElement[] {
+  const root = backgroundSearchRoot(from)
+  const seen = new Set<HTMLElement>()
+  const layers: HTMLElement[] = []
+  const consider = (el: Element | null) => {
+    if (el instanceof HTMLElement && isPageBackgroundLayer(el) && !seen.has(el)) {
+      seen.add(el)
+      layers.push(el)
+    }
+  }
+  consider(root.querySelector(`#${PAGE_BG_LAYER_ID}`))
+  for (const el of root.querySelectorAll(`[${PAGE_BG_LAYER_ATTR}]`)) consider(el)
+  consider(root)
+  return layers
+}
+
+export function queryPageBackgroundLayer(from: HTMLElement): HTMLElement | null {
+  return queryPageBackgroundLayers(from)[0] ?? null
 }
 
 export function ensurePageShellLayout(shell: HTMLElement): boolean {
@@ -56,6 +77,7 @@ function adoptableDiv(visualRoot: HTMLElement): HTMLElement | null {
   if (elements.length !== 1) return null
   const only = elements[0]
   if (only.tagName.toLowerCase() !== 'div') return null
+  if (isPageBackgroundLayer(only)) return null
   return only
 }
 

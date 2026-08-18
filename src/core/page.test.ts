@@ -110,6 +110,30 @@ describe('ensurePageShell', () => {
     expect(ensurePageShell(el)).toBe(existing)
     expect(el.children).toHaveLength(1)
   })
+
+  it('does not adopt a lone data-page-bg div as the page shell', () => {
+    const el = mountVisual('<div data-page-bg></div>')
+    const leftover = el.firstElementChild as HTMLElement
+    const shell = ensurePageShell(el)
+
+    expect(shell).not.toBe(leftover)
+    expect(shell.hasAttribute(PAGE_SHELL_ATTR)).toBe(true)
+    expect(leftover.hasAttribute(PAGE_SHELL_ATTR)).toBe(false)
+    expect(el.children).toHaveLength(1)
+    expect(el.firstElementChild).toBe(shell)
+    expect(shell.firstElementChild).toBe(leftover)
+  })
+
+  it('does not adopt a lone commspliant-background div as the page shell', () => {
+    const el = mountVisual('<div id="commspliant-background"></div>')
+    const leftover = el.firstElementChild as HTMLElement
+    const shell = ensurePageShell(el)
+
+    expect(shell).not.toBe(leftover)
+    expect(shell.hasAttribute(PAGE_SHELL_ATTR)).toBe(true)
+    expect(el.firstElementChild).toBe(shell)
+    expect(shell.firstElementChild).toBe(leftover)
+  })
 })
 
 describe('applyPagePropertiesInDocument', () => {
@@ -320,7 +344,7 @@ describe('syncPageHolderBackground', () => {
 
   it('mirrors page background image layer styles onto the holder', () => {
     const el = mountVisual(
-      '<div data-page style="width:100%;height:100%;position:relative"><div data-page-bg style="position:absolute;inset:0;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.7"></div><p>Hello</p></div>',
+      '<div data-page style="width:100%;height:100%;position:relative;isolation:isolate"><div id="commspliant-background" data-page-bg style="position:absolute;inset:0;z-index:-1;pointer-events:none;user-select:none;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.7"></div><p>Hello</p></div>',
     )
     syncPageHolderBackground(el)
     expect(el.style.backgroundImage).toContain('example.com/bg.png')
