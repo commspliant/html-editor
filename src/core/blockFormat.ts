@@ -8,7 +8,7 @@ import {
   tagName,
   textOffsetFromRoot,
 } from './blocks'
-import { contentRoot, isPageShell } from './page'
+import { contentRoot, isPageBackgroundLayer, isPageShell } from './page'
 
 export const PARAGRAPH_STYLE_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const
 
@@ -52,7 +52,11 @@ function isSkipElement(node: Node): boolean {
 }
 
 function isConvertibleElement(node: Node): node is HTMLElement {
-  return node instanceof HTMLElement && CONVERTIBLE_TAGS.has(tagName(node))
+  return (
+    node instanceof HTMLElement &&
+    !isPageBackgroundLayer(node) &&
+    CONVERTIBLE_TAGS.has(tagName(node))
+  )
 }
 
 function isPhrasingNode(node: Node): boolean {
@@ -118,19 +122,30 @@ function phrasingRunAround(root: HTMLElement, child: Node): Node[] {
   return siblings.slice(start, end + 1)
 }
 
+function firstContentChild(wrapRoot: HTMLElement): Node | null {
+  for (const child of wrapRoot.childNodes) {
+    if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
+    return child
+  }
+  return null
+}
+
 function caretChildInWrapRoot(
   wrapRoot: HTMLElement,
   visualRoot: HTMLElement,
   range: Range,
 ): Node | null {
   if (range.startContainer === wrapRoot) {
-    return (
+    const node =
       wrapRoot.childNodes[Math.min(range.startOffset, Math.max(0, wrapRoot.childNodes.length - 1))] ??
       wrapRoot.firstChild
-    )
+    if (node instanceof HTMLElement && isPageBackgroundLayer(node)) {
+      return firstContentChild(wrapRoot)
+    }
+    return node
   }
   if (range.startContainer === visualRoot && wrapRoot !== visualRoot) {
-    return wrapRoot.firstChild
+    return firstContentChild(wrapRoot)
   }
   return childOfRoot(wrapRoot, range.startContainer)
 }
@@ -139,7 +154,7 @@ function wrapLooseContent(root: HTMLElement, range: Range, tag: ParagraphStyleTa
   const wrapRoot = contentRoot(root)
   if (isInsideSkip(root, range.startContainer)) return false
 
-  if (!wrapRoot.firstChild) {
+  if (!firstContentChild(wrapRoot)) {
     const el = document.createElement(tag)
     el.appendChild(document.createElement('br'))
     wrapRoot.appendChild(el)
@@ -148,7 +163,12 @@ function wrapLooseContent(root: HTMLElement, range: Range, tag: ParagraphStyleTa
 
   const caretChild = caretChildInWrapRoot(wrapRoot, root, range)
 
-  if (!caretChild || isSkipElement(caretChild) || isConvertibleElement(caretChild)) {
+  if (
+    !caretChild ||
+    (caretChild instanceof HTMLElement && isPageBackgroundLayer(caretChild)) ||
+    isSkipElement(caretChild) ||
+    isConvertibleElement(caretChild)
+  ) {
     return false
   }
   if (!isPhrasingNode(caretChild)) return false

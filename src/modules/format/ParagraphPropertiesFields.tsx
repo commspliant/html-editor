@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import type { ParagraphDialogTab, ParagraphPropertiesApply } from '../../core/commandTypes'
+import type { PageBackgroundImageApply } from '../../core/pageBackgroundImage'
 import { DEFAULT_LENGTH_UNIT, parseCssLengthInput } from '../../core/cssLength'
 import { formatFontSizeNumber, type FontSizeUnit } from '../../core/fontSizeUnits'
 import {
@@ -30,7 +31,10 @@ import { ColorField } from './ColorField'
 import { LengthField } from './LengthField'
 import { ShadowFields } from './ShadowFields'
 import { PARAGRAPH_DIALOG_TABS } from './paragraphDialog'
+import { PAGE_DIALOG_TABS } from './pageDialog'
+import { PageBackgroundImageFields } from './PageBackgroundImageFields'
 import styles from './FontPropertiesDialog.module.css'
+import type { CustomImagePicker } from '../../types'
 
 const ALIGN_ICONS: Record<TextAlign, typeof AlignLeftIcon> = {
   left: AlignLeftIcon,
@@ -90,6 +94,10 @@ export type ParagraphPropertiesFieldsProps = {
   disabled?: boolean
   tabs?: ParagraphDialogTab[]
   tablistLabelKey?: MessageKey
+  backgroundImage?: PageBackgroundImageApply
+  customImagePicker?: CustomImagePicker
+  onCustomImagePick?: () => void
+  onBackgroundImageChange?: (next: PageBackgroundImageApply) => void
   onTabChange: (tab: ParagraphDialogTab) => void
   onChange: (next: ParagraphPropertiesApply) => void
 }
@@ -105,18 +113,30 @@ function firstDefinedSide(sides: BoxSides): CssLength | null {
   return null
 }
 
+function mergedDialogTabs() {
+  const merged = [...PARAGRAPH_DIALOG_TABS]
+  for (const item of PAGE_DIALOG_TABS) {
+    if (!merged.some((entry) => entry.id === item.id)) merged.push(item)
+  }
+  return merged
+}
+
 export function ParagraphPropertiesFields({
   tab,
   value,
   disabled,
   tabs,
   tablistLabelKey = 'paragraphDialogTitle',
+  backgroundImage,
+  customImagePicker,
+  onCustomImagePick,
+  onBackgroundImageChange,
   onTabChange,
   onChange,
 }: ParagraphPropertiesFieldsProps) {
   const t = useT()
   const visibleTabs = tabs
-    ? PARAGRAPH_DIALOG_TABS.filter((item) => tabs.includes(item.id))
+    ? mergedDialogTabs().filter((item) => tabs.includes(item.id))
     : PARAGRAPH_DIALOG_TABS
   const borderStyleId = useId()
   const [marginLinked, setMarginLinked] = useState(() =>
@@ -383,6 +403,15 @@ export function ParagraphPropertiesFields({
               }}
             />
           </fieldset>
+        ) : null}
+        {tab === 'backgroundImage' && backgroundImage && onBackgroundImageChange ? (
+          <PageBackgroundImageFields
+            value={backgroundImage}
+            disabled={disabled}
+            customImagePicker={customImagePicker}
+            onCustomImagePick={onCustomImagePick}
+            onChange={onBackgroundImageChange}
+          />
         ) : null}
       </div>
     </>

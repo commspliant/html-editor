@@ -103,6 +103,31 @@ import { Editor } from 'commspliant-html-editor'
 // Format → Font → Custom CSS, or the Custom CSS toolbar button
 ```
 
+### Page properties
+
+Format → Page → **Page properties** opens a dialog with **Font** and **Paragraph** tabs. Paragraph sub-tabs include **Spacing**, **Border**, **Background** (fill color and page opacity), and **Background Image**.
+
+The first time page properties are applied, content is wrapped in a single `<div data-page>` shell with `width: 100%` and `height: 100%`. Background **color** is written on that shell. Background **image** uses the same file, URL, or custom picker as Insert → Image, plus opacity, fit, and position controls (the same options as Image properties → Advanced). Rotation is not supported for page backgrounds.
+
+When a background image is set, a managed first child `<div data-page-bg contenteditable="false">` holds the image layer so image opacity does not fade page text:
+
+```html
+<div data-page style="width:100%;height:100%;position:relative;background-color:#fff">
+  <div data-page-bg contenteditable="false"
+       style="position:absolute;inset:0;z-index:0;pointer-events:none;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.9"></div>
+  <p>Hello</p>
+</div>
+```
+
+The visual editor holder mirrors the shell fill and background image for display only; serialized `value` HTML is unchanged by that paint step.
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor />
+// Format → Page → Page properties → Paragraph → Background Image
+```
+
 ### Editor chrome
 
 Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host. View → Toolbar → Position docks the icon toolbar; the menu bar stays at the top. Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column.
@@ -470,6 +495,8 @@ Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInse
 ```
 
 `insertImage` uses the same insert path as File and URL: an `<img>` with inline `max-width: 100%; height: auto`, then any host `css`. `src` must be `http(s)`, a relative path, or a raster `data:` URL.
+
+`onPick` from Page properties (Format → Page properties → Background Image) leaves the editor dialog open so the picked URL can fill the draft. If your picker is a modal overlay, give it a `z-index` above editor dialogs (`1200`).
 
 ### Custom audio picker
 

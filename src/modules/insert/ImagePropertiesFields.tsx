@@ -1,11 +1,9 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { ImageDialogTab, ImagePropertiesApply } from '../../core/commandTypes'
 import {
   BORDER_STYLES,
   BOX_SIDES,
   boxSidesEqual,
-  opacityToPercent,
-  percentToOpacity,
   type BorderStyle,
   type BoxSide,
   type BoxSides,
@@ -13,11 +11,8 @@ import {
   type ParagraphShadow,
 } from '../../core/paragraphBox'
 import {
-  IMAGE_OBJECT_FITS,
-  IMAGE_OBJECT_POSITIONS,
   ensureSizeForObjectFit,
   type ImageAlign,
-  type ImageObjectFit,
   type ImageSizeMode,
 } from '../../core/imageProperties'
 import { scaleLockedSize, type ImageSizeLength } from '../../core/imageSize'
@@ -30,6 +25,7 @@ import { LengthField } from '../format/LengthField'
 import { ShadowFields } from '../format/ShadowFields'
 import styles from '../format/FontPropertiesDialog.module.css'
 import { ImageSizeField } from './ImageSizeField'
+import { ImageAdvancedFields } from './ImageAdvancedFields'
 import { IMAGE_PROPERTIES_TABS } from './imagePropertiesDialog'
 
 const ALIGN_ICONS: Record<ImageAlign, typeof AlignLeftIcon> = {
@@ -73,26 +69,6 @@ const BORDER_STYLE_KEYS: Record<BorderStyle, MessageKey> = {
   outset: 'paragraphDialogBorderStyleOutset',
 }
 
-const FIT_KEYS: Record<ImageObjectFit, MessageKey> = {
-  fill: 'imagePropertiesFitFill',
-  contain: 'imagePropertiesFitContain',
-  cover: 'imagePropertiesFitCover',
-  none: 'imagePropertiesFitNoneValue',
-  'scale-down': 'imagePropertiesFitScaleDown',
-}
-
-const POSITION_KEYS: Record<(typeof IMAGE_OBJECT_POSITIONS)[number], MessageKey> = {
-  center: 'imagePropertiesPositionCenter',
-  top: 'imagePropertiesPositionTop',
-  bottom: 'imagePropertiesPositionBottom',
-  left: 'imagePropertiesPositionLeft',
-  right: 'imagePropertiesPositionRight',
-  'top left': 'imagePropertiesPositionTopLeft',
-  'top right': 'imagePropertiesPositionTopRight',
-  'bottom left': 'imagePropertiesPositionBottomLeft',
-  'bottom right': 'imagePropertiesPositionBottomRight',
-}
-
 const DEFAULT_BORDER_WIDTH: CssLength = { value: 1, unit: 'pt' }
 
 const DEFAULT_SHADOW: ParagraphShadow = {
@@ -134,8 +110,6 @@ export function ImagePropertiesFields({
 }: ImagePropertiesFieldsProps) {
   const t = useT()
   const borderStyleId = useId()
-  const fitId = useId()
-  const positionId = useId()
   const rotateId = useId()
   const hoverId = useId()
   const [marginLinked, setMarginLinked] = useState(() =>
@@ -375,90 +349,57 @@ export function ImagePropertiesFields({
           </>
         ) : null}
         {tab === 'advanced' ? (
-          <fieldset className={styles.group}>
-            <legend className={styles.label}>{t('imagePropertiesTabAdvanced')}</legend>
-            <OpacityField
-              value={value.opacity}
+          <>
+            <ImageAdvancedFields
+              value={{
+                opacity: value.opacity,
+                fit: value.objectFit,
+                position: value.objectPosition,
+              }}
               disabled={disabled}
-              onChange={(opacity) => {
-                onChange({ ...value, opacity })
+              onChange={(next) => {
+                onChange(
+                  ensureSizeForObjectFit(
+                    {
+                      ...value,
+                      opacity: next.opacity,
+                      objectFit: next.fit,
+                      objectPosition: next.position,
+                    },
+                    aspectRatio,
+                  ),
+                )
               }}
             />
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor={fitId}>
-                {t('imagePropertiesFit')}
-              </label>
-              <select
-                id={fitId}
-                className={styles.select}
-                value={value.objectFit ?? ''}
-                disabled={disabled}
-                onChange={(event) => {
-                  const raw = event.target.value
-                  const objectFit = raw ? (raw as ImageObjectFit) : null
-                  onChange(
-                    ensureSizeForObjectFit({ ...value, objectFit }, aspectRatio),
-                  )
-                }}
-              >
-                <option value="">{t('imagePropertiesFitDefault')}</option>
-                {IMAGE_OBJECT_FITS.map((item) => (
-                  <option key={item} value={item}>
-                    {t(FIT_KEYS[item])}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor={positionId}>
-                {t('imagePropertiesPosition')}
-              </label>
-              <select
-                id={positionId}
-                className={styles.select}
-                value={value.objectPosition ?? ''}
-                disabled={disabled}
-                onChange={(event) => {
-                  const objectPosition = event.target.value || null
-                  onChange({ ...value, objectPosition })
-                }}
-              >
-                <option value="">{t('imagePropertiesPositionDefault')}</option>
-                {IMAGE_OBJECT_POSITIONS.map((item) => (
-                  <option key={item} value={item}>
-                    {t(POSITION_KEYS[item])}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor={rotateId}>
-                {t('imagePropertiesRotation')}
-              </label>
-              <div className={styles.lengthRow}>
-                <input
-                  id={rotateId}
-                  className={styles.lengthInput}
-                  value={value.rotateDeg === null ? '' : formatFontSizeNumber(value.rotateDeg)}
-                  disabled={disabled}
-                  inputMode="decimal"
-                  onChange={(event) => {
-                    const raw = event.target.value.trim()
-                    if (!raw) {
-                      onChange({ ...value, rotateDeg: null })
-                      return
-                    }
-                    const parsed = Number(raw.replace(',', '.'))
-                    if (!Number.isFinite(parsed)) return
-                    onChange({ ...value, rotateDeg: parsed })
-                  }}
-                />
-                <span className={styles.lengthUnit} aria-hidden="true">
-                  {t('imagePropertiesRotationUnit')}
-                </span>
+            <fieldset className={styles.group}>
+              <legend className={styles.label}>{t('imagePropertiesRotation')}</legend>
+              <div className={styles.field}>
+                <div className={styles.lengthRow}>
+                  <input
+                    id={rotateId}
+                    className={styles.lengthInput}
+                    value={value.rotateDeg === null ? '' : formatFontSizeNumber(value.rotateDeg)}
+                    disabled={disabled}
+                    inputMode="decimal"
+                    aria-label={t('imagePropertiesRotation')}
+                    onChange={(event) => {
+                      const raw = event.target.value.trim()
+                      if (!raw) {
+                        onChange({ ...value, rotateDeg: null })
+                        return
+                      }
+                      const parsed = Number(raw.replace(',', '.'))
+                      if (!Number.isFinite(parsed)) return
+                      onChange({ ...value, rotateDeg: parsed })
+                    }}
+                  />
+                  <span className={styles.lengthUnit} aria-hidden="true">
+                    {t('imagePropertiesRotationUnit')}
+                  </span>
+                </div>
               </div>
-            </div>
-          </fieldset>
+            </fieldset>
+          </>
         ) : null}
         {tab === 'hover' ? (
           <fieldset className={styles.group}>
@@ -484,72 +425,5 @@ export function ImagePropertiesFields({
         ) : null}
       </div>
     </>
-  )
-}
-
-function OpacityField({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: number | null
-  disabled?: boolean
-  onChange: (next: number | null) => void
-}) {
-  const t = useT()
-  const id = useId()
-  const percent = value === null ? null : opacityToPercent(value)
-  const [draft, setDraft] = useState(() =>
-    percent === null ? '' : formatFontSizeNumber(percent),
-  )
-  const [focused, setFocused] = useState(false)
-
-  useEffect(() => {
-    if (!focused) {
-      setDraft(percent === null ? '' : formatFontSizeNumber(percent))
-    }
-  }, [percent, focused])
-
-  const commit = (raw: string) => {
-    const trimmed = raw.trim()
-    if (!trimmed) {
-      onChange(null)
-      setDraft('')
-      return
-    }
-    const parsed = Number(trimmed.replace(',', '.'))
-    if (!Number.isFinite(parsed)) {
-      setDraft(percent === null ? '' : formatFontSizeNumber(percent))
-      return
-    }
-    const next = percentToOpacity(parsed)
-    onChange(next)
-    setDraft(formatFontSizeNumber(opacityToPercent(next)))
-  }
-
-  return (
-    <div className={styles.field}>
-      <label className={styles.label} htmlFor={id}>
-        {t('paragraphDialogOpacity')}
-      </label>
-      <div className={styles.lengthRow}>
-        <input
-          id={id}
-          className={styles.lengthInput}
-          value={draft}
-          disabled={disabled}
-          inputMode="decimal"
-          onFocus={() => setFocused(true)}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={() => {
-            setFocused(false)
-            commit(draft)
-          }}
-        />
-        <span className={styles.lengthUnit} aria-hidden="true">
-          {t('fontSizeUnitPercent')}
-        </span>
-      </div>
-    </div>
   )
 }

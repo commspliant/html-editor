@@ -66,6 +66,37 @@ describe('PagePropertiesDialog', () => {
     expect(screen.queryByRole('tab', { name: 'General' })).not.toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Border' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Background' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Background Image' })).toBeInTheDocument()
+  })
+
+  it('applies a background image from the Background Image tab', async () => {
+    const user = userEvent.setup()
+    const onApply = vi.fn()
+    render(
+      <LocaleProvider>
+        <PagePropertiesDialog
+          open
+          tab="paragraph"
+          value={emptyPagePropertiesApply()}
+          onTabChange={() => undefined}
+          onApply={onApply}
+          onClose={() => undefined}
+        />
+      </LocaleProvider>,
+    )
+
+    await user.click(screen.getByRole('tab', { name: 'Background Image' }))
+    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
+    await user.type(screen.getByLabelText('Image URL'), 'https://example.com/bg.png')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    expect(onApply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backgroundImage: expect.objectContaining({
+          src: 'https://example.com/bg.png',
+        }),
+      }),
+    )
   })
 
   it('picks a background color and opacity on the Background tab', async () => {

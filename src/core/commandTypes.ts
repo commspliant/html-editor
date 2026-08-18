@@ -15,12 +15,11 @@ import type { InlineColorQuery } from './inlineColor'
 import type { ListType } from './lists'
 import type { FontMark, FontMarkState } from './marks'
 import type { ParagraphPropertiesApply } from './paragraphProperties'
-import type { ParagraphBoxApply } from './paragraphBox'
-import type { TextAlign } from './textAlign'
+import type { PageBackgroundImageApply } from './pageBackgroundImage'
 
 export type FontDialogTab = 'general'
 
-export type ParagraphDialogTab = 'general' | 'spacing' | 'border' | 'background'
+export type ParagraphDialogTab = 'general' | 'spacing' | 'border' | 'background' | 'backgroundImage'
 
 export type PageDialogTab = 'font' | 'paragraph'
 
@@ -53,6 +52,7 @@ export type FontPropertiesApply = {
 export type PagePropertiesApply = {
   font: FontPropertiesApply
   box: ParagraphBoxApply
+  backgroundImage: PageBackgroundImageApply
 }
 
 export type CommandName =

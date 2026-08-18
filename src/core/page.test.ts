@@ -56,7 +56,11 @@ function selectOffsets(el: HTMLElement, start: number, end: number) {
 
 function apply(overrides: Partial<ParagraphBoxApply> = {}): PagePropertiesApply {
   const empty = emptyPagePropertiesApply()
-  return { font: empty.font, box: { ...empty.box, ...overrides } }
+  return {
+    font: empty.font,
+    box: { ...empty.box, ...overrides },
+    backgroundImage: empty.backgroundImage,
+  }
 }
 
 function applyFont(
@@ -67,6 +71,7 @@ function applyFont(
   return {
     font: { ...empty.font, ...font },
     box: { ...empty.box, ...box },
+    backgroundImage: empty.backgroundImage,
   }
 }
 
@@ -81,6 +86,8 @@ describe('ensurePageShell', () => {
     const shell = ensurePageShell(el)
 
     expect(shell.hasAttribute(PAGE_SHELL_ATTR)).toBe(true)
+    expect(shell.style.width).toBe('100%')
+    expect(shell.style.height).toBe('100%')
     expect(el.children).toHaveLength(1)
     expect(el.firstElementChild).toBe(shell)
     expect(shell.innerHTML).toBe('<p>Hello</p><p>World</p>')
@@ -169,7 +176,7 @@ describe('applyPagePropertiesInDocument', () => {
 
     const shell = queryPageShell(el)
     expect(shell).not.toBeNull()
-    expect(shell?.getAttribute('style')).toBeNull()
+    expect(shell?.getAttribute('style')).toBe('width: 100%; height: 100%;')
     expect(el.style.backgroundColor).toBe('')
     expect(el.querySelector('p')?.textContent).toBe('Hello')
   })
@@ -309,5 +316,16 @@ describe('syncPageHolderBackground', () => {
     el.style.backgroundColor = 'rgb(204, 255, 255)'
     syncPageHolderBackground(el)
     expect(el.style.backgroundColor).toBe('')
+  })
+
+  it('mirrors page background image layer styles onto the holder', () => {
+    const el = mountVisual(
+      '<div data-page style="width:100%;height:100%;position:relative"><div data-page-bg style="position:absolute;inset:0;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.7"></div><p>Hello</p></div>',
+    )
+    syncPageHolderBackground(el)
+    expect(el.style.backgroundImage).toContain('example.com/bg.png')
+    expect(el.style.backgroundSize).toBe('cover')
+    expect(el.style.backgroundPosition).toBe('center')
+    expect(el.style.opacity).toBe('0.7')
   })
 })
