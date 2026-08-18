@@ -4,10 +4,14 @@ import {
   type AllowedChrome,
   type CustomAction,
   type CustomActionApi,
+  type CustomAudioInsert,
+  type CustomAudioPicker,
   type CustomFont,
   type CustomImageInsert,
   type CustomImagePicker,
   type CustomParagraphStyle,
+  type CustomVideoInsert,
+  type CustomVideoPicker,
   type EditorBorder,
   type Locale,
   type ToolbarCustomization,
@@ -25,6 +29,8 @@ type PageView = 'playground' | 'documentation'
 type MenuAppearance = 'default' | 'example'
 type BorderAppearance = 'default' | 'none' | 'rounded'
 type ImagePickerMode = 'default' | 'custom' | 'direct'
+type AudioPickerMode = 'default' | 'custom' | 'direct'
+type VideoPickerMode = 'default' | 'custom' | 'direct'
 type ToolbarPersistMode = 'browser' | 'api'
 type DarkModePersistMode = 'browser' | 'api'
 type ToolbarPositionPersistMode = 'browser' | 'api'
@@ -62,6 +68,34 @@ const FORMAT_CHROME: AllowedChrome = {
 const PLAYGROUND_GALLERY: { src: string; altKey: 'imageGalleryMountain' | 'imageGalleryLake' }[] = [
   { src: 'https://picsum.photos/id/1015/400/300', altKey: 'imageGalleryMountain' },
   { src: 'https://picsum.photos/id/1016/400/300', altKey: 'imageGalleryLake' },
+]
+
+const PLAYGROUND_AUDIO_GALLERY: {
+  src: string
+  titleKey: 'audioGalleryIntro' | 'audioGalleryOutro'
+}[] = [
+  {
+    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    titleKey: 'audioGalleryIntro',
+  },
+  {
+    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+    titleKey: 'audioGalleryOutro',
+  },
+]
+
+const PLAYGROUND_VIDEO_GALLERY: {
+  src: string
+  titleKey: 'videoGalleryYoutube' | 'videoGalleryHosted'
+}[] = [
+  {
+    src: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    titleKey: 'videoGalleryYoutube',
+  },
+  {
+    src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    titleKey: 'videoGalleryHosted',
+  },
 ]
 
 const PLAYGROUND_STYLE_DELAY_MS = 800
@@ -213,6 +247,8 @@ export function App() {
   const [borderAppearance, setBorderAppearance] = useState<BorderAppearance>('default')
   const [googleFonts, setGoogleFonts] = useState(false)
   const [imagePickerMode, setImagePickerMode] = useState<ImagePickerMode>('default')
+  const [audioPickerMode, setAudioPickerMode] = useState<AudioPickerMode>('default')
+  const [videoPickerMode, setVideoPickerMode] = useState<VideoPickerMode>('default')
   const [toolbarPersistMode, setToolbarPersistMode] = useState<ToolbarPersistMode>('browser')
   const [darkModePersistMode, setDarkModePersistMode] = useState<DarkModePersistMode>('browser')
   const [initialDarkMode, setInitialDarkMode] = useState(false)
@@ -220,6 +256,8 @@ export function App() {
     useState<ToolbarPositionPersistMode>('browser')
   const [initialToolbarPosition, setInitialToolbarPosition] = useState<ToolbarPosition>('top')
   const [imageInsert, setImageInsert] = useState<((image: CustomImageInsert) => void) | null>(null)
+  const [audioInsert, setAudioInsert] = useState<((audio: CustomAudioInsert) => void) | null>(null)
+  const [videoInsert, setVideoInsert] = useState<((video: CustomVideoInsert) => void) | null>(null)
   const [aiApi, setAiApi] = useState<CustomActionApi | null>(null)
   const [aiHtml, setAiHtml] = useState('')
   const [aiFormatted, setAiFormatted] = useState('')
@@ -312,6 +350,30 @@ export function App() {
       },
     }
   }, [imagePickerMode, t])
+
+  const customAudioPicker = useMemo<CustomAudioPicker | undefined>(() => {
+    if (audioPickerMode === 'default') return undefined
+    return {
+      text: t.audioPickerTab,
+      description: t.audioPickerDescription,
+      buttonCaption: t.audioPickerButton,
+      onPick: (insertAudio) => {
+        setAudioInsert(() => insertAudio)
+      },
+    }
+  }, [audioPickerMode, t])
+
+  const customVideoPicker = useMemo<CustomVideoPicker | undefined>(() => {
+    if (videoPickerMode === 'default') return undefined
+    return {
+      text: t.videoPickerTab,
+      description: t.videoPickerDescription,
+      buttonCaption: t.videoPickerButton,
+      onPick: (insertVideo) => {
+        setVideoInsert(() => insertVideo)
+      },
+    }
+  }, [videoPickerMode, t])
 
   const toolbarCustomization = useMemo<ToolbarCustomizationPersistence | undefined>(() => {
     if (toolbarPersistMode !== 'api') return undefined
@@ -727,6 +789,72 @@ export function App() {
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
+                    label={t.appearanceAudioAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('audio')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.appearanceAudioAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={audioPickerMode === 'default'}
+                      onClick={() => setAudioPickerMode('default')}
+                    >
+                      {t.audioPickerDefault}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={audioPickerMode === 'custom'}
+                      onClick={() => setAudioPickerMode('custom')}
+                    >
+                      {t.audioPickerCustom}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={audioPickerMode === 'direct'}
+                      onClick={() => setAudioPickerMode('direct')}
+                    >
+                      {t.audioPickerDirect}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.appearanceVideoAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('youtube')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.appearanceVideoAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={videoPickerMode === 'default'}
+                      onClick={() => setVideoPickerMode('default')}
+                    >
+                      {t.videoPickerDefault}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={videoPickerMode === 'custom'}
+                      onClick={() => setVideoPickerMode('custom')}
+                    >
+                      {t.videoPickerCustom}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={videoPickerMode === 'direct'}
+                      onClick={() => setVideoPickerMode('direct')}
+                    >
+                      {t.videoPickerDirect}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
                     label={t.appearanceToolbarAria}
                     examplesLabel={t.codeExamplesLink}
                     onOpenExamples={() => setExampleBlock('toolbar')}
@@ -925,6 +1053,10 @@ export function App() {
               customFonts={googleFonts ? playgroundGoogleFonts : undefined}
               customImagePicker={customImagePicker}
               disableBuiltinImageInsert={imagePickerMode === 'direct'}
+              customAudioPicker={customAudioPicker}
+              disableBuiltinAudioInsert={audioPickerMode === 'direct'}
+              customVideoPicker={customVideoPicker}
+              disableBuiltinVideoInsert={videoPickerMode === 'direct'}
               toolbarCustomization={toolbarCustomization}
               darkMode={initialDarkMode}
               darkModePersistence={darkModePersistence}
@@ -950,6 +1082,98 @@ export function App() {
           messages={t}
           onClose={() => setExampleBlock(null)}
         />
+      ) : null}
+      {audioInsert ? (
+        <div className="ai-dialog-backdrop">
+          <div
+            className="ai-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="audio-gallery-title"
+          >
+            <h2 id="audio-gallery-title" className="ai-dialog-title">
+              {t.audioGalleryTitle}
+            </h2>
+            <div className="image-gallery">
+              {PLAYGROUND_AUDIO_GALLERY.map((item) => {
+                const title = t[item.titleKey]
+                return (
+                  <button
+                    key={item.src}
+                    type="button"
+                    className="image-gallery-item"
+                    onClick={() => {
+                      audioInsert({
+                        src: item.src,
+                        title,
+                      })
+                      setAudioInsert(null)
+                    }}
+                  >
+                    <span>{title}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="ai-dialog-actions">
+              <button
+                type="button"
+                className="ai-dialog-button"
+                onClick={() => {
+                  setAudioInsert(null)
+                }}
+              >
+                {t.audioGalleryCancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {videoInsert ? (
+        <div className="ai-dialog-backdrop">
+          <div
+            className="ai-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="video-gallery-title"
+          >
+            <h2 id="video-gallery-title" className="ai-dialog-title">
+              {t.videoGalleryTitle}
+            </h2>
+            <div className="image-gallery">
+              {PLAYGROUND_VIDEO_GALLERY.map((item) => {
+                const title = t[item.titleKey]
+                return (
+                  <button
+                    key={item.src}
+                    type="button"
+                    className="image-gallery-item"
+                    onClick={() => {
+                      videoInsert({
+                        src: item.src,
+                        title,
+                      })
+                      setVideoInsert(null)
+                    }}
+                  >
+                    <span>{title}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="ai-dialog-actions">
+              <button
+                type="button"
+                className="ai-dialog-button"
+                onClick={() => {
+                  setVideoInsert(null)
+                }}
+              >
+                {t.videoGalleryCancel}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
       {imageInsert ? (
         <div className="ai-dialog-backdrop">

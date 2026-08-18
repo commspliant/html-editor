@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -195,6 +195,54 @@ const gallery: CustomImagePicker = {
       `import { Editor } from 'commspliant-html-editor'
 
 <Editor customImagePicker={gallery} disableBuiltinImageInsert />`,
+    ],
+  },
+  audio: {
+    titleKey: 'appearanceAudioAria',
+    bodyKey: 'audioExampleBody',
+    snippets: [
+      `import { Editor, type CustomAudioPicker } from 'commspliant-html-editor'
+
+const library: CustomAudioPicker = {
+  text: 'Library',
+  description: 'Choose from your audio library.',
+  buttonCaption: 'Open library',
+  onPick: (insertAudio) => {
+    insertAudio({
+      src: '/intro.mp3',
+      title: 'Intro',
+    })
+  },
+}
+
+<Editor customAudioPicker={library} />`,
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor customAudioPicker={library} disableBuiltinAudioInsert />`,
+    ],
+  },
+  youtube: {
+    titleKey: 'appearanceVideoAria',
+    bodyKey: 'youtubeExampleBody',
+    snippets: [
+      `import { Editor, type CustomVideoPicker } from 'commspliant-html-editor'
+
+const library: CustomVideoPicker = {
+  text: 'Library',
+  description: 'Choose from your video library.',
+  buttonCaption: 'Open library',
+  onPick: (insertVideo) => {
+    insertVideo({
+      src: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      title: 'Demo',
+    })
+  },
+}
+
+<Editor customVideoPicker={library} />`,
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor customVideoPicker={library} disableBuiltinVideoInsert />`,
     ],
   },
   toolbar: {

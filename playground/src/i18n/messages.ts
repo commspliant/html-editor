@@ -96,6 +96,30 @@ export type PlaygroundMessages = {
   fontsExampleBody: string
   customParagraphStylesExampleBody: string
   imageExampleBody: string
+  audioExampleBody: string
+  youtubeExampleBody: string
+  appearanceAudioAria: string
+  audioPickerDefault: string
+  audioPickerCustom: string
+  audioPickerDirect: string
+  audioPickerTab: string
+  audioPickerDescription: string
+  audioPickerButton: string
+  audioGalleryTitle: string
+  audioGalleryCancel: string
+  audioGalleryIntro: string
+  audioGalleryOutro: string
+  appearanceVideoAria: string
+  videoPickerDefault: string
+  videoPickerCustom: string
+  videoPickerDirect: string
+  videoPickerTab: string
+  videoPickerDescription: string
+  videoPickerButton: string
+  videoGalleryTitle: string
+  videoGalleryCancel: string
+  videoGalleryYoutube: string
+  videoGalleryHosted: string
   toolbarExampleBody: string
   darkModeExampleBody: string
   toolbarPositionExampleBody: string
@@ -216,6 +240,32 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Pass loadCustomParagraphStyles and onSaveCustomParagraphStyle to persist host-defined styles under Format → Paragraph styles and the toolbar style dropdown. Custom styles and Add new stay hidden unless both callbacks are set. The Delete button is shown only when onDeleteCustomParagraphStyle is set.',
     imageExampleBody:
       'Pass customImagePicker to add a third Insert image source. Set disableBuiltinImageInsert to skip the built-in dialog and open your picker immediately.',
+    audioExampleBody:
+      'Pass customAudioPicker to add a third Insert audio source. Set disableBuiltinAudioInsert to skip the built-in dialog and open your picker immediately.',
+    youtubeExampleBody:
+      'Pass customVideoPicker to add a third Insert YouTube video source. Set disableBuiltinVideoInsert to skip the built-in dialog and open your picker immediately.',
+    appearanceAudioAria: 'Audio picker',
+    audioPickerDefault: 'Built-in insert',
+    audioPickerCustom: 'Custom picker tab',
+    audioPickerDirect: 'Custom picker only',
+    audioPickerTab: 'Library',
+    audioPickerDescription: 'Choose audio from the sample library.',
+    audioPickerButton: 'Open library',
+    audioGalleryTitle: 'Sample audio library',
+    audioGalleryCancel: 'Cancel',
+    audioGalleryIntro: 'Intro track',
+    audioGalleryOutro: 'Outro track',
+    appearanceVideoAria: 'YouTube video picker',
+    videoPickerDefault: 'Built-in insert',
+    videoPickerCustom: 'Custom picker tab',
+    videoPickerDirect: 'Custom picker only',
+    videoPickerTab: 'Library',
+    videoPickerDescription: 'Choose a video from the sample library.',
+    videoPickerButton: 'Open library',
+    videoGalleryTitle: 'Sample video library',
+    videoGalleryCancel: 'Cancel',
+    videoGalleryYoutube: 'YouTube sample',
+    videoGalleryHosted: 'Hosted MP4 sample',
     toolbarExampleBody:
       'Omit toolbarCustomization to persist layout in localStorage. Pass load and save to store it on the host, including async APIs.',
     darkModeExampleBody:
@@ -338,6 +388,32 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Pasa loadCustomParagraphStyles y onSaveCustomParagraphStyle para persistir estilos definidos por el anfitrión en Formato → Estilos de párrafo y el desplegable de estilo. Los estilos personalizados y Añadir nuevo se ocultan salvo que ambos callbacks estén definidos. El botón Eliminar solo aparece si se pasa onDeleteCustomParagraphStyle.',
     imageExampleBody:
       'Pasa customImagePicker para añadir una tercera fuente de inserción de imágenes. Con disableBuiltinImageInsert se omite el diálogo integrado y se abre tu selector de inmediato.',
+    audioExampleBody:
+      'Pasa customAudioPicker para añadir una tercera fuente de inserción de audio. Con disableBuiltinAudioInsert se omite el diálogo integrado y se abre tu selector de inmediato.',
+    youtubeExampleBody:
+      'Pasa customVideoPicker para añadir una tercera fuente de inserción de vídeo de YouTube. Con disableBuiltinVideoInsert se omite el diálogo integrado y se abre tu selector de inmediato.',
+    appearanceAudioAria: 'Selector de audio',
+    audioPickerDefault: 'Inserción integrada',
+    audioPickerCustom: 'Pestaña de selector',
+    audioPickerDirect: 'Solo selector',
+    audioPickerTab: 'Biblioteca',
+    audioPickerDescription: 'Elige audio de la biblioteca de ejemplo.',
+    audioPickerButton: 'Abrir biblioteca',
+    audioGalleryTitle: 'Biblioteca de audio de ejemplo',
+    audioGalleryCancel: 'Cancelar',
+    audioGalleryIntro: 'Pista intro',
+    audioGalleryOutro: 'Pista outro',
+    appearanceVideoAria: 'Selector de vídeo de YouTube',
+    videoPickerDefault: 'Inserción integrada',
+    videoPickerCustom: 'Pestaña de selector',
+    videoPickerDirect: 'Solo selector',
+    videoPickerTab: 'Biblioteca',
+    videoPickerDescription: 'Elige un vídeo de la biblioteca de ejemplo.',
+    videoPickerButton: 'Abrir biblioteca',
+    videoGalleryTitle: 'Biblioteca de vídeo de ejemplo',
+    videoGalleryCancel: 'Cancelar',
+    videoGalleryYoutube: 'Ejemplo de YouTube',
+    videoGalleryHosted: 'Ejemplo MP4 alojado',
     toolbarExampleBody:
       'Omite toolbarCustomization para guardar el diseño en localStorage. Pasa load y save para almacenarlo en el anfitrión, incluidas las APIs asíncronas.',
     darkModeExampleBody:

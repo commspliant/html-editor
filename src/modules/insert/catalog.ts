@@ -1,5 +1,5 @@
 import type { ToolbarCatalog } from '../../toolbar/types'
-import { BookmarkIcon, HorizontalRuleIcon, ImageIcon, LinkIcon } from '../../icons'
+import { AudioIcon, BookmarkIcon, HorizontalRuleIcon, ImageIcon, LinkIcon, YoutubeIcon } from '../../icons'
 
 export const insertCatalog: ToolbarCatalog = {
   menus: {
@@ -40,6 +40,22 @@ export const insertCatalog: ToolbarCatalog = {
       icon: ImageIcon,
       labelKey: 'commandImage',
       ariaKey: 'commandImageAria',
+      enabled: 'isVisualMode',
+    },
+    audio: {
+      id: 'audio',
+      command: 'openAudioDialog',
+      icon: AudioIcon,
+      labelKey: 'commandAudio',
+      ariaKey: 'commandAudioAria',
+      enabled: 'isVisualMode',
+    },
+    youtube: {
+      id: 'youtube',
+      command: 'openYoutubeDialog',
+      icon: YoutubeIcon,
+      labelKey: 'commandYoutube',
+      ariaKey: 'commandYoutubeAria',
       enabled: 'isVisualMode',
     },
     horizontalRule: {

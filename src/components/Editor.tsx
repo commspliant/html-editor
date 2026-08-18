@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createCustomActionCommands, mergeCustomActions } from '../core/customActions'
 import { createEditorCommands, createEditorQueries } from '../core/commands'
-import type { CommandContext, FontDialogTab, FontPropertiesApply, ImageApply, ImageDialogTab, ImagePropertiesApply, LinkApply, LinkDialogTab, PageDialogTab, PagePropertiesApply, ParagraphDialogTab, ParagraphPropertiesApply, TableApply, TablePropertiesApply, CellPropertiesApply, RowPropertiesApply } from '../core/commandTypes'
+import type { CommandContext, AudioApply, FontDialogTab, FontPropertiesApply, ImageApply, ImageDialogTab, ImagePropertiesApply, LinkApply, LinkDialogTab, PageDialogTab, PagePropertiesApply, ParagraphDialogTab, ParagraphPropertiesApply, TableApply, TablePropertiesApply, CellPropertiesApply, RowPropertiesApply, YoutubeApply } from '../core/commandTypes'
 import {
   applyPendingFontMarksOnInsert,
   emptyFontMarkState,
@@ -109,7 +109,9 @@ import {
   setCustomCssInDocument,
 } from '../core/customCss'
 import { createReadAloudSession, isSpeechSynthesisSupported, resolveReadAloudText } from '../core/readAloud'
+import { insertAudioInDocument } from '../core/audio'
 import { closestImage, insertImageInDocument, selectImageInDocument } from '../core/image'
+import { insertYoutubeInDocument, insertVideoInDocument } from '../core/youtube'
 import { insertHorizontalRuleInDocument } from '../core/horizontalRule'
 import { writeImagePixelSize } from '../core/imageResize'
 import {
@@ -162,10 +164,12 @@ import { PagePropertiesDialog } from '../modules/format/PagePropertiesDialog'
 import { CustomParagraphStyleDialog } from '../modules/format/CustomParagraphStyleDialog'
 import { CustomCssDialog } from '../modules/format/CustomCssDialog'
 import { BookmarkDialog } from '../modules/insert/BookmarkDialog'
+import { AudioDialog } from '../modules/insert/AudioDialog'
 import { ImageDialog } from '../modules/insert/ImageDialog'
 import { ImagePropertiesDialog } from '../modules/insert/ImagePropertiesDialog'
 import { ImageResizeOverlay } from '../modules/insert/ImageResizeOverlay'
 import { LinkDialog } from '../modules/insert/LinkDialog'
+import { YoutubeDialog } from '../modules/insert/YoutubeDialog'
 import { TableDialog } from '../modules/table/TableDialog'
 import { TablePropertiesDialog } from '../modules/table/TablePropertiesDialog'
 import { CellPropertiesDialog } from '../modules/table/CellPropertiesDialog'
@@ -193,10 +197,12 @@ import {
 } from '../toolbar/toolbarCustomization'
 import type {
   CustomActionApi,
+  CustomAudioInsert,
   CustomImageInsert,
   CustomParagraphStyle,
   CustomParagraphStyleFont,
   CustomParagraphStyleParagraph,
+  CustomVideoInsert,
   EditorMode,
   EditorProps,
   ToolbarCustomization,
@@ -239,6 +245,10 @@ export function Editor({
   onDeleteCustomParagraphStyle,
   customImagePicker,
   disableBuiltinImageInsert,
+  customAudioPicker,
+  disableBuiltinAudioInsert,
+  customVideoPicker,
+  disableBuiltinVideoInsert,
   disableHtmlFileDrop = false,
   toolbarCustomization,
   darkMode = false,
@@ -425,6 +435,8 @@ export function Editor({
     existingIds: [],
   })
   const [imageDialog, setImageDialog] = useState({ open: false })
+  const [audioDialog, setAudioDialog] = useState({ open: false })
+  const [youtubeDialog, setYoutubeDialog] = useState({ open: false })
   const [imageProperties, setImageProperties] = useState<{
     open: boolean
     tab: ImageDialogTab
@@ -497,6 +509,10 @@ export function Editor({
   onDeleteCustomParagraphStyleRef.current = onDeleteCustomParagraphStyle
   const customImagePickerRef = useRef(customImagePicker)
   customImagePickerRef.current = customImagePicker
+  const customAudioPickerRef = useRef(customAudioPicker)
+  customAudioPickerRef.current = customAudioPicker
+  const customVideoPickerRef = useRef(customVideoPicker)
+  customVideoPickerRef.current = customVideoPicker
   const toolbarCustomizationRef = useRef(toolbarCustomization)
   toolbarCustomizationRef.current = toolbarCustomization
   const darkModePersistenceRef = useRef(darkModePersistence)
@@ -509,6 +525,10 @@ export function Editor({
   toolbarPosRef.current = toolbarPos
   const disableBuiltinImageInsertRef = useRef(disableBuiltinImageInsert)
   disableBuiltinImageInsertRef.current = disableBuiltinImageInsert
+  const disableBuiltinAudioInsertRef = useRef(disableBuiltinAudioInsert)
+  disableBuiltinAudioInsertRef.current = disableBuiltinAudioInsert
+  const disableBuiltinVideoInsertRef = useRef(disableBuiltinVideoInsert)
+  disableBuiltinVideoInsertRef.current = disableBuiltinVideoInsert
   const customStyleLoadGenerationRef = useRef(0)
   const toolbarLoadGenerationRef = useRef(0)
   const toolbarSaveGenerationRef = useRef(0)
@@ -1358,6 +1378,44 @@ export function Editor({
     [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
   )
 
+  const applyAudio = useCallback(
+    (draft: AudioApply) => {
+      if (modeRef.current !== 'visual') return
+      const root = visualRef.current
+      if (!root) return
+      restoreVisualRange(root)
+      setAudioDialog({ open: false })
+      if (!insertAudioInDocument(root, draft)) {
+        captureSelection()
+        refreshMarkState()
+        return
+      }
+      recordVisualHtml(root.innerHTML, false)
+      captureSelection()
+      refreshMarkState()
+    },
+    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+  )
+
+  const applyYoutube = useCallback(
+    (draft: YoutubeApply) => {
+      if (modeRef.current !== 'visual') return
+      const root = visualRef.current
+      if (!root) return
+      restoreVisualRange(root)
+      setYoutubeDialog({ open: false })
+      if (!insertYoutubeInDocument(root, draft)) {
+        captureSelection()
+        refreshMarkState()
+        return
+      }
+      recordVisualHtml(root.innerHTML, false)
+      captureSelection()
+      refreshMarkState()
+    },
+    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+  )
+
   const applyTable = useCallback(
     (draft: TableApply) => {
       if (modeRef.current !== 'visual') return
@@ -1465,6 +1523,40 @@ export function Editor({
       })
     },
     [applyImage],
+  )
+
+  const insertCustomAudio = useCallback(
+    (audio: CustomAudioInsert) => {
+      applyAudio({
+        src: audio.src,
+        title: audio.title ?? '',
+        css: audio.css,
+      })
+    },
+    [applyAudio],
+  )
+
+  const insertCustomVideo = useCallback(
+    (video: CustomVideoInsert) => {
+      if (modeRef.current !== 'visual') return
+      const root = visualRef.current
+      if (!root) return
+      restoreVisualRange(root)
+      setYoutubeDialog({ open: false })
+      if (!insertVideoInDocument(root, {
+        src: video.src,
+        title: video.title ?? '',
+        css: video.css,
+      })) {
+        captureSelection()
+        refreshMarkState()
+        return
+      }
+      recordVisualHtml(root.innerHTML, false)
+      captureSelection()
+      refreshMarkState()
+    },
+    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
   )
 
   const applyImageProperties = useCallback(
@@ -1901,6 +1993,34 @@ export function Editor({
       applyImage: (draft: ImageApply) => {
         applyImage(draft)
       },
+      openAudioDialog: () => {
+        if (modeRef.current !== 'visual') return
+        const root = visualRef.current
+        if (root) restoreVisualRange(root)
+        const picker = customAudioPickerRef.current
+        if (disableBuiltinAudioInsertRef.current && picker) {
+          picker.onPick(insertCustomAudio)
+          return
+        }
+        setAudioDialog({ open: true })
+      },
+      applyAudio: (draft: AudioApply) => {
+        applyAudio(draft)
+      },
+      openYoutubeDialog: () => {
+        if (modeRef.current !== 'visual') return
+        const root = visualRef.current
+        if (root) restoreVisualRange(root)
+        const picker = customVideoPickerRef.current
+        if (disableBuiltinVideoInsertRef.current && picker) {
+          picker.onPick(insertCustomVideo)
+          return
+        }
+        setYoutubeDialog({ open: true })
+      },
+      applyYoutube: (draft: YoutubeApply) => {
+        applyYoutube(draft)
+      },
       openImageProperties: (tab?: ImageDialogTab) => {
         if (modeRef.current !== 'visual') return
         const root = visualRef.current
@@ -2031,7 +2151,7 @@ export function Editor({
       canMergeCells: () => modeRef.current === 'visual' && canMergeCellsRef.current,
       canUnmergeCells: () => modeRef.current === 'visual' && canUnmergeCellsRef.current,
     }),
-    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, getDocumentHtml],
+    [recordHtml, recordVisualHtml, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2518,6 +2638,28 @@ export function Editor({
             customImagePicker?.onPick(insertCustomImage)
           }}
           onClose={() => setImageDialog({ open: false })}
+        />
+        <AudioDialog
+          open={audioDialog.open}
+          disabled={locked}
+          customAudioPicker={customAudioPicker}
+          onApply={(draft) => commandContext.applyAudio(draft)}
+          onCustomPick={() => {
+            setAudioDialog({ open: false })
+            customAudioPicker?.onPick(insertCustomAudio)
+          }}
+          onClose={() => setAudioDialog({ open: false })}
+        />
+        <YoutubeDialog
+          open={youtubeDialog.open}
+          disabled={locked}
+          customVideoPicker={customVideoPicker}
+          onApply={(draft) => commandContext.applyYoutube(draft)}
+          onCustomPick={() => {
+            setYoutubeDialog({ open: false })
+            customVideoPicker?.onPick(insertCustomVideo)
+          }}
+          onClose={() => setYoutubeDialog({ open: false })}
         />
         <ImagePropertiesDialog
           open={imageProperties.open}

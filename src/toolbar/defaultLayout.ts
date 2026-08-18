@@ -11,6 +11,8 @@ export const defaultToolbarLayout: ToolbarLayout = {
         'bookmark',
         MENU_SEPARATOR,
         'image',
+        'audio',
+        'youtube',
         'table',
         'horizontalRule',
       ],
