@@ -1,4 +1,18 @@
 import { isInside } from './inlineRange'
+import {
+  boundingRectOfSlots,
+  buildTableGrid,
+  canSetCellSpan,
+  mergeableRect,
+  occupancyForCell,
+  readCellSpan,
+  uniqueCellsInRect,
+  writeCellSpan,
+  type MergePlan,
+  type TableSlot,
+} from './tableGrid'
+
+export { readCellSpan, writeCellSpan } from './tableGrid'
 
 export type TableApply = {
   rows: number
@@ -68,20 +82,13 @@ export function cellsInSelection(root: HTMLElement): HTMLTableCellElement[] {
   if (!end || start === end) return [start]
   const table = closestTable(root, start)
   if (!table || closestTable(root, end) !== table) return [start]
-  const startPos = cellPosition(start)
-  const endPos = cellPosition(end)
-  if (!startPos || !endPos) return [start]
-  const minRow = Math.min(startPos.row, endPos.row)
-  const maxRow = Math.max(startPos.row, endPos.row)
-  const minCol = Math.min(startPos.col, endPos.col)
-  const maxCol = Math.max(startPos.col, endPos.col)
-  const selected: HTMLTableCellElement[] = []
-  for (const row of Array.from(table.rows)) {
-    if (row.rowIndex < minRow || row.rowIndex > maxRow) continue
-    for (const cell of Array.from(row.cells)) {
-      if (cell.cellIndex >= minCol && cell.cellIndex <= maxCol) selected.push(cell)
-    }
-  }
+  const grid = buildTableGrid(table)
+  const startSlot = occupancyForCell(grid, start)
+  const endSlot = occupancyForCell(grid, end)
+  if (!startSlot || !endSlot) return [start]
+  const rect = boundingRectOfSlots([startSlot, endSlot])
+  if (!rect) return [start]
+  const selected = uniqueCellsInRect(grid, rect)
   return selected.length > 0 ? selected : [start]
 }
 
@@ -116,21 +123,40 @@ export function insertTableInDocument(root: HTMLElement, draft: TableApply): boo
 export function insertRowInDocument(root: HTMLElement, where: 'before' | 'below'): boolean {
   const cell = cellAtSelection(root)
   if (!cell) return false
-  const row = cell.parentElement
-  if (!(row instanceof HTMLTableRowElement)) return false
   const table = closestTable(root, cell)
   if (!table) return false
+  const grid = buildTableGrid(table)
+  const occ = occupancyForCell(grid, cell)
+  if (!occ) return false
+  const insertAt = where === 'before' ? occ.originRow : occ.originRow + occ.rowSpan
+
+  const spannedCols = new Set<number>()
+  for (const slot of grid.unique) {
+    if (slot.originRow < insertAt && slot.originRow + slot.rowSpan > insertAt) {
+      writeCellSpan(slot.cell, slot.colSpan, slot.rowSpan + 1)
+      for (let c = slot.originCol; c < slot.originCol + slot.colSpan; c += 1) spannedCols.add(c)
+    }
+  }
 
   const next = document.createElement('tr')
-  const count = Math.max(1, row.cells.length)
-  for (let i = 0; i < count; i += 1) {
-    const template = row.cells[i]
-    next.appendChild(createDefaultCell(template?.tagName === 'TH' ? 'th' : 'td'))
+  const templateRowIndex = Math.min(insertAt, grid.rowCount - 1)
+  for (let c = 0; c < grid.colCount; c += 1) {
+    if (spannedCols.has(c)) continue
+    const template = grid.slots[templateRowIndex]?.[c]?.cell ?? cell
+    next.appendChild(createCellShell(template))
   }
-  if (where === 'before') row.parentNode?.insertBefore(next, row)
-  else row.insertAdjacentElement('afterend', next)
-  const focus = next.cells[Math.min(cell.cellIndex, next.cells.length - 1)]
+
+  if (insertAt >= table.rows.length) {
+    const last = table.rows[table.rows.length - 1]
+    last.parentNode?.appendChild(next)
+  } else {
+    const ref = table.rows[insertAt]
+    ref.parentNode?.insertBefore(next, ref)
+  }
+
+  const focus = cellInNewRowAtColumn(next, grid.colCount, spannedCols, occ.originCol)
   if (focus) placeCaretInCell(focus)
+  else placeCaretInCell(cell)
   return true
 }
 
@@ -139,14 +165,29 @@ export function insertColumnInDocument(root: HTMLElement, where: 'before' | 'aft
   if (!cell) return false
   const table = closestTable(root, cell)
   if (!table) return false
-  const index = cell.cellIndex
-  const insertAt = where === 'before' ? index : index + 1
+  const grid = buildTableGrid(table)
+  const occ = occupancyForCell(grid, cell)
+  if (!occ) return false
+  const insertAt = where === 'before' ? occ.originCol : occ.originCol + occ.colSpan
+
+  const spannedRows = new Set<number>()
+  for (const slot of grid.unique) {
+    if (slot.originCol < insertAt && slot.originCol + slot.colSpan > insertAt) {
+      writeCellSpan(slot.cell, slot.colSpan + 1, slot.rowSpan)
+      for (let r = slot.originRow; r < slot.originRow + slot.rowSpan; r += 1) spannedRows.add(r)
+    }
+  }
+
   let focus: HTMLTableCellElement | null = null
-  for (const row of Array.from(table.rows)) {
-    const template = row.cells[Math.min(index, row.cells.length - 1)] ?? null
-    const created = createDefaultCell(template?.tagName === 'TH' ? 'th' : 'td')
-    insertCellAt(row, insertAt, created)
-    if (row === cell.parentElement) focus = created
+  for (let r = 0; r < grid.rowCount; r += 1) {
+    if (spannedRows.has(r)) continue
+    const template =
+      grid.slots[r]?.[Math.min(insertAt, Math.max(0, grid.colCount - 1))]?.cell ??
+      grid.slots[r]?.[Math.max(0, insertAt - 1)]?.cell ??
+      cell
+    const created = createCellShell(template)
+    insertCellAtVisualColumn(table, r, insertAt, created)
+    if (r === occ.originRow) focus = created
   }
   if (focus) placeCaretInCell(focus)
   return true
@@ -155,20 +196,39 @@ export function insertColumnInDocument(root: HTMLElement, where: 'before' | 'aft
 export function deleteRowInDocument(root: HTMLElement): boolean {
   const cell = cellAtSelection(root)
   if (!cell) return false
-  const row = cell.parentElement
-  if (!(row instanceof HTMLTableRowElement)) return false
   const table = closestTable(root, cell)
   if (!table) return false
-  const col = cell.cellIndex
-  const rowIndex = row.rowIndex
-  if (table.rows.length <= 1) return removeTable(root, table)
+  const grid = buildTableGrid(table)
+  const occ = occupancyForCell(grid, cell)
+  if (!occ) return false
+  if (grid.rowCount <= 1) return removeTable(root, table)
 
-  const parent = row.parentNode
-  row.remove()
-  const nextRow = table.rows[Math.min(rowIndex, table.rows.length - 1)]
-  const focus = nextRow?.cells[Math.min(col, nextRow.cells.length - 1)]
+  const rowIndex = occ.originRow
+  const nextRowIndex = rowIndex + 1
+  const toMove: TableSlot[] = []
+  for (const slot of grid.unique) {
+    const covers = slot.originRow <= rowIndex && slot.originRow + slot.rowSpan > rowIndex
+    if (!covers) continue
+    if (slot.originRow < rowIndex) {
+      writeCellSpan(slot.cell, slot.colSpan, slot.rowSpan - 1)
+    } else if (slot.originRow === rowIndex && slot.rowSpan > 1) {
+      toMove.push(slot)
+    }
+  }
+  toMove.sort((a, b) => a.originCol - b.originCol)
+  for (const slot of toMove) {
+    writeCellSpan(slot.cell, slot.colSpan, slot.rowSpan - 1)
+    insertCellAtVisualColumn(table, nextRowIndex, slot.originCol, slot.cell)
+  }
+
+  const focusCol = occ.originCol
+  table.rows[rowIndex].remove()
+  const focusRow = table.rows[Math.min(rowIndex, table.rows.length - 1)]
+  const nextGrid = buildTableGrid(table)
+  const focus = nextGrid.slots[Math.min(rowIndex, nextGrid.rowCount - 1)]?.[Math.min(focusCol, Math.max(0, nextGrid.colCount - 1))]?.cell
   if (focus) placeCaretInCell(focus)
-  else if (parent) placeCaretAfter(table)
+  else if (focusRow?.cells[0]) placeCaretInCell(focusRow.cells[0])
+  else placeCaretAfter(table)
   return true
 }
 
@@ -177,18 +237,24 @@ export function deleteColumnInDocument(root: HTMLElement): boolean {
   if (!cell) return false
   const table = closestTable(root, cell)
   if (!table) return false
-  const index = cell.cellIndex
-  const row = cell.parentElement
-  const maxCells = Math.max(0, ...Array.from(table.rows, (item) => item.cells.length))
-  if (maxCells <= 1) return removeTable(root, table)
+  const grid = buildTableGrid(table)
+  const occ = occupancyForCell(grid, cell)
+  if (!occ) return false
+  if (grid.colCount <= 1) return removeTable(root, table)
 
-  const rowIndex = row instanceof HTMLTableRowElement ? row.rowIndex : 0
-  for (const current of Array.from(table.rows)) {
-    const target = current.cells[index]
-    if (target) target.remove()
+  const col = occ.originCol
+  const rowIndex = occ.originRow
+  for (const slot of grid.unique) {
+    if (col < slot.originCol || col >= slot.originCol + slot.colSpan) continue
+    if (slot.colSpan === 1) slot.cell.remove()
+    else writeCellSpan(slot.cell, slot.colSpan - 1, slot.rowSpan)
   }
-  const nextRow = table.rows[Math.min(rowIndex, table.rows.length - 1)]
-  const focus = nextRow?.cells[Math.min(index, nextRow.cells.length - 1)]
+
+  const nextGrid = buildTableGrid(table)
+  if (nextGrid.colCount === 0 || nextGrid.unique.length === 0) return removeTable(root, table)
+  const focus =
+    nextGrid.slots[Math.min(rowIndex, nextGrid.rowCount - 1)]?.[Math.min(col, nextGrid.colCount - 1)]?.cell ??
+    nextGrid.unique[0]?.cell
   if (focus) placeCaretInCell(focus)
   return true
 }
@@ -225,6 +291,63 @@ export function selectCellInDocument(root: HTMLElement, cell: HTMLTableCellEleme
   return true
 }
 
+export function canMergeCellsInDocument(root: HTMLElement): boolean {
+  return selectionMergePlan(root) !== null
+}
+
+export function canUnmergeCellsInDocument(root: HTMLElement): boolean {
+  const cell = cellAtSelection(root)
+  if (!cell) return false
+  const span = readCellSpan(cell)
+  return span.colSpan > 1 || span.rowSpan > 1
+}
+
+export function mergeCellsInDocument(root: HTMLElement): boolean {
+  const plan = selectionMergePlan(root)
+  if (!plan) return false
+  const table = closestTable(root, plan.origin.cell)
+  if (!table) return false
+  return applyMerge(table, plan)
+}
+
+export function unmergeCellsInDocument(root: HTMLElement): boolean {
+  const cell = cellAtSelection(root)
+  if (!cell) return false
+  const table = closestTable(root, cell)
+  if (!table) return false
+  return unmergeCell(table, cell)
+}
+
+export function setCellSpanInDocument(root: HTMLElement, colSpan: number, rowSpan: number): boolean {
+  const cell = cellAtSelection(root)
+  if (!cell) return false
+  const table = closestTable(root, cell)
+  if (!table) return false
+  const grid = buildTableGrid(table)
+  const occ = occupancyForCell(grid, cell)
+  if (!occ) return false
+  const nextCols = Math.min(grid.colCount - occ.originCol, Math.max(1, Math.floor(colSpan)))
+  const nextRows = Math.min(grid.rowCount - occ.originRow, Math.max(1, Math.floor(rowSpan)))
+  if (nextCols === occ.colSpan && nextRows === occ.rowSpan) return false
+  if (!canSetCellSpan(grid, occ, nextCols, nextRows)) return false
+  if (occ.colSpan > 1 || occ.rowSpan > 1) {
+    unmergeCell(table, cell)
+  }
+  if (nextCols === 1 && nextRows === 1) {
+    placeCaretInCell(cell)
+    return true
+  }
+  const nextGrid = buildTableGrid(table)
+  const plan = mergeableRect(nextGrid, {
+    minRow: occ.originRow,
+    maxRow: occ.originRow + nextRows - 1,
+    minCol: occ.originCol,
+    maxCol: occ.originCol + nextCols - 1,
+  })
+  if (!plan) return true
+  return applyMerge(table, plan)
+}
+
 function closestMatching<T extends HTMLElement>(
   root: HTMLElement,
   node: Node | null,
@@ -250,10 +373,56 @@ function selectionAnchor(root: HTMLElement): Node | null {
   return range.startContainer
 }
 
-function cellPosition(cell: HTMLTableCellElement): { row: number; col: number } | null {
-  const row = cell.parentElement
-  if (!(row instanceof HTMLTableRowElement)) return null
-  return { row: row.rowIndex, col: cell.cellIndex }
+function selectionMergePlan(root: HTMLElement): MergePlan | null {
+  const cells = cellsInSelection(root)
+  if (cells.length < 2) return null
+  const table = closestTable(root, cells[0])
+  if (!table) return null
+  const grid = buildTableGrid(table)
+  const slots: TableSlot[] = []
+  for (const cell of cells) {
+    const slot = occupancyForCell(grid, cell)
+    if (!slot) return null
+    slots.push(slot)
+  }
+  const rect = boundingRectOfSlots(slots)
+  if (!rect) return null
+  const plan = mergeableRect(grid, rect)
+  if (!plan || plan.cells.length < 2) return null
+  return plan
+}
+
+function applyMerge(table: HTMLTableElement, plan: MergePlan): boolean {
+  const origin = plan.origin.cell
+  const grid = buildTableGrid(table)
+  const ordered = plan.cells
+    .map((cell) => occupancyForCell(grid, cell))
+    .filter((slot): slot is TableSlot => slot !== null)
+    .sort((a, b) => a.originRow - b.originRow || a.originCol - b.originCol)
+  for (const slot of ordered) {
+    if (slot.cell !== origin) moveCellContents(origin, slot.cell)
+  }
+  writeCellSpan(origin, plan.colSpan, plan.rowSpan)
+  for (const slot of ordered) {
+    if (slot.cell !== origin) slot.cell.remove()
+  }
+  placeCaretInCell(origin)
+  return true
+}
+
+function unmergeCell(table: HTMLTableElement, cell: HTMLTableCellElement): boolean {
+  const grid = buildTableGrid(table)
+  const occ = occupancyForCell(grid, cell)
+  if (!occ || (occ.colSpan === 1 && occ.rowSpan === 1)) return false
+  writeCellSpan(cell, 1, 1)
+  for (let r = occ.originRow; r < occ.originRow + occ.rowSpan; r += 1) {
+    for (let c = occ.originCol; c < occ.originCol + occ.colSpan; c += 1) {
+      if (r === occ.originRow && c === occ.originCol) continue
+      insertCellAtVisualColumn(table, r, c, createCellShell(cell))
+    }
+  }
+  placeCaretInCell(cell)
+  return true
 }
 
 function createDefaultCell(tag: 'td' | 'th'): HTMLTableCellElement {
@@ -264,9 +433,67 @@ function createDefaultCell(tag: 'td' | 'th'): HTMLTableCellElement {
   return cell
 }
 
+function createCellShell(from: HTMLTableCellElement): HTMLTableCellElement {
+  const cell = from.cloneNode(false) as HTMLTableCellElement
+  cell.removeAttribute('colspan')
+  cell.removeAttribute('rowspan')
+  while (cell.firstChild) cell.removeChild(cell.firstChild)
+  cell.appendChild(document.createElement('br'))
+  return cell
+}
+
 function insertCellAt(row: HTMLTableRowElement, index: number, cell: HTMLTableCellElement): void {
   if (index >= row.cells.length) row.appendChild(cell)
   else row.insertBefore(cell, row.cells[index])
+}
+
+function insertCellAtVisualColumn(
+  table: HTMLTableElement,
+  rowIndex: number,
+  col: number,
+  cell: HTMLTableCellElement,
+): void {
+  const row = table.rows[rowIndex]
+  if (!row) return
+  const grid = buildTableGrid(table)
+  let insertIndex = 0
+  for (const existing of Array.from(row.cells)) {
+    if (existing === cell) continue
+    const slot = occupancyForCell(grid, existing)
+    if (!slot || slot.originCol >= col) break
+    insertIndex += 1
+  }
+  insertCellAt(row, insertIndex, cell)
+}
+
+function cellInNewRowAtColumn(
+  row: HTMLTableRowElement,
+  colCount: number,
+  spannedCols: Set<number>,
+  originCol: number,
+): HTMLTableCellElement | null {
+  let index = 0
+  for (let c = 0; c < colCount; c += 1) {
+    if (spannedCols.has(c)) continue
+    if (c >= originCol) return row.cells[index] ?? null
+    index += 1
+  }
+  return row.cells[row.cells.length - 1] ?? null
+}
+
+function isCellContentEmpty(cell: HTMLTableCellElement): boolean {
+  if (cell.childNodes.length === 0) return true
+  if (cell.childNodes.length === 1 && cell.firstChild?.nodeName === 'BR') return true
+  return (
+    (cell.textContent ?? '').trim().length === 0 && cell.querySelector('img, table, ul, ol, hr') === null
+  )
+}
+
+function moveCellContents(target: HTMLTableCellElement, source: HTMLTableCellElement): void {
+  if (target === source || isCellContentEmpty(source)) return
+  if (isCellContentEmpty(target)) target.innerHTML = ''
+  else target.appendChild(document.createTextNode(' '))
+  while (source.firstChild) target.appendChild(source.firstChild)
 }
 
 function liftTableOutOfPhrasing(root: HTMLElement, table: HTMLTableElement): void {

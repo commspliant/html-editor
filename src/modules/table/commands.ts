@@ -18,6 +18,8 @@ export function createTableCommands(
   | 'insertColumnAfter'
   | 'insertColumnBefore'
   | 'deleteColumn'
+  | 'mergeCells'
+  | 'unmergeCells'
 > {
   return {
     openTableDialog: () => {
@@ -62,11 +64,21 @@ export function createTableCommands(
     deleteColumn: () => {
       ctx.deleteColumn()
     },
+    mergeCells: () => {
+      ctx.mergeCells()
+    },
+    unmergeCells: () => {
+      ctx.unmergeCells()
+    },
   }
 }
 
-export function createTableQueries(ctx: CommandContext): Pick<EditorQueries, 'isInTable'> {
+export function createTableQueries(
+  ctx: CommandContext,
+): Pick<EditorQueries, 'isInTable' | 'canMergeCells' | 'canUnmergeCells'> {
   return {
     isInTable: () => ctx.isInTable(),
+    canMergeCells: () => ctx.canMergeCells(),
+    canUnmergeCells: () => ctx.canUnmergeCells(),
   }
 }

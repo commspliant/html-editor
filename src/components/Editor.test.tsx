@@ -1707,6 +1707,7 @@ describe('Editor allowed chrome', () => {
     expect(screen.getByRole('button', { name: 'File menu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Edit menu' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Insert menu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Table menu' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'View menu' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Format menu' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Print document' })).toBeInTheDocument()
@@ -2204,11 +2205,11 @@ describe('Editor context menu', () => {
     expect(screen.getByRole('dialog', { name: 'Table properties' })).toBeInTheDocument()
   })
 
-  it('grays out table properties in the Format menu when the caret is not in a table', async () => {
+  it('grays out table properties in the Table menu when the caret is not in a table', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
 
-    await user.click(screen.getByRole('button', { name: 'Format menu' }))
+    await user.click(screen.getByRole('button', { name: 'Table menu' }))
     expect(screen.getByRole('menuitem', { name: 'Table properties…' })).toBeDisabled()
     expect(screen.getByRole('menuitem', { name: 'Cell properties…' })).toBeDisabled()
     expect(screen.getByRole('menuitem', { name: 'Row properties…' })).toBeDisabled()

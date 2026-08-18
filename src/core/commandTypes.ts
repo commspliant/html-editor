@@ -88,6 +88,8 @@ export type CommandName =
   | 'insertColumnAfter'
   | 'insertColumnBefore'
   | 'deleteColumn'
+  | 'mergeCells'
+  | 'unmergeCells'
   | 'cut'
   | 'copy'
   | 'deleteSelection'
@@ -127,6 +129,8 @@ export type QueryName =
   | 'isLink'
   | 'isImageSelected'
   | 'isInTable'
+  | 'canMergeCells'
+  | 'canUnmergeCells'
   | 'hasTextSelection'
 
 export type CommandContext = {
@@ -212,12 +216,16 @@ export type CommandContext = {
   insertColumnAfter: () => void
   insertColumnBefore: () => void
   deleteColumn: () => void
+  mergeCells: () => void
+  unmergeCells: () => void
   cut: () => void | Promise<void>
   copy: () => void | Promise<void>
   deleteSelection: () => void
   isLink: () => boolean
   isImageSelected: () => boolean
   isInTable: () => boolean
+  canMergeCells: () => boolean
+  canUnmergeCells: () => boolean
   clearFormatting: () => void
   hasTextSelection: () => boolean
 }
@@ -290,6 +298,8 @@ export type EditorCommands = {
   insertColumnAfter: () => void
   insertColumnBefore: () => void
   deleteColumn: () => void
+  mergeCells: () => void
+  unmergeCells: () => void
   cut: () => Promise<void>
   copy: () => Promise<void>
   deleteSelection: () => void
@@ -342,6 +352,8 @@ export type EditorQueries = {
   isLink: () => boolean
   isImageSelected: () => boolean
   isInTable: () => boolean
+  canMergeCells: () => boolean
+  canUnmergeCells: () => boolean
   hasTextSelection: () => boolean
 }
 

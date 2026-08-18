@@ -1,14 +1,22 @@
 import type { ToolbarCatalog } from '../../toolbar/types'
 import {
   CellPropertiesIcon,
+  MergeCellsIcon,
   RowPropertiesIcon,
   TableColumnIcon,
   TableIcon,
   TableRowIcon,
+  UnmergeCellsIcon,
 } from '../../icons'
 
 export const tableCatalog: ToolbarCatalog = {
-  menus: {},
+  menus: {
+    table: {
+      id: 'table',
+      labelKey: 'menuTable',
+      ariaKey: 'menuTableAria',
+    },
+  },
   submenus: {
     insertRow: {
       id: 'insertRow',
@@ -23,7 +31,12 @@ export const tableCatalog: ToolbarCatalog = {
       enabled: 'isInTable',
     },
   },
-  groups: {},
+  groups: {
+    table: {
+      id: 'table',
+      labelKey: 'toolbarGroupTable',
+    },
+  },
   items: {
     table: {
       id: 'table',
@@ -80,6 +93,22 @@ export const tableCatalog: ToolbarCatalog = {
       labelKey: 'commandDeleteColumn',
       ariaKey: 'commandDeleteColumnAria',
       enabled: 'isInTable',
+    },
+    mergeCells: {
+      id: 'mergeCells',
+      command: 'mergeCells',
+      icon: MergeCellsIcon,
+      labelKey: 'commandMergeCells',
+      ariaKey: 'commandMergeCellsAria',
+      enabled: 'canMergeCells',
+    },
+    unmergeCells: {
+      id: 'unmergeCells',
+      command: 'unmergeCells',
+      icon: UnmergeCellsIcon,
+      labelKey: 'commandUnmergeCells',
+      ariaKey: 'commandUnmergeCellsAria',
+      enabled: 'canUnmergeCells',
     },
     tableProperties: {
       id: 'tableProperties',

@@ -1,17 +1,24 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   cellAtSelection,
+  cellsInSelection,
   closestTable,
+  canMergeCellsInDocument,
+  canUnmergeCellsInDocument,
   deleteColumnInDocument,
   deleteRowInDocument,
   insertColumnInDocument,
   insertRowInDocument,
   insertTableInDocument,
+  mergeCellsInDocument,
+  setCellSpanInDocument,
   tabInTable,
   tableAtSelection,
   tableCells,
+  unmergeCellsInDocument,
   validateTableSize,
 } from './table'
+import { buildTableGrid, occupancyForCell, readCellSpan } from './tableGrid'
 
 function mountVisual(html: string) {
   const el = document.createElement('div')
@@ -60,6 +67,15 @@ function selectNodeStart(node: Node) {
   const range = document.createRange()
   range.setStart(node, 0)
   range.collapse(true)
+  const sel = window.getSelection()
+  sel?.removeAllRanges()
+  sel?.addRange(range)
+}
+
+function selectCellRange(start: HTMLTableCellElement, end: HTMLTableCellElement) {
+  const range = document.createRange()
+  range.setStart(start, 0)
+  range.setEnd(end, end.childNodes.length)
   const sel = window.getSelection()
   sel?.removeAllRanges()
   sel?.addRange(range)
@@ -210,5 +226,132 @@ describe('closest table at selection', () => {
     expect(tableAtSelection(el)).toBe(table)
     expect(closestTable(el, table.rows[0].cells[0])).toBe(table)
     expect(tableCells(table)).toHaveLength(1)
+  })
+})
+
+describe('occupancy grid and cell selection', () => {
+  it('maps visual columns when a cell has colspan', () => {
+    const el = mountVisual(
+      '<table><tbody><tr><td colspan="2">ab</td><td>c</td></tr><tr><td>d</td><td>e</td><td>f</td></tr></tbody></table>',
+    )
+    const table = el.querySelector('table') as HTMLTableElement
+    const grid = buildTableGrid(table)
+    expect(grid.colCount).toBe(3)
+    expect(grid.rowCount).toBe(2)
+    expect(occupancyForCell(grid, table.rows[0].cells[0])).toMatchObject({
+      originRow: 0,
+      originCol: 0,
+      colSpan: 2,
+      rowSpan: 1,
+    })
+    expect(occupancyForCell(grid, table.rows[0].cells[1])).toMatchObject({ originRow: 0, originCol: 2 })
+    expect(occupancyForCell(grid, table.rows[1].cells[1])).toMatchObject({ originRow: 1, originCol: 1 })
+  })
+
+  it('selects the visual rectangle across spanned cells', () => {
+    const el = mountVisual(
+      '<table><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>',
+    )
+    const table = el.querySelector('table') as HTMLTableElement
+    selectCellRange(table.rows[0].cells[0], table.rows[1].cells[1])
+    expect(cellsInSelection(el)).toHaveLength(4)
+  })
+})
+
+describe('merge and unmerge', () => {
+  function tableDoc(rows = 2, cols = 2) {
+    const el = mountVisual('<p>x</p>')
+    selectOffsets(el, 1, 1)
+    insertTableInDocument(el, { rows, cols })
+    return el
+  }
+
+  it('merges a selected rectangle with colspan and rowspan', () => {
+    const el = tableDoc(2, 2)
+    const table = el.querySelector('table') as HTMLTableElement
+    table.rows[0].cells[0].textContent = 'A'
+    table.rows[0].cells[1].textContent = 'B'
+    table.rows[1].cells[0].textContent = 'C'
+    table.rows[1].cells[1].textContent = 'D'
+    selectCellRange(table.rows[0].cells[0], table.rows[1].cells[1])
+
+    expect(canMergeCellsInDocument(el)).toBe(true)
+    expect(mergeCellsInDocument(el)).toBe(true)
+    expect(table.rows[0].cells).toHaveLength(1)
+    expect(readCellSpan(table.rows[0].cells[0])).toEqual({ colSpan: 2, rowSpan: 2 })
+    expect(table.rows[0].cells[0].textContent).toMatch(/A/)
+    expect(table.rows[0].cells[0].textContent).toMatch(/D/)
+    expect(table.querySelectorAll('td')).toHaveLength(1)
+    expect(canUnmergeCellsInDocument(el)).toBe(true)
+  })
+
+  it('does not merge a single cell', () => {
+    const el = tableDoc(2, 2)
+    const table = el.querySelector('table') as HTMLTableElement
+    selectNodeStart(table.rows[0].cells[0])
+    expect(canMergeCellsInDocument(el)).toBe(false)
+    expect(mergeCellsInDocument(el)).toBe(false)
+  })
+
+  it('unmerges a spanned cell into 1x1 cells', () => {
+    const el = tableDoc(2, 2)
+    const table = el.querySelector('table') as HTMLTableElement
+    selectCellRange(table.rows[0].cells[0], table.rows[1].cells[1])
+    mergeCellsInDocument(el)
+    expect(unmergeCellsInDocument(el)).toBe(true)
+    expect(table.rows).toHaveLength(2)
+    expect(table.rows[0].cells).toHaveLength(2)
+    expect(table.rows[1].cells).toHaveLength(2)
+    expect(readCellSpan(table.rows[0].cells[0])).toEqual({ colSpan: 1, rowSpan: 1 })
+    expect(canUnmergeCellsInDocument(el)).toBe(false)
+  })
+
+  it('expands and shrinks span from cell properties', () => {
+    const el = tableDoc(2, 3)
+    const table = el.querySelector('table') as HTMLTableElement
+    selectNodeStart(table.rows[0].cells[0])
+    expect(setCellSpanInDocument(el, 2, 1)).toBe(true)
+    expect(readCellSpan(table.rows[0].cells[0])).toEqual({ colSpan: 2, rowSpan: 1 })
+    expect(table.rows[0].cells).toHaveLength(2)
+    expect(setCellSpanInDocument(el, 1, 1)).toBe(true)
+    expect(table.rows[0].cells).toHaveLength(3)
+    expect(readCellSpan(table.rows[0].cells[0])).toEqual({ colSpan: 1, rowSpan: 1 })
+  })
+})
+
+describe('span-aware row and column commands', () => {
+  it('inserts a column through a colspan by growing the span', () => {
+    const el = mountVisual(
+      '<table><tbody><tr><td colspan="2">ab</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>',
+    )
+    const table = el.querySelector('table') as HTMLTableElement
+    selectNodeStart(table.rows[1].cells[0])
+    expect(insertColumnInDocument(el, 'after')).toBe(true)
+    expect(readCellSpan(table.rows[0].cells[0])).toEqual({ colSpan: 3, rowSpan: 1 })
+    expect(table.rows[1].cells).toHaveLength(3)
+  })
+
+  it('inserts a row through a rowspan by growing the span', () => {
+    const el = mountVisual(
+      '<table><tbody><tr><td rowspan="2">ac</td><td>b</td></tr><tr><td>d</td></tr></tbody></table>',
+    )
+    const table = el.querySelector('table') as HTMLTableElement
+    selectNodeStart(table.rows[0].cells[1])
+    expect(insertRowInDocument(el, 'below')).toBe(true)
+    expect(table.rows).toHaveLength(3)
+    expect(readCellSpan(table.rows[0].cells[0])).toEqual({ colSpan: 1, rowSpan: 3 })
+    expect(table.rows[1].cells).toHaveLength(1)
+  })
+
+  it('deletes a column covered by colspan by shrinking the span', () => {
+    const el = mountVisual(
+      '<table><tbody><tr><td colspan="2">ab</td><td>c</td></tr><tr><td>d</td><td>e</td><td>f</td></tr></tbody></table>',
+    )
+    const table = el.querySelector('table') as HTMLTableElement
+    selectNodeStart(table.rows[1].cells[1])
+    expect(deleteColumnInDocument(el)).toBe(true)
+    expect(readCellSpan(table.rows[0].cells[0])).toEqual({ colSpan: 1, rowSpan: 1 })
+    expect(table.rows[0].cells).toHaveLength(2)
+    expect(table.rows[1].cells).toHaveLength(2)
   })
 })

@@ -105,6 +105,10 @@ export type Messages = {
   commandInsertColumnBeforeAria: string
   commandDeleteColumn: string
   commandDeleteColumnAria: string
+  commandMergeCells: string
+  commandMergeCellsAria: string
+  commandUnmergeCells: string
+  commandUnmergeCellsAria: string
   contextMenuAria: string
   commandBold: string
   commandBoldAria: string
@@ -290,6 +294,8 @@ export type Messages = {
   cellPropertiesVerticalAlignBottom: string
   cellPropertiesVerticalAlignBaseline: string
   cellPropertiesWidth: string
+  cellPropertiesColSpan: string
+  cellPropertiesRowSpan: string
   rowPropertiesDialogTitle: string
   rowPropertiesDialogCloseAria: string
   rowPropertiesHeight: string
@@ -345,6 +351,7 @@ export type Messages = {
   toolbarGroupPrint: string
   toolbarGroupEdit: string
   toolbarGroupInsert: string
+  toolbarGroupTable: string
   toolbarGroupFont: string
   toolbarGroupAlign: string
   toolbarGroupParagraph: string

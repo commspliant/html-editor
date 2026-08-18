@@ -35,7 +35,7 @@ describe('mergeCustomActions', () => {
       MENU_SEPARATOR,
       'ai',
     ])
-    expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'font', 'align', 'paragraph', 'view', 'custom', 'fullscreen'])
+    expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'table', 'font', 'align', 'paragraph', 'view', 'custom', 'fullscreen'])
     expect(layout.iconGroups.find((group) => group.id === 'custom')?.items).toEqual(['ai'])
     expect(catalog.items.ai?.label).toBe('AI')
     expect(catalog.items.ai?.command).toBe('custom:ai')
@@ -49,10 +49,10 @@ describe('mergeCustomActions', () => {
       defaultToolbarLayout,
     )
 
-    expect(layout.menus.map((menu) => menu.id)).toEqual(['file', 'edit', 'insert', 'view', 'format', 'tools'])
+    expect(layout.menus.map((menu) => menu.id)).toEqual(['file', 'edit', 'insert', 'table', 'view', 'format', 'tools'])
     expect(layout.menus.find((menu) => menu.id === 'tools')?.items).toEqual(['ai'])
     expect(catalog.menus.tools?.label).toBe('Tools')
-    expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'font', 'align', 'paragraph', 'view', 'fullscreen'])
+    expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'table', 'font', 'align', 'paragraph', 'view', 'fullscreen'])
   })
 
   it('uses the default custom menu when menu placement is omitted', () => {
@@ -210,16 +210,13 @@ describe('mergeCustomActions', () => {
       MENU_SEPARATOR,
       'imageProperties',
       MENU_SEPARATOR,
-      'tableProperties',
-      'cellProperties',
-      'rowProperties',
       'ai',
     ])
   })
 
   it('does not mutate the default catalog or layout', () => {
     const fileItems = defaultToolbarLayout.menus[0].items
-    const formatItems = defaultToolbarLayout.menus[3].items
+    const formatItems = defaultToolbarLayout.menus.find((menu) => menu.id === 'format')?.items
     mergeCustomActions(
       [action({ id: 'ai', menu: { id: 'file' } })],
       defaultToolbarCatalog,
@@ -228,7 +225,7 @@ describe('mergeCustomActions', () => {
 
     expect(defaultToolbarLayout.menus[0].items).toBe(fileItems)
     expect(defaultToolbarLayout.menus[0].items).toEqual(['save', 'open', MENU_SEPARATOR, 'print'])
-    expect(defaultToolbarLayout.menus[3].items).toBe(formatItems)
+    expect(defaultToolbarLayout.menus.find((menu) => menu.id === 'format')?.items).toBe(formatItems)
     expect(defaultToolbarCatalog.items.ai).toBeUndefined()
     expect(defaultToolbarCatalog.items.bold).toBeDefined()
   })

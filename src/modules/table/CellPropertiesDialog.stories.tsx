@@ -17,6 +17,8 @@ const meta = {
         bottom: { value: 8, unit: 'px' },
         left: { value: 8, unit: 'px' },
       },
+      colSpan: 2,
+      rowSpan: 1,
     }),
     onApply: () => undefined,
     onClose: () => undefined,

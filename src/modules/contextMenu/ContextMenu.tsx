@@ -14,8 +14,16 @@ export type ContextMenuProps = {
   y: number
   kind: ContextMenuKind
   inTable?: boolean
+  canMergeCells?: boolean
+  canUnmergeCells?: boolean
   commands: EditorCommands
   onClose: () => void
+}
+
+type ContextMenuFlags = {
+  inTable: boolean
+  canMergeCells: boolean
+  canUnmergeCells: boolean
 }
 
 type MenuCommand =
@@ -29,6 +37,8 @@ type MenuCommand =
   | 'openTableProperties'
   | 'openCellProperties'
   | 'openRowProperties'
+  | 'mergeCells'
+  | 'unmergeCells'
 
 type MenuEntry =
   | { type: 'separator' }
@@ -37,7 +47,7 @@ type MenuEntry =
       command: MenuCommand
       labelKey: MessageKey
       ariaKey: MessageKey
-      enabled: (kind: ContextMenuKind, inTable: boolean) => boolean
+      enabled: (kind: ContextMenuKind, flags: ContextMenuFlags) => boolean
     }
 
 const MENU_PAD = 8
@@ -99,21 +109,35 @@ const ENTRIES: MenuEntry[] = [
     command: 'openTableProperties',
     labelKey: 'commandTableProperties',
     ariaKey: 'commandTablePropertiesAria',
-    enabled: (_kind, inTable) => inTable,
+    enabled: (_kind, flags) => flags.inTable,
   },
   {
     type: 'item',
     command: 'openCellProperties',
     labelKey: 'commandCellProperties',
     ariaKey: 'commandCellPropertiesAria',
-    enabled: (_kind, inTable) => inTable,
+    enabled: (_kind, flags) => flags.inTable,
   },
   {
     type: 'item',
     command: 'openRowProperties',
     labelKey: 'commandRowProperties',
     ariaKey: 'commandRowPropertiesAria',
-    enabled: (_kind, inTable) => inTable,
+    enabled: (_kind, flags) => flags.inTable,
+  },
+  {
+    type: 'item',
+    command: 'mergeCells',
+    labelKey: 'commandMergeCells',
+    ariaKey: 'commandMergeCellsAria',
+    enabled: (_kind, flags) => flags.canMergeCells,
+  },
+  {
+    type: 'item',
+    command: 'unmergeCells',
+    labelKey: 'commandUnmergeCells',
+    ariaKey: 'commandUnmergeCellsAria',
+    enabled: (_kind, flags) => flags.canUnmergeCells,
   },
 ]
 
@@ -121,7 +145,17 @@ function itemSelector(): string {
   return '[role="menuitem"]:not(:disabled)'
 }
 
-export function ContextMenu({ open, x, y, kind, inTable = false, commands, onClose }: ContextMenuProps) {
+export function ContextMenu({
+  open,
+  x,
+  y,
+  kind,
+  inTable = false,
+  canMergeCells = false,
+  canUnmergeCells = false,
+  commands,
+  onClose,
+}: ContextMenuProps) {
   const t = useT()
   const labelId = useId()
   const menuRef = useRef<HTMLDivElement>(null)
@@ -207,7 +241,7 @@ export function ContextMenu({ open, x, y, kind, inTable = false, commands, onClo
         if (entry.type === 'separator') {
           return <div key={`separator-${index}`} role="separator" className={styles.separator} />
         }
-        const enabled = entry.enabled(kind, inTable)
+        const enabled = entry.enabled(kind, { inTable, canMergeCells, canUnmergeCells })
         return (
           <button
             key={entry.command}

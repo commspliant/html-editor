@@ -154,7 +154,7 @@ export type ToolbarCustomization = {
  * unfiltered.
  */
 export type AllowedChrome = {
-  /** Top-level menu ids (`file`, `edit`, `insert`, `view`, `format`, plus custom). Omit to show every menu. */
+  /** Top-level menu ids (`file`, `edit`, `insert`, `table`, `view`, `format`, plus custom). Omit to show every menu. */
   menus?: string[]
   /** Icon-toolbar item ids. Omit to show every toolbar button. */
   toolbar?: string[]

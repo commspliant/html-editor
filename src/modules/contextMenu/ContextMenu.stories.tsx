@@ -72,6 +72,8 @@ const commands: EditorCommands = {
   insertColumnAfter: noop,
   insertColumnBefore: noop,
   deleteColumn: noop,
+  mergeCells: noop,
+  unmergeCells: noop,
   cut: asyncNoop,
   copy: asyncNoop,
   deleteSelection: noop,
