@@ -9,6 +9,7 @@ export function createViewCommands(
   | 'toggleFullscreen'
   | 'openCustomizeToolbar'
   | 'openDocumentPreview'
+  | 'toggleReadAloud'
   | 'setLightMode'
   | 'setDarkMode'
   | 'setToolbarPositionTop'
@@ -31,6 +32,9 @@ export function createViewCommands(
     },
     openDocumentPreview: () => {
       ctx.openDocumentPreview()
+    },
+    toggleReadAloud: () => {
+      ctx.toggleReadAloud()
     },
     setLightMode: () => {
       ctx.setDarkMode(false)
@@ -66,6 +70,8 @@ export function createViewQueries(
   | 'isToolbarPositionLeft'
   | 'isToolbarPositionRight'
   | 'isToolbarPositionBottom'
+  | 'isReadingAloud'
+  | 'canReadAloud'
 > {
   return {
     isVisualMode: () => ctx.getMode() === 'visual',
@@ -77,5 +83,7 @@ export function createViewQueries(
     isToolbarPositionLeft: () => ctx.getToolbarPosition() === 'left',
     isToolbarPositionRight: () => ctx.getToolbarPosition() === 'right',
     isToolbarPositionBottom: () => ctx.getToolbarPosition() === 'bottom',
+    isReadingAloud: () => ctx.isReadingAloud(),
+    canReadAloud: () => ctx.canReadAloud(),
   }
 }

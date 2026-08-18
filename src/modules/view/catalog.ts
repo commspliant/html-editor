@@ -6,6 +6,7 @@ import {
   HtmlIcon,
   LightModeIcon,
   PreviewIcon,
+  ReadAloudIcon,
   VisualIcon,
 } from '../../icons'
 
@@ -113,6 +114,16 @@ export const viewCatalog: ToolbarCatalog = {
       icon: PreviewIcon,
       labelKey: 'commandPreview',
       ariaKey: 'commandPreviewAria',
+    },
+    readAloud: {
+      id: 'readAloud',
+      command: 'toggleReadAloud',
+      icon: ReadAloudIcon,
+      labelKey: 'commandReadAloud',
+      ariaKey: 'commandReadAloudAria',
+      active: 'isReadingAloud',
+      toggle: true,
+      enabled: 'canReadAloud',
     },
     fullscreen: {
       id: 'fullscreen',

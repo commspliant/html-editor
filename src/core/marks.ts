@@ -7,6 +7,7 @@ import {
   pendingClearsFontFamily,
   type PendingFontFamily,
 } from './fontFamily'
+import { applyPendingCustomCss } from './customCss'
 import {
   applyPendingInlineColor,
   breakOutOfInlineColor,
@@ -427,6 +428,7 @@ export function applyPendingFontMarksOnInsert(
   pendingFontSize?: FontSizeValue | null,
   pendingColors?: PendingInlineColors | null,
   pendingFontFamily?: PendingFontFamily,
+  pendingCustomCss?: string | null,
 ): void {
   const sel = window.getSelection()
   if (!sel || sel.rangeCount === 0) return
@@ -467,6 +469,7 @@ export function applyPendingFontMarksOnInsert(
     applyPendingInlineColor(span, 'backgroundColor', pendingColors.backgroundColor)
   }
   if (pendingFontFamily) applyPendingFontFamily(span, pendingFontFamily)
+  if (pendingCustomCss) applyPendingCustomCss(span, pendingCustomCss)
   span.textContent = text
 
   const nodeToInsert = span.style.cssText.trim() ? span : document.createTextNode(text)

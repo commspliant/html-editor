@@ -173,6 +173,7 @@ describe('mergeCustomActions', () => {
         submenu: 'font',
         items: [
           'fontProperties',
+          'customCss',
           MENU_SEPARATOR,
           { submenu: 'highlightColor', items: [] },
           MENU_SEPARATOR,

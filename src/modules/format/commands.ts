@@ -38,6 +38,8 @@ export function createFormatCommands(
   | 'applyPageProperties'
   | 'openCustomParagraphStyleDialog'
   | 'applyCustomParagraphStyle'
+  | 'openCustomCss'
+  | 'applyCustomCss'
 > {
   return {
     toggleBold: () => {
@@ -120,6 +122,12 @@ export function createFormatCommands(
     },
     applyCustomParagraphStyle: (id) => {
       ctx.applyCustomParagraphStyle(id)
+    },
+    openCustomCss: () => {
+      ctx.openCustomCss()
+    },
+    applyCustomCss: (css) => {
+      ctx.applyCustomCss(css)
     },
   }
 }

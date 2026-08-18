@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { useState } from 'react'
-import { describe, expect, it, vi, afterEach } from 'vitest'
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest'
 import { loadHtml, saveHtml } from '../modules/file/fileDialogs'
 import { printHtml } from '../modules/file/printHtml'
 import { TOOLTIP_HOVER_DELAY_MS } from '../toolbar/Tooltip'
@@ -426,6 +426,73 @@ describe('Editor document preview', () => {
     await user.click(closeButtons[closeButtons.length - 1])
 
     expect(screen.queryByRole('dialog', { name: 'Document preview' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Editor read aloud', () => {
+  let speaking = false
+  let lastUtterance: { text: string } | null = null
+  const cancel = vi.fn(() => {
+    speaking = false
+  })
+  const speak = vi.fn((utterance: SpeechSynthesisUtterance) => {
+    lastUtterance = utterance
+    speaking = true
+  })
+
+  beforeEach(() => {
+    speaking = false
+    lastUtterance = null
+    cancel.mockClear()
+    speak.mockClear()
+    class MockSpeechSynthesisUtterance {
+      text: string
+
+      constructor(text: string) {
+        this.text = text
+      }
+    }
+    vi.stubGlobal('SpeechSynthesisUtterance', MockSpeechSynthesisUtterance)
+    Object.defineProperty(window, 'speechSynthesis', {
+      configurable: true,
+      value: {
+        get speaking() {
+          return speaking
+        },
+        speak,
+        cancel,
+      },
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    Reflect.deleteProperty(window, 'speechSynthesis')
+  })
+
+  it('reads the document from the toolbar and cancels on a second click', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Read me aloud</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'Read selection or document aloud' }))
+
+    expect(speak).toHaveBeenCalledTimes(1)
+    expect(lastUtterance?.text).toBe('Read me aloud')
+
+    await user.click(screen.getByRole('button', { name: 'Read selection or document aloud' }))
+
+    expect(cancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('reads from the View menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Menu read aloud</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'Read aloud' }))
+
+    expect(speak).toHaveBeenCalledTimes(1)
+    expect(lastUtterance?.text).toBe('Menu read aloud')
   })
 })
 

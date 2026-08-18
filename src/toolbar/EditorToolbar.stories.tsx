@@ -22,6 +22,7 @@ const meta = {
       toggleFullscreen: () => undefined,
       openCustomizeToolbar: () => undefined,
       openDocumentPreview: () => undefined,
+      toggleReadAloud: () => undefined,
       setLightMode: () => undefined,
       setDarkMode: () => undefined,
       setToolbarPositionTop: () => undefined,
@@ -48,6 +49,8 @@ const meta = {
       toggleNumberedList: () => undefined,
       openFontProperties: () => undefined,
       applyFontProperties: () => undefined,
+      openCustomCss: () => undefined,
+      applyCustomCss: () => undefined,
       openParagraphProperties: () => undefined,
       applyParagraphProperties: () => undefined,
       openPageProperties: () => undefined,
@@ -128,6 +131,8 @@ const meta = {
       canMergeCells: () => false,
       canUnmergeCells: () => false,
       hasTextSelection: () => true,
+      isReadingAloud: () => false,
+      canReadAloud: () => true,
     },
   },
   decorators: [
@@ -230,6 +235,8 @@ export const HtmlMode: Story = {
       canMergeCells: () => false,
       canUnmergeCells: () => false,
       hasTextSelection: () => true,
+      isReadingAloud: () => false,
+      canReadAloud: () => true,
     },
   },
 }
@@ -290,6 +297,8 @@ export const HistoryAvailable: Story = {
       canMergeCells: () => false,
       canUnmergeCells: () => false,
       hasTextSelection: () => true,
+      isReadingAloud: () => false,
+      canReadAloud: () => true,
     },
   },
 }
@@ -340,6 +349,8 @@ export const UndoOnly: Story = {
       canMergeCells: () => false,
       canUnmergeCells: () => false,
       hasTextSelection: () => true,
+      isReadingAloud: () => false,
+      canReadAloud: () => true,
     },
   },
 }
@@ -390,6 +401,8 @@ export const FontMarksActive: Story = {
       canMergeCells: () => false,
       canUnmergeCells: () => false,
       hasTextSelection: () => true,
+      isReadingAloud: () => false,
+      canReadAloud: () => true,
     },
   },
 }

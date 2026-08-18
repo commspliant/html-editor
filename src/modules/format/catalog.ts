@@ -7,6 +7,7 @@ import {
   BoldIcon,
   BulletListIcon,
   ClearFormattingIcon,
+  CustomCssIcon,
   FontColorIcon,
   FontFamilyIcon,
   FontPropertiesIcon,
@@ -113,6 +114,14 @@ export const formatCatalog: ToolbarCatalog = {
       icon: FontPropertiesIcon,
       labelKey: 'commandFontProperties',
       ariaKey: 'commandFontPropertiesAria',
+      enabled: 'isVisualMode',
+    },
+    customCss: {
+      id: 'customCss',
+      command: 'openCustomCss',
+      icon: CustomCssIcon,
+      labelKey: 'commandCustomCss',
+      ariaKey: 'commandCustomCssAria',
       enabled: 'isVisualMode',
     },
     paragraphProperties: {
