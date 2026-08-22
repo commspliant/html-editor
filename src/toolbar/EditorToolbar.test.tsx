@@ -871,6 +871,20 @@ describe('EditorToolbar', () => {
     expect(event.defaultPrevented).toBe(true)
   })
 
+  it('prevents mousedown default on menu panels so the visual selection is kept', async () => {
+    const user = userEvent.setup()
+    renderToolbar()
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    const bookmark = screen.getByRole('menuitem', { name: 'Bookmark' })
+    const menu = bookmark.parentElement
+    expect(menu).not.toBeNull()
+
+    const event = createEvent.mouseDown(menu!)
+    fireEvent(menu!, event)
+    expect(event.defaultPrevented).toBe(true)
+  })
+
   it('does not list Font color in the Fonts submenu', async () => {
     const user = userEvent.setup()
     renderToolbar()

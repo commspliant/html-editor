@@ -428,6 +428,12 @@ export type EditorProps = {
    * When true, comment chrome and thread state are enabled. Default `false`.
    */
   enableComments?: boolean
+  /**
+   * Initial comment highlight visibility when `enableComments` is true and
+   * visibility is uncontrolled. Default `true` (highlights shown; View shows
+   * "Hide comments").
+   */
+  defaultCommentsVisible?: boolean
   /** Identity used when posting comment messages. Required to enable Post in the panel. */
   commentAuthor?: CommentAuthor
   /** Controlled comment threads (metadata separate from document HTML). */

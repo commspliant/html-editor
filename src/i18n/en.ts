@@ -461,6 +461,7 @@ export const en: Messages = {
   hideComments: 'Hide comments',
   toggleCommentsVisibleAria: 'Toggle comment visibility',
   commentPanelTitle: 'Comment',
+  commentPlaceholder: 'Write a comment…',
   commentReplyPlaceholder: 'Write a reply…',
   commentPost: 'Post',
   commentEmpty: 'No messages yet.',

@@ -363,7 +363,7 @@ function ToolbarMenu({
         {resolveChromeLabel(t, def)}
       </button>
       {open ? (
-        <div className={styles.menu} role="menu" id={menuId}>
+        <div className={styles.menu} role="menu" id={menuId} onMouseDown={(event) => event.preventDefault()}>
           <MenuEntries
             entries={itemIds}
             catalog={catalog}
@@ -582,6 +582,7 @@ function SubmenuItem({
           role="menu"
           id={menuId}
           aria-label={resolveChromeAria(t, def)}
+          onMouseDown={(event) => event.preventDefault()}
           onKeyDown={onPanelKeyDown}
         >
           {Panel ? (

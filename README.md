@@ -89,6 +89,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `defaultPages` | `string[]` | — | Initial pages when uncontrolled and `enableMultiPages` is true |
 | `onPagesChange` | `(pages: string[], activePageIndex: number) => void` | — | Fires when any page changes while multi-page mode is enabled |
 | `enableComments` | `boolean` | `false` | When true, comment chrome and thread state are enabled. See [Comments](#comments) |
+| `defaultCommentsVisible` | `boolean` | `true` | Initial comment highlight visibility when `enableComments` is true. When `true`, highlights are shown and View shows "Hide comments". See [Comments](#comments) |
 | `commentAuthor` | `CommentAuthor` | — | `{ userId, userName }` identity for posting messages in the comment panel |
 | `comments` | `CommentThread[]` | — | Controlled comment thread array (metadata separate from document HTML) |
 | `defaultComments` | `CommentThread[]` | `[]` | Initial threads when uncontrolled |
@@ -466,7 +467,7 @@ This is not the same as **Insert → Page** (multi-page mode), which adds a sepa
 Set `enableComments` to add lightweight comment threads anchored in the document with `data-comment-thread` markers. Thread metadata (`CommentThread[]`) is separate from document HTML — use `comments` / `onCommentsChange` to persist it.
 
 - **Add comment** (toolbar Insert group and Insert → Comment) wraps the selection or marks the selected image, then opens the comment panel.
-- **Show/Hide comments** (View menu and View icon group) toggles highlight styling only; thread data and anchors remain.
+- **Show/Hide comments** (View menu and View icon group) toggles highlight styling only; thread data and anchors remain. Highlights are visible by default; pass `defaultCommentsVisible={false}` to start hidden.
 - **`commentAuthor`** (`{ userId, userName }`) is required to enable Post in the panel.
 
 **Sanitized HTML:** export `stripCommentAnchors` from the package to remove comment-only spans and attributes for published document HTML:

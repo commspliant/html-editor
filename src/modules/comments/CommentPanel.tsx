@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '../../i18n/LocaleProvider'
 import { CloseIcon } from '../../icons'
@@ -10,6 +10,7 @@ export type CommentPanelProps = {
   locale: string
   disabled?: boolean
   commentAuthor?: CommentAuthor
+  panelRef?: Ref<HTMLDivElement>
   onPost: (message: string) => void
   onClose: () => void
 }
@@ -28,15 +29,23 @@ export function CommentPanel({
   locale,
   disabled,
   commentAuthor,
+  panelRef,
   onPost,
   onClose,
 }: CommentPanelProps) {
   const t = useT()
   const [draft, setDraft] = useState('')
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [thread?.id])
 
   const canPost = !disabled && commentAuthor && draft.trim().length > 0
 
   const messages = useMemo(() => thread?.messages ?? [], [thread?.messages])
+  const replyPlaceholder =
+    messages.length === 0 ? t('commentPlaceholder') : t('commentReplyPlaceholder')
 
   if (!thread) return null
 
@@ -48,7 +57,7 @@ export function CommentPanel({
   }
 
   return createPortal(
-    <div className={styles.panel} role="dialog" aria-label={t('commentPanelTitle')}>
+    <div ref={panelRef} className={styles.panel} role="dialog" aria-label={t('commentPanelTitle')}>
       <div className={styles.header}>
         <h2 className={styles.title}>{t('commentPanelTitle')}</h2>
         <button
@@ -79,10 +88,11 @@ export function CommentPanel({
       </div>
       <div className={styles.reply}>
         <textarea
+          ref={inputRef}
           className={styles.input}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder={t('commentReplyPlaceholder')}
+          placeholder={replyPlaceholder}
           rows={3}
           disabled={disabled || !commentAuthor}
         />
