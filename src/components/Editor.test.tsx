@@ -1412,6 +1412,29 @@ describe('Editor paragraph chrome', () => {
     expect(lastHtml).toContain('size: A4')
   })
 
+  it('keeps @page when switching to HTML mode after applying A4', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Print' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Page size' }), 'A4')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+    const htmlValue = (screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement).value
+    expect(htmlValue).toContain('data-page-at-rule')
+    expect(htmlValue).toContain('size: A4')
+
+    await user.click(screen.getByRole('button', { name: 'Switch to visual mode' }))
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual).toHaveAttribute('data-page-sized')
+    expect(visual.style.width).toBe('210mm')
+    expect(visual.style.minHeight).toBe('297mm')
+  })
+
   it('keeps the canvas sized after bold following A4 apply', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)

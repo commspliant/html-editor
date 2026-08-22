@@ -1255,7 +1255,13 @@ export function Editor({
         },
         setHtml: (next) => {
           if (modeRef.current === 'visual') {
-            recordVisualHtml(extractFontStylesheets(next).body, false)
+            recordVisualHtml(
+              preservePageAtRuleInBody(
+                extractFontStylesheets(next).body,
+                extractFontStylesheets(htmlRef.current).body,
+              ),
+              false,
+            )
             return
           }
           recordHtml(next, false)
@@ -1276,7 +1282,10 @@ export function Editor({
             recordHtml(joined, true)
           }
         } else if (visualRootRef.current) {
-          const flushed = visualRootRef.current.innerHTML
+          const flushed = preservePageAtRuleInBody(
+            visualRootRef.current.innerHTML,
+            extractFontStylesheets(htmlRef.current).body,
+          )
           const serialized = prependFontStylesheets(
             flushed,
             collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
