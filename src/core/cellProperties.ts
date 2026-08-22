@@ -16,6 +16,7 @@ import {
 } from './paragraphBox'
 import { cellAtSelection, cellsInSelection, setCellSpanInDocument } from './table'
 import { readCellSpan } from './tableGrid'
+import { readTextAlign, writeTextAlign, type TextAlign } from './textAlign'
 
 export const CELL_VERTICAL_ALIGNS = ['top', 'middle', 'bottom', 'baseline'] as const
 
@@ -25,6 +26,7 @@ export type CellPropertiesApply = {
   backgroundColor: string | null
   color: string | null
   padding: BoxSides
+  textAlign: TextAlign | null
   verticalAlign: CellVerticalAlign | null
   width: CssLength | null
   colSpan: number
@@ -40,6 +42,7 @@ export function defaultCellPropertiesApply(
     backgroundColor: null,
     color: null,
     padding: { ...EMPTY_BOX_SIDES },
+    textAlign: null,
     verticalAlign: null,
     width: null,
     colSpan: 1,
@@ -54,6 +57,7 @@ export function readCellProperties(cell: HTMLTableCellElement): CellPropertiesAp
     backgroundColor: box.backgroundColor,
     color: readColor(cell),
     padding: box.padding,
+    textAlign: readCellTextAlign(cell),
     verticalAlign: readVerticalAlign(cell),
     width: parseCssLength(cell.style.width),
     ...readCellSpan(cell),
@@ -83,6 +87,7 @@ export function writeCellProperties(
     opacityMixed: true,
   })
   if (writeColor(cell, draft.color)) changed = true
+  if (writeTextAlign(cell, draft.textAlign)) changed = true
   if (writeVerticalAlign(cell, draft.verticalAlign)) changed = true
   if (writeWidth(cell, draft.width)) changed = true
   if (changed) clearEmptyStyle(cell)
@@ -120,6 +125,7 @@ export function cellPropertiesEqual(a: CellPropertiesApply, b: CellPropertiesApp
     a.backgroundColor === b.backgroundColor &&
     a.color === b.color &&
     boxSidesEqual(a.padding, b.padding) &&
+    a.textAlign === b.textAlign &&
     a.verticalAlign === b.verticalAlign &&
     cssLengthsEqual(a.width, b.width) &&
     a.colSpan === b.colSpan &&
@@ -140,6 +146,11 @@ function writeColor(el: HTMLElement, color: string | null): boolean {
   if (next) el.style.color = next
   else el.style.removeProperty('color')
   return true
+}
+
+function readCellTextAlign(cell: HTMLTableCellElement): TextAlign | null {
+  const align = readTextAlign(cell)
+  return align === 'left' ? null : align
 }
 
 function readVerticalAlign(el: HTMLElement): CellVerticalAlign | null {

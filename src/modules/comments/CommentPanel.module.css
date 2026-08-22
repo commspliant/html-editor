@@ -1,0 +1,126 @@
+.panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10000;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(480px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--wysiwyg-border-color, #d0d0d0);
+  border-radius: 8px;
+  background: var(--wysiwyg-surface-background, #fff);
+  color: var(--wysiwyg-text-color, #222);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid var(--wysiwyg-border-color, #e8e8e8);
+}
+
+.title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.messages {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty {
+  margin: 0;
+  color: var(--wysiwyg-muted-color, #666);
+  font-size: 0.875rem;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.messageHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+
+.author {
+  font-weight: 600;
+}
+
+.time {
+  color: var(--wysiwyg-muted-color, #666);
+  font-size: 0.75rem;
+}
+
+.body {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.reply {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--wysiwyg-border-color, #e8e8e8);
+}
+
+.input {
+  width: 100%;
+  min-height: 72px;
+  padding: 8px;
+  border: 1px solid var(--wysiwyg-border-color, #d0d0d0);
+  border-radius: 6px;
+  font: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.post {
+  align-self: flex-end;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--wysiwyg-accent-color, #2563eb);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.post:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
