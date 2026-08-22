@@ -1,4 +1,4 @@
-import type { CustomActionSelection, CustomParagraphStyle, EditorMode, ToolbarPosition } from '../types'
+import type { CustomActionSelection, CustomParagraphStyle, CommentThread, EditorMode, ToolbarPosition } from '../types'
 import type { LinkAttrs } from './link'
 import type { ImageAttrs } from './image'
 import type { AudioAttrs } from './audio'
@@ -120,6 +120,8 @@ export type CommandName =
   | 'outdent'
   | 'toggleBulletList'
   | 'toggleNumberedList'
+  | 'addComment'
+  | 'toggleCommentsVisible'
   | (string & {})
 
 export type QueryName =
@@ -156,6 +158,9 @@ export type QueryName =
   | 'isFormatBrushActive'
   | 'isMultiPagesEnabled'
   | 'canInsertPage'
+  | 'canAddComment'
+  | 'areCommentsVisible'
+  | 'isCommentsEnabled'
 
 export type CommandContext = {
   getHtml: () => string
@@ -269,6 +274,15 @@ export type CommandContext = {
   isFormatBrushActive: () => boolean
   onSave?: (html: string | string[]) => void | Promise<void>
   onOpen?: () => string | string[] | null | Promise<string | null>
+  addComment: () => void
+  toggleCommentsVisible: () => void
+  areCommentsVisible: () => boolean
+  canAddComment: () => boolean
+  isCommentsEnabled: () => boolean
+  getCommentThreads: () => CommentThread[]
+  setCommentThreads: (threads: CommentThread[]) => void
+  openCommentThread: (id: string) => void
+  isContentLocked: () => boolean
 }
 
 export type EditorCommand = () => void | Promise<void>
@@ -352,6 +366,8 @@ export type EditorCommands = {
   deleteSelection: () => void
   clearFormatting: () => void
   toggleFormatBrush: () => void
+  addComment: () => void
+  toggleCommentsVisible: () => void
 }
 
 export function runEditorCommand(commands: EditorCommands, name: string): void {
@@ -408,6 +424,9 @@ export type EditorQueries = {
   isFormatBrushActive: () => boolean
   isMultiPagesEnabled: () => boolean
   canInsertPage: () => boolean
+  canAddComment: () => boolean
+  areCommentsVisible: () => boolean
+  isCommentsEnabled: () => boolean
 }
 
 export type { FontFace, FontFamilyQuery, FontSizeQuery, InlineColorQuery, ListType, ParagraphStyleTag, TextAlign, ParagraphPropertiesApply, ParagraphBoxApply, ImagePropertiesApply, TableApply, TablePropertiesApply, CellPropertiesApply, RowPropertiesApply }

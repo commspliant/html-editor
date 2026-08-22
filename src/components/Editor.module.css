@@ -416,3 +416,13 @@
   max-width: 100%;
   vertical-align: middle;
 }
+
+.root[data-comments-visible] :global(.wysiwyg-comment-anchor) {
+  background-color: rgba(255, 212, 0, 0.35);
+  outline: 1px solid rgba(255, 170, 0, 0.8);
+}
+
+.root[data-comments-visible] img:global(.wysiwyg-comment-anchor) {
+  outline: 2px solid rgba(255, 170, 0, 0.9);
+  outline-offset: 2px;
+}

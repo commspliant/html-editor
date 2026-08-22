@@ -105,6 +105,20 @@ import {
 import { applyLinkInDocument, defaultLinkAttrs, isLinkActive, queryLinkAtSelection } from '../core/link'
 import { insertBookmarkInDocument, listBookmarks } from '../core/bookmark'
 import {
+  applyCommentAnchor,
+  commentThreadElementAtPoint,
+  setCommentHighlightsVisible,
+  snapshotCommentAnchor,
+  syncCommentAnchorsToDom,
+  threadIdAtSelection,
+} from '../core/comments/anchors'
+import {
+  addMessageToThread,
+  createCommentMessage,
+  createCommentThread,
+  findCommentThread,
+} from '../core/comments/threads'
+import {
   copySelectionInDocument,
   cutSelectionInDocument,
   deleteSelectionInDocument,
@@ -199,11 +213,17 @@ import {
   readToolbarPositionFromStorage,
   writeToolbarPositionToStorage,
 } from '../modules/view/toolbarPositionPersistence'
+import { CommentPanel } from '../modules/comments/CommentPanel'
 import { ContextMenu, shouldOpenEditorContextMenu, type ContextMenuKind } from '../modules/contextMenu'
 import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
 import { createDocumentHistory } from '../modules/history'
 import { defaultToolbarCatalog, defaultToolbarLayout, EditorToolbar } from '../toolbar'
 import { filterAllowedChrome } from '../toolbar/allowedChrome'
+import {
+  mergeCommentsCatalog,
+  mergeCommentsLayout,
+  type ChromeLockOptions,
+} from '../toolbar/commentsChrome'
 import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
 import {
   applyToolbarCustomization,
@@ -280,8 +300,14 @@ export function Editor({
   pages: pagesProp,
   defaultPages,
   onPagesChange,
+  enableComments = false,
+  commentAuthor,
+  comments: commentsProp,
+  defaultComments = [],
+  onCommentsChange,
 }: EditorProps) {
-  const locked = Boolean(disabled || readOnly)
+  const contentLocked = Boolean(disabled || readOnly)
+  const chromeDisabled = Boolean(disabled)
   const initialPages = normalizePages(
     defaultPages ?? (defaultValue.trim() ? [defaultValue] : [emptyPageHtml()]),
   )
@@ -303,11 +329,28 @@ export function Editor({
     defaultValue: defaultFullscreen,
     onChange: onFullscreenChange,
   })
+  const [commentsVisible, setCommentsVisible] = useState(true)
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
+  const [commentThreads, setCommentThreadsState] = useControllableState({
+    value: commentsProp,
+    defaultValue: defaultComments,
+    onChange: onCommentsChange,
+  })
   const visualRootRef = useRef<HTMLDivElement | null>(null)
   const multiPageVisualRef = useRef<MultiPageVisualSurfaceHandle>(null)
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null)
   const enableMultiPagesRef = useRef(enableMultiPages)
   enableMultiPagesRef.current = enableMultiPages
+  const enableCommentsRef = useRef(enableComments)
+  enableCommentsRef.current = enableComments
+  const readOnlyRef = useRef(readOnly)
+  readOnlyRef.current = readOnly
+  const contentLockedRef = useRef(contentLocked)
+  contentLockedRef.current = contentLocked
+  const commentsVisibleRef = useRef(commentsVisible)
+  commentsVisibleRef.current = commentsVisible
+  const commentThreadsRef = useRef(commentThreads)
+  commentThreadsRef.current = commentThreads
   const onPagesChangeRef = useRef(onPagesChange)
   onPagesChangeRef.current = onPagesChange
   const [activePageIndex, setActivePageIndex] = useState(0)
@@ -810,7 +853,7 @@ export function Editor({
     [recordHtml],
   )
   const htmlFileDrop = useHtmlFileDrop({
-    enabled: !locked && !disableHtmlFileDrop,
+    enabled: !contentLocked && !disableHtmlFileDrop,
     onHtml: onHtmlFileDrop,
   })
 
@@ -876,6 +919,14 @@ export function Editor({
       recordVisualHtml(root.innerHTML, coalesce)
     },
     [recordPageVisualHtml, recordVisualHtml],
+  )
+
+  const recordCommentAnchorsFromRoot = useCallback(
+    (root: HTMLElement, coalesce: boolean) => {
+      if (readOnlyRef.current) return
+      recordVisualHtmlFromRoot(root, coalesce)
+    },
+    [recordVisualHtmlFromRoot],
   )
 
   const getActivePageHtml = useCallback(() => {
@@ -1229,7 +1280,7 @@ export function Editor({
   }, [mode, captureSelection])
 
   useLayoutEffect(() => {
-    if (mode !== 'visual' || locked) {
+    if (mode !== 'visual' || contentLocked) {
       setSelectedImage(null)
       return
     }
@@ -1241,7 +1292,7 @@ export function Editor({
       if (prev && prev.isConnected && root.contains(prev)) return prev
       return null
     })
-  }, [html, mode, locked])
+  }, [html, mode, contentLocked])
 
   const restoreVisualRange = useCallback((root: HTMLElement) => {
     const live = snapshotSelection({
@@ -1327,10 +1378,10 @@ export function Editor({
   }, [tryApplyFormatBrush])
 
   useEffect(() => {
-    if (mode !== 'visual' || locked) {
+    if (mode !== 'visual' || contentLocked) {
       deactivateFormatBrush()
     }
-  }, [mode, locked, deactivateFormatBrush])
+  }, [mode, contentLocked, deactivateFormatBrush])
 
   const applyFontSize = useCallback(
     (size: number, unit?: FontSizeUnit) => {
@@ -2417,6 +2468,45 @@ export function Editor({
         captureSelection()
         refreshMarkState()
       },
+      addComment: () => {
+        if (!enableCommentsRef.current || disabled) return
+        if (modeRef.current !== 'visual') return
+        const root = visualRootRef.current
+        if (!root) return
+        const snapshot = restoreVisualRange(root)
+        const existingId = threadIdAtSelection(root, snapshot)
+        if (existingId) {
+          setActiveThreadId(existingId)
+          return
+        }
+        const anchor = snapshotCommentAnchor(root, snapshot)
+        if (!anchor) return
+        const thread = createCommentThread(anchor)
+        if (!applyCommentAnchor(root, thread.id, snapshot)) return
+        recordCommentAnchorsFromRoot(root, false)
+        setCommentThreadsState([...commentThreadsRef.current, thread])
+        setActiveThreadId(thread.id)
+        captureSelection()
+      },
+      toggleCommentsVisible: () => {
+        setCommentsVisible((prev) => {
+          const next = !prev
+          const root = visualRootRef.current
+          if (root) setCommentHighlightsVisible(root, next)
+          return next
+        })
+      },
+      areCommentsVisible: () => commentsVisibleRef.current,
+      canAddComment: () => {
+        if (!enableCommentsRef.current || disabled) return false
+        if (modeRef.current !== 'visual') return false
+        return hasTextSelectionStateRef.current || selectedImageRef.current !== null
+      },
+      isCommentsEnabled: () => enableCommentsRef.current,
+      getCommentThreads: () => commentThreadsRef.current,
+      setCommentThreads: (threads) => setCommentThreadsState(threads),
+      openCommentThread: (id) => setActiveThreadId(id),
+      isContentLocked: () => contentLockedRef.current,
       isLink: () => linkActiveRef.current,
       isImageSelected: () => modeRef.current === 'visual' && selectedImageRef.current !== null,
       isInTable: () => modeRef.current === 'visual' && inTableRef.current,
@@ -2433,7 +2523,7 @@ export function Editor({
           }
         : {}),
     }),
-    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, insertPageAfterActive, toggleFormatBrush, onSave, onOpen],
+    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, insertPageAfterActive, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2459,7 +2549,7 @@ export function Editor({
     }
   }, [applyInsert, commandContext.getHtml, recordHtml])
 
-  const { catalog, layout: baseLayout } = useMemo(
+  const { catalog: baseCatalog, layout: baseLayout } = useMemo(
     () => mergeCustomActions(customActions, defaultToolbarCatalog, defaultToolbarLayout),
     [customActions],
   )
@@ -2467,12 +2557,38 @@ export function Editor({
     () => filterAllowedChrome(baseLayout, allowedChrome),
     [baseLayout, allowedChrome],
   )
-  const layout = useMemo(
+  const customizedLayout = useMemo(
     () => ({
       ...allowedLayout,
       iconGroups: applyToolbarCustomization(allowedLayout.iconGroups, toolbarSettings),
     }),
     [allowedLayout, toolbarSettings],
+  )
+  const displayCatalog = useMemo(
+    () => (enableComments ? mergeCommentsCatalog(baseCatalog, commentsVisible) : baseCatalog),
+    [baseCatalog, enableComments, commentsVisible],
+  )
+  const displayLayout = useMemo(
+    () => (enableComments ? mergeCommentsLayout(customizedLayout) : customizedLayout),
+    [customizedLayout, enableComments],
+  )
+  const chromeLock = useMemo<ChromeLockOptions>(
+    () => ({ disabled: chromeDisabled, readOnly, enableComments }),
+    [chromeDisabled, readOnly, enableComments],
+  )
+
+  const activeCommentThread = useMemo(
+    () => (activeThreadId ? findCommentThread(commentThreads, activeThreadId) : null),
+    [activeThreadId, commentThreads],
+  )
+
+  const postCommentMessage = useCallback(
+    (message: string) => {
+      if (!activeThreadId || !commentAuthor || disabled) return
+      const entry = createCommentMessage(commentAuthor, message)
+      setCommentThreadsState(addMessageToThread(commentThreadsRef.current, activeThreadId, entry))
+    },
+    [activeThreadId, commentAuthor, disabled, setCommentThreadsState],
   )
 
   const commands = useMemo(
@@ -2489,7 +2605,7 @@ export function Editor({
 
   const handleVisualBeforeInput = useCallback(
     (event: InputEvent) => {
-      if (locked) return
+      if (contentLocked) return
       if (
         (event.inputType !== 'insertText' && event.inputType !== 'insertReplacementText') ||
         !event.data
@@ -2534,12 +2650,12 @@ export function Editor({
       captureSelection()
       refreshMarkState()
     },
-    [locked, recordVisualHtml, captureSelection, refreshMarkState],
+    [contentLocked, recordVisualHtml, captureSelection, refreshMarkState],
   )
 
   const handleVisualContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (locked) return
+      if (contentLocked) return
       if (!shouldOpenEditorContextMenu(event, lastVisualPointerTypeRef.current)) return
       event.preventDefault()
       event.stopPropagation()
@@ -2582,15 +2698,27 @@ export function Editor({
         ...tableFlags,
       })
     },
-    [locked, captureSelection, restoreVisualRange],
+    [contentLocked, captureSelection, restoreVisualRange],
   )
 
   const handleVisualPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       lastVisualPointerTypeRef.current = event.pointerType
-      if (locked) return
+      if (disabled) return
       const root = visualRootRef.current
       if (!root) return
+
+      if (enableCommentsRef.current && commentsVisibleRef.current) {
+        const marked = commentThreadElementAtPoint(root, event.target as Node)
+        if (marked) {
+          const id = marked.getAttribute('data-comment-thread')
+          if (id) setActiveThreadId(id)
+          return
+        }
+      }
+
+      if (contentLocked && !enableCommentsRef.current) return
+
       const img = closestImage(root, event.target as Node)
       if (!img) {
         setSelectedImage(null)
@@ -2601,12 +2729,20 @@ export function Editor({
       captureSelection()
       setSelectedImage(img)
     },
-    [locked, captureSelection],
+    [disabled, contentLocked, captureSelection],
   )
+
+  useEffect(() => {
+    if (!enableComments || mode !== 'visual') return
+    const root = visualRootRef.current
+    if (!root) return
+    syncCommentAnchorsToDom(root, commentThreads)
+    setCommentHighlightsVisible(root, commentsVisible)
+  }, [enableComments, mode, commentThreads, commentsVisible, html])
 
   const handleHistoryKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (locked) return
+      if (contentLocked) return
       if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey) {
         if (modeRef.current !== 'visual') return
         const root = visualRootRef.current
@@ -2662,7 +2798,19 @@ export function Editor({
         commands.print()
       }
     },
-    [locked, undo, redo, commandContext, commands, restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState, refreshTableState],
+    [contentLocked, undo, redo, commandContext, commands, restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState, refreshTableState],
+  )
+
+  const handleRootKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Escape' && activeThreadId) {
+        event.preventDefault()
+        setActiveThreadId(null)
+        return
+      }
+      handleHistoryKeyDown(event)
+    },
+    [activeThreadId, handleHistoryKeyDown],
   )
 
   const rootClassName = [styles.root, chromeThemeProps(dark).className, fullscreen ? styles.fullscreen : '', className]
@@ -2687,16 +2835,18 @@ export function Editor({
         data-fullscreen={fullscreen ? '' : undefined}
         data-wysiwyg-theme={themeAttr}
         data-toolbar-position={toolbarPos}
-        onKeyDown={handleHistoryKeyDown}
+        data-comments-visible={enableComments && commentsVisible ? '' : undefined}
+        onKeyDown={handleRootKeyDown}
       >
         {menuVisible ? (
           <div className={styles.menuChrome} onPointerDownCapture={captureChromeSelection}>
             <EditorToolbar
-              catalog={catalog}
-              layout={layout}
+              catalog={displayCatalog}
+              layout={displayLayout}
               commands={commands}
               queries={queries}
-              disabled={locked}
+              disabled={chromeDisabled}
+              chromeLock={chromeLock}
               menuVisible
               toolbarVisible={false}
             />
@@ -2709,11 +2859,12 @@ export function Editor({
           {toolbarVisible && (toolbarPos === 'top' || toolbarPos === 'left') ? (
             <div className={styles.iconChrome} onPointerDownCapture={captureChromeSelection}>
               <EditorToolbar
-                catalog={catalog}
-                layout={layout}
+                catalog={displayCatalog}
+                layout={displayLayout}
                 commands={commands}
                 queries={queries}
-                disabled={locked}
+                disabled={chromeDisabled}
+                chromeLock={chromeLock}
                 menuVisible={false}
                 toolbarVisible
                 position={toolbarPos}
@@ -2751,7 +2902,7 @@ export function Editor({
                   onMouseUp={handleVisualMouseUp}
                   onContextMenu={handleVisualContextMenu}
                   placeholder={placeholder}
-                  disabled={locked}
+                  disabled={contentLocked}
                 />
               ) : (
                 <VisualSurface
@@ -2763,7 +2914,7 @@ export function Editor({
                   onMouseUp={handleVisualMouseUp}
                   onContextMenu={handleVisualContextMenu}
                   placeholder={placeholder}
-                  disabled={locked}
+                  disabled={contentLocked}
                 />
               )
             ) : (
@@ -2772,7 +2923,7 @@ export function Editor({
                 html={html}
                 onChange={(next) => recordHtml(next, true)}
                 placeholder={placeholder}
-                disabled={locked}
+                disabled={contentLocked}
               />
             )}
             {htmlFileDrop.dragging ? <HtmlFileDropOverlay /> : null}
@@ -2780,11 +2931,12 @@ export function Editor({
           {toolbarVisible && (toolbarPos === 'bottom' || toolbarPos === 'right') ? (
             <div className={styles.iconChrome} onPointerDownCapture={captureChromeSelection}>
               <EditorToolbar
-                catalog={catalog}
-                layout={layout}
+                catalog={displayCatalog}
+                layout={displayLayout}
                 commands={commands}
                 queries={queries}
-                disabled={locked}
+                disabled={chromeDisabled}
+                chromeLock={chromeLock}
                 menuVisible={false}
                 toolbarVisible
                 position={toolbarPos}
@@ -2795,12 +2947,12 @@ export function Editor({
         {fullscreen ? <ExitFullscreenButton onClick={() => setFullscreen(false)} /> : null}
         <CustomizeToolbarDialog
           open={customizeToolbarOpen}
-          catalog={catalog}
+          catalog={baseCatalog}
           groups={allowedLayout.iconGroups}
           settings={toolbarSettings}
           loading={toolbarSettingsLoading}
           busy={toolbarSettingsBusy}
-          disabled={locked}
+          disabled={contentLocked}
           onChange={(next) => {
             void persistToolbarSettings(next)
           }}
@@ -2827,7 +2979,7 @@ export function Editor({
           highlightColor={highlightColorState.value}
           highlightColorMixed={highlightColorState.mixed}
           fonts={fontFaces}
-          disabled={locked}
+          disabled={contentLocked}
           onTabChange={(tab) => setFontDialog({ open: true, tab })}
           onApply={(draft) => commandContext.applyFontProperties(draft)}
           onClose={() => setFontDialog({ open: false, tab: fontDialog.tab })}
@@ -2836,7 +2988,7 @@ export function Editor({
           open={paragraphDialog.open}
           tab={paragraphDialog.tab}
           value={paragraphDialog.value}
-          disabled={locked}
+          disabled={contentLocked}
           onTabChange={(tab) => setParagraphDialog({ ...paragraphDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyParagraphProperties(draft)}
           onClose={() => setParagraphDialog({ ...paragraphDialog, open: false })}
@@ -2844,7 +2996,7 @@ export function Editor({
         <CustomCssDialog
           open={customCssDialog.open}
           value={customCssDialog.value}
-          disabled={locked}
+          disabled={contentLocked}
           onApply={(css) => commandContext.applyCustomCss(css)}
           onClose={() => setCustomCssDialog((prev) => ({ ...prev, open: false }))}
         />
@@ -2853,7 +3005,7 @@ export function Editor({
           tab={pageDialog.tab}
           value={pageDialog.value}
           fonts={fontFaces}
-          disabled={locked}
+          disabled={contentLocked}
           customImagePicker={customImagePicker}
           onCustomImagePick={() => {
             customImagePicker?.onPick((image) => {
@@ -2916,7 +3068,7 @@ export function Editor({
           canDelete={Boolean(onDeleteCustomParagraphStyle)}
           fonts={fontFaces}
           busy={customStyleBusy}
-          disabled={locked}
+          disabled={contentLocked}
           onSave={async (style) => {
             const save = onSaveCustomParagraphStyleRef.current
             if (!save) return
@@ -2955,7 +3107,7 @@ export function Editor({
           hoverHtml={linkDialog.hoverHtml}
           bookmarks={linkDialog.bookmarks}
           selectedBookmarkId={linkDialog.selectedBookmarkId}
-          disabled={locked}
+          disabled={contentLocked}
           onTabChange={(tab) => setLinkDialog({ ...linkDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyLink(draft)}
           onClose={() => setLinkDialog({ ...linkDialog, open: false })}
@@ -2963,13 +3115,13 @@ export function Editor({
         <BookmarkDialog
           open={bookmarkDialog.open}
           existingIds={bookmarkDialog.existingIds}
-          disabled={locked}
+          disabled={contentLocked}
           onApply={(name) => commandContext.applyBookmark(name)}
           onClose={() => setBookmarkDialog({ ...bookmarkDialog, open: false })}
         />
         <ImageDialog
           open={imageDialog.open}
-          disabled={locked}
+          disabled={contentLocked}
           customImagePicker={customImagePicker}
           onApply={(draft) => commandContext.applyImage(draft)}
           onCustomPick={() => {
@@ -2980,7 +3132,7 @@ export function Editor({
         />
         <AudioDialog
           open={audioDialog.open}
-          disabled={locked}
+          disabled={contentLocked}
           customAudioPicker={customAudioPicker}
           onApply={(draft) => commandContext.applyAudio(draft)}
           onCustomPick={() => {
@@ -2991,7 +3143,7 @@ export function Editor({
         />
         <YoutubeDialog
           open={youtubeDialog.open}
-          disabled={locked}
+          disabled={contentLocked}
           customVideoPicker={customVideoPicker}
           onApply={(draft) => commandContext.applyYoutube(draft)}
           onCustomPick={() => {
@@ -3005,43 +3157,53 @@ export function Editor({
           tab={imageProperties.tab}
           value={imageProperties.value}
           aspectRatio={imageProperties.aspectRatio}
-          disabled={locked}
+          disabled={contentLocked}
           onTabChange={(tab) => setImageProperties((prev) => ({ ...prev, tab }))}
           onApply={(draft) => commandContext.applyImageProperties(draft)}
           onClose={() => setImageProperties((prev) => ({ ...prev, open: false }))}
         />
         <TableDialog
           open={tableDialog.open}
-          disabled={locked}
+          disabled={contentLocked}
           onApply={(draft) => commandContext.applyTable(draft)}
           onClose={() => setTableDialog({ open: false })}
         />
         <TablePropertiesDialog
           open={tableProperties.open}
           value={tableProperties.value}
-          disabled={locked}
+          disabled={contentLocked}
           onApply={(draft) => commandContext.applyTableProperties(draft)}
           onClose={() => setTableProperties((prev) => ({ ...prev, open: false }))}
         />
         <CellPropertiesDialog
           open={cellProperties.open}
           value={cellProperties.value}
-          disabled={locked}
+          disabled={contentLocked}
           onApply={(draft) => commandContext.applyCellProperties(draft)}
           onClose={() => setCellProperties((prev) => ({ ...prev, open: false }))}
         />
         <RowPropertiesDialog
           open={rowProperties.open}
           value={rowProperties.value}
-          disabled={locked}
+          disabled={contentLocked}
           onApply={(draft) => commandContext.applyRowProperties(draft)}
           onClose={() => setRowProperties((prev) => ({ ...prev, open: false }))}
         />
-        {mode === 'visual' && !locked && selectedImage?.isConnected ? (
+        {mode === 'visual' && !contentLocked && selectedImage?.isConnected ? (
           <ImageResizeOverlay
             img={selectedImage}
             onResize={handleImageResize}
             onResizeEnd={handleImageResizeEnd}
+          />
+        ) : null}
+        {enableComments && commentsVisible && activeCommentThread ? (
+          <CommentPanel
+            thread={activeCommentThread}
+            locale={locale}
+            disabled={disabled}
+            commentAuthor={commentAuthor}
+            onPost={postCommentMessage}
+            onClose={() => setActiveThreadId(null)}
           />
         ) : null}
         <ContextMenu

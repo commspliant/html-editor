@@ -57,7 +57,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `onFullscreenChange` | `(fullscreen: boolean) => void` | — | Fires when full screen is entered or exited |
 | `placeholder` | `string` | — | Empty-state hint |
 | `disabled` | `boolean` | `false` | Same lock as `readOnly`. Either prop being true locks the editor |
-| `readOnly` | `boolean` | `false` | When true, neither surface can be edited and both are grayed out; menus and toolbar are grayed out and not clickable |
+| `readOnly` | `boolean` | `false` | Locks document editing. When `enableComments` is also true, comment chrome stays available and `onCommentsChange` still fires; anchor writes do not call `onChange`. See [Comments](#comments) |
 | `className` | `string` | — | Extra class on the editor root |
 | `locale` | `'en' \| 'es'` | `'en'` | Library chrome language. Document content is not translated |
 | `toolbarBackground` | `string` | `#f0f0f0` | CSS color for the icon toolbar row. Omit to use the default light gray |
@@ -88,6 +88,11 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `pages` | `string[]` | — | Controlled page HTML strings when `enableMultiPages` is true |
 | `defaultPages` | `string[]` | — | Initial pages when uncontrolled and `enableMultiPages` is true |
 | `onPagesChange` | `(pages: string[], activePageIndex: number) => void` | — | Fires when any page changes while multi-page mode is enabled |
+| `enableComments` | `boolean` | `false` | When true, comment chrome and thread state are enabled. See [Comments](#comments) |
+| `commentAuthor` | `CommentAuthor` | — | `{ userId, userName }` identity for posting messages in the comment panel |
+| `comments` | `CommentThread[]` | — | Controlled comment thread array (metadata separate from document HTML) |
+| `defaultComments` | `CommentThread[]` | `[]` | Initial threads when uncontrolled |
+| `onCommentsChange` | `(threads: CommentThread[]) => void` | — | Fires when comment threads change |
 | `toolbarCustomization` | `ToolbarCustomizationPersistence` | — | Host load/save for icon-toolbar layout. Omit to persist in `localStorage`. See [Customize toolbar](#customize-toolbar) |
 | `darkMode` | `boolean` | `false` | Initial chrome theme when nothing is persisted (`true` = dark). See [Dark mode](#dark-mode) |
 | `darkModePersistence` | `DarkModePersistence` | — | Host load/save for the chrome theme. Omit to persist in `localStorage`. See [Dark mode](#dark-mode) |
@@ -445,6 +450,48 @@ export function MultiPageEditor() {
           })
         }
       }}
+    />
+  )
+}
+```
+
+### Comments
+
+Set `enableComments` to add lightweight comment threads anchored in the document with `data-comment-thread` markers. Thread metadata (`CommentThread[]`) is separate from document HTML — use `comments` / `onCommentsChange` to persist it.
+
+- **Add comment** (toolbar Insert group and Insert → Comment) wraps the selection or marks the selected image, then opens the comment panel.
+- **Show/Hide comments** (View menu and View icon group) toggles highlight styling only; thread data and anchors remain.
+- **`commentAuthor`** (`{ userId, userName }`) is required to enable Post in the panel.
+
+**Sanitized HTML:** export `stripCommentAnchors` from the package to remove comment-only spans and attributes for published document HTML:
+
+```tsx
+import { Editor, stripCommentAnchors } from 'commspliant-html-editor'
+
+// Editor HTML may include anchors:
+// <p>Price was <span data-comment-thread="cmt_…">£150</span> last week.</p>
+
+const clean = stripCommentAnchors(html)
+// <p>Price was £150 last week.</p>
+```
+
+**Read-only documents:** with `readOnly` and `enableComments`, users can still add and reply to comments. Anchor DOM updates fire `onCommentsChange` only — not `onChange`. Supply `value` and `comments` on load; the editor re-applies anchors for highlights.
+
+```tsx
+import { useState } from 'react'
+import { Editor, type CommentThread } from 'commspliant-html-editor'
+
+export function ReviewEditor() {
+  const [comments, setComments] = useState<CommentThread[]>([])
+
+  return (
+    <Editor
+      value="<p>Immutable version</p>"
+      readOnly
+      enableComments
+      commentAuthor={{ userId: 'u1', userName: 'Reviewer' }}
+      comments={comments}
+      onCommentsChange={setComments}
     />
   )
 }

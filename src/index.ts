@@ -1,4 +1,5 @@
 export { Editor } from './components/Editor'
+export { stripCommentAnchors } from './core/comments/sanitize'
 export {
   PAGE_SEPARATOR,
   joinPagesToHtml,
@@ -7,6 +8,10 @@ export {
 export type { PageAtRuleApply, PageSizePreset } from './core/pageAtRule'
 export type {
   AllowedChrome,
+  CommentAnchor,
+  CommentAuthor,
+  CommentMessage,
+  CommentThread,
   CustomAction,
   CustomActionApi,
   CustomActionSelection,

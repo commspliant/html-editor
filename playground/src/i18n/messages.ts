@@ -41,6 +41,11 @@ export type PlaygroundMessages = {
   multiPagesAria: string
   multiPagesOff: string
   multiPagesOn: string
+  commentsAria: string
+  commentsOff: string
+  commentsOn: string
+  commentsHint: string
+  commentsThreadCount: string
   customActionsAria: string
   customActionsOn: string
   customActionsOff: string
@@ -102,6 +107,7 @@ export type PlaygroundMessages = {
   autoSaveExampleBody: string
   fileCallbacksExampleBody: string
   multiPagesExampleBody: string
+  commentsExampleBody: string
   customActionsExampleBody: string
   menuExampleBody: string
   borderExampleBody: string
@@ -186,6 +192,11 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     multiPagesAria: 'Multi-page editing',
     multiPagesOff: 'Single page',
     multiPagesOn: 'Multi-page',
+    commentsAria: 'Comments',
+    commentsOff: 'Off',
+    commentsOn: 'On',
+    commentsHint: 'Select text or an image, then Add comment.',
+    commentsThreadCount: '{count} comment thread(s)',
     customActionsAria: 'Custom actions',
     customActionsOn: 'On',
     customActionsOff: 'Off',
@@ -254,6 +265,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'By default, File → Save and Open use the built-in local HTML file picker. Pass onSave and/or onOpen to delegate to the host instead. The two props are independent. HTML file drag-drop is unchanged.',
     multiPagesExampleBody:
       'Set enableMultiPages to edit multiple independent HTML pages in visual mode. Host onSave, onOpen, and onAutoSave receive all pages as a string array. Built-in file save/open still operate on the focused page only. HTML source mode shows all pages separated by <!-- wysiwyg-page-separator -->.',
+    commentsExampleBody:
+      'Set enableComments to add comment threads anchored with data-comment-thread markers. Pass commentAuthor for posting identity and onCommentsChange to persist CommentThread[] separately from document HTML. Use stripCommentAnchors(html) for sanitized publish HTML. In readOnly mode, comment operations fire onCommentsChange only.',
     customActionsExampleBody:
       'Pass a customActions array to add host buttons, menu items, or both. Labels and tooltips are your copy — the library does not translate them.',
     menuExampleBody:
@@ -348,6 +361,11 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     multiPagesAria: 'Edición multipágina',
     multiPagesOff: 'Una página',
     multiPagesOn: 'Multipágina',
+    commentsAria: 'Comentarios',
+    commentsOff: 'Desactivado',
+    commentsOn: 'Activado',
+    commentsHint: 'Selecciona texto o una imagen y usa Añadir comentario.',
+    commentsThreadCount: '{count} hilo(s) de comentarios',
     customActionsAria: 'Acciones personalizadas',
     customActionsOn: 'Activado',
     customActionsOff: 'Desactivado',
@@ -416,6 +434,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Por defecto, Archivo → Guardar y Abrir usan el selector de archivo HTML integrado. Pasa onSave y/o onOpen para delegar en el anfitrión. Las dos propiedades son independientes. Soltar un archivo HTML no cambia.',
     multiPagesExampleBody:
       'Con enableMultiPages puedes editar varias páginas HTML independientes en modo visual. Los callbacks del anfitrión onSave, onOpen y onAutoSave reciben todas las páginas como un array de cadenas. Guardar/abrir integrado sigue operando solo en la página activa. El modo HTML muestra todas las páginas separadas por <!-- wysiwyg-page-separator -->.',
+    commentsExampleBody:
+      'Con enableComments puedes añadir hilos de comentarios anclados con data-comment-thread. Pasa commentAuthor para la identidad al publicar y onCommentsChange para persistir CommentThread[] aparte del HTML del documento. Usa stripCommentAnchors(html) para HTML publicado sin anclajes. En modo readOnly, las operaciones de comentarios solo disparan onCommentsChange.',
     customActionsExampleBody:
       'Pasa un array customActions para añadir botones y elementos de menú de la aplicación. Las etiquetas y descripciones emergentes son tu texto: la biblioteca no las traduce.',
     menuExampleBody:

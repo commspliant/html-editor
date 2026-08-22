@@ -23,6 +23,7 @@ import {
   type ToolbarMenuEntry,
   type ToolbarSubmenuEntry,
 } from './types'
+import { isChromeItemLocked, isMenuTriggerLocked, type ChromeLockOptions } from './commentsChrome'
 import styles from './Toolbar.module.css'
 
 type MenuVariant = 'dropdown' | 'overlay'
@@ -61,6 +62,7 @@ type MenuBarProps = {
   commands: EditorCommands
   queries: EditorQueries
   disabled?: boolean
+  chromeLock?: ChromeLockOptions
   compact?: boolean
   openMenuId: string | null
   onOpenMenuIdChange: (id: string | null) => void
@@ -72,6 +74,7 @@ export function MenuBar({
   commands,
   queries,
   disabled,
+  chromeLock,
   compact,
   openMenuId,
   onOpenMenuIdChange,
@@ -151,6 +154,7 @@ export function MenuBar({
           commands={commands}
           queries={queries}
           disabled={disabled}
+          chromeLock={chromeLock}
           variant={variant}
           open={
             variant === 'overlay'
@@ -185,7 +189,7 @@ export function MenuBar({
             aria-haspopup="dialog"
             aria-expanded={overlayOpen}
             aria-label={t('menuHamburgerAria')}
-            disabled={disabled}
+            disabled={disabled || (chromeLock?.readOnly && !chromeLock?.enableComments)}
             onClick={() => {
               if (overlayOpen) {
                 closeOverlay()
@@ -283,6 +287,7 @@ type ToolbarMenuProps = {
   commands: EditorCommands
   queries: EditorQueries
   disabled?: boolean
+  chromeLock?: ChromeLockOptions
   variant: MenuVariant
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -296,6 +301,7 @@ function ToolbarMenu({
   commands,
   queries,
   disabled,
+  chromeLock,
   variant,
   open,
   onOpenChange,
@@ -351,7 +357,7 @@ function ToolbarMenu({
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={resolveChromeAria(t, def)}
-        disabled={disabled}
+        disabled={disabled || (chromeLock ? isMenuTriggerLocked(def.id, chromeLock) : false)}
         onClick={() => onOpenChange(!open)}
       >
         {resolveChromeLabel(t, def)}
@@ -364,6 +370,7 @@ function ToolbarMenu({
             commands={commands}
             queries={queries}
             disabled={disabled}
+            chromeLock={chromeLock}
             variant={variant}
             onClose={closeMenu}
             openSubmenuId={openSubmenuId}
@@ -381,6 +388,7 @@ type MenuEntriesProps = {
   commands: EditorCommands
   queries: EditorQueries
   disabled?: boolean
+  chromeLock?: ChromeLockOptions
   variant: MenuVariant
   onClose: () => void
   openSubmenuId?: string | null
@@ -393,6 +401,7 @@ function MenuEntries({
   commands,
   queries,
   disabled,
+  chromeLock,
   variant,
   onClose,
   openSubmenuId,
@@ -414,6 +423,7 @@ function MenuEntries({
               commands={commands}
               queries={queries}
               disabled={disabled}
+              chromeLock={chromeLock}
               variant={variant}
               onClose={onClose}
               open={openSubmenuId === entry.submenu}
@@ -430,6 +440,7 @@ function MenuEntries({
             commands={commands}
             queries={queries}
             disabled={disabled}
+            chromeLock={chromeLock}
             onClose={onClose}
           />
         )
@@ -443,10 +454,11 @@ type MenuItemButtonProps = {
   commands: EditorCommands
   queries: EditorQueries
   disabled?: boolean
+  chromeLock?: ChromeLockOptions
   onClose: () => void
 }
 
-function MenuItemButton({ item, commands, queries, disabled, onClose }: MenuItemButtonProps) {
+function MenuItemButton({ item, commands, queries, disabled, chromeLock, onClose }: MenuItemButtonProps) {
   const t = useT()
   if (!item.command) return null
   const Icon = item.icon
@@ -460,7 +472,11 @@ function MenuItemButton({ item, commands, queries, disabled, onClose }: MenuItem
       role={role}
       className={styles.menuItem}
       aria-checked={checked}
-      disabled={disabled || unavailable}
+      disabled={
+        disabled ||
+        (chromeLock ? isChromeItemLocked(item.id, chromeLock) : false) ||
+        unavailable
+      }
       onClick={() => {
         onClose()
         runEditorCommand(commands, command)
@@ -478,6 +494,7 @@ type SubmenuItemProps = {
   commands: EditorCommands
   queries: EditorQueries
   disabled?: boolean
+  chromeLock?: ChromeLockOptions
   variant: MenuVariant
   onClose: () => void
   open: boolean
@@ -490,6 +507,7 @@ function SubmenuItem({
   commands,
   queries,
   disabled,
+  chromeLock,
   variant,
   onClose,
   open,
@@ -551,7 +569,7 @@ function SubmenuItem({
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={resolveChromeAria(t, def)}
-        disabled={disabled || unavailable}
+        disabled={disabled || unavailable || (chromeLock?.readOnly && !chromeLock?.enableComments)}
         onClick={() => onOpenChange(overlay ? !open : true)}
         onKeyDown={onTriggerKeyDown}
       >
@@ -580,6 +598,7 @@ function SubmenuItem({
               commands={commands}
               queries={queries}
               disabled={disabled}
+              chromeLock={chromeLock}
               variant={variant}
               onClose={onClose}
               openSubmenuId={openChildId}

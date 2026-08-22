@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { EditorCommands, EditorQueries } from '../core/commandTypes'
 import type { ToolbarPosition } from '../types'
+import type { ChromeLockOptions } from './commentsChrome'
 import { IconNav } from './IconNav'
 import { MenuBar } from './MenuBar'
 import type { ToolbarCatalog, ToolbarLayout } from './types'
@@ -12,6 +13,7 @@ export type EditorToolbarProps = {
   commands: EditorCommands
   queries: EditorQueries
   disabled?: boolean
+  chromeLock?: ChromeLockOptions
   menuVisible?: boolean
   toolbarVisible?: boolean
   compact?: boolean
@@ -24,6 +26,7 @@ export function EditorToolbar({
   commands,
   queries,
   disabled,
+  chromeLock,
   menuVisible = true,
   toolbarVisible = true,
   compact,
@@ -48,6 +51,7 @@ export function EditorToolbar({
           commands={commands}
           queries={queries}
           disabled={disabled}
+          chromeLock={chromeLock}
           compact={compact}
           openMenuId={openMenuId}
           onOpenMenuIdChange={setOpenMenuId}
@@ -60,6 +64,7 @@ export function EditorToolbar({
           commands={commands}
           queries={queries}
           disabled={disabled}
+          chromeLock={chromeLock}
         />
       ) : null}
     </div>
