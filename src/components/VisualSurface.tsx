@@ -7,6 +7,7 @@ import {
 } from 'react'
 import { syncPageHolderBackground } from '../core/page'
 import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
+import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import { useT } from '../i18n/LocaleProvider'
 import styles from './Editor.module.css'
 
@@ -43,8 +44,9 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
     useLayoutEffect(() => {
       const el = innerRef.current
       if (!el) return
-      if (el.innerHTML !== html) {
-        el.innerHTML = html
+      const editableHtml = stripPageAtRuleFromHtml(html)
+      if (el.innerHTML !== editableHtml) {
+        el.innerHTML = editableHtml
       }
       syncPageHolderBackground(el)
       syncPageCanvasLayout(el, html)

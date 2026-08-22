@@ -10,6 +10,16 @@ import {
 import { emptyPageAtRuleApply } from './pageAtRule'
 
 describe('pageCanvasLayout', () => {
+  it('resolves preset page sizes with portrait orientation', () => {
+    expect(
+      resolvePageCanvasSize({
+        ...emptyPageAtRuleApply(),
+        sizePreset: 'A4',
+        orientation: 'portrait',
+      }),
+    ).toEqual(PAGE_SIZE_PRESETS.A4)
+  })
+
   it('resolves preset page sizes', () => {
     expect(
       resolvePageCanvasSize({ ...emptyPageAtRuleApply(), sizePreset: 'A4' }),
@@ -68,7 +78,7 @@ describe('pageCanvasLayout', () => {
     const html =
       '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
     const el = document.createElement('div')
-    el.innerHTML = html
+    el.innerHTML = '<div data-page><p>Hello</p></div>'
 
     syncPageCanvasLayout(el, html)
 
@@ -77,7 +87,7 @@ describe('pageCanvasLayout', () => {
     expect(el.style.minHeight).toBe('297mm')
     expect(el.style.paddingTop).toBe('20pt')
     expect(el.querySelector('[data-page] p')?.textContent).toBe('Hello')
-    expect(el.querySelector('style[data-page-at-rule]')?.textContent).toContain('size: A4')
+    expect(el.querySelector('style[data-page-at-rule]')).toBeNull()
   })
 
   it('syncPageCanvasLayout clears styles for auto page size', () => {
@@ -97,7 +107,7 @@ describe('pageCanvasLayout', () => {
     expect(el.style.paddingTop).toBe('')
   })
 
-  it('syncPageCanvasLayout re-upserts @page style when DOM lost it', () => {
+  it('syncPageCanvasLayout sizes canvas from pageHtml when DOM has no style tag', () => {
     const pageHtml =
       '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
     const el = document.createElement('div')
@@ -107,6 +117,6 @@ describe('pageCanvasLayout', () => {
 
     expect(el.getAttribute(PAGE_SIZED_ATTR)).toBe('')
     expect(el.style.width).toBe('210mm')
-    expect(el.querySelector('style[data-page-at-rule]')?.textContent).toContain('size: A4')
+    expect(el.querySelector('style[data-page-at-rule]')).toBeNull()
   })
 })

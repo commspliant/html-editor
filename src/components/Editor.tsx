@@ -807,13 +807,6 @@ export function Editor({
 
   useLayoutEffect(() => {
     if (mode !== 'visual') return
-    const root = visualRootRef.current
-    if (!root) return
-    syncPageCanvasLayout(root, activePageHtml)
-  }, [mode, activePageHtml, activePageIndex, enableMultiPages])
-
-  useLayoutEffect(() => {
-    if (mode !== 'visual') return
     const workspace = workspaceRef.current
     if (!workspace) return
 
@@ -931,16 +924,22 @@ export function Editor({
 
   const recordVisualHtml = useCallback(
     (body: string, coalesce: boolean) => {
-      const preservedBody = preservePageAtRuleInBody(body, htmlRef.current)
       return recordHtml(
         prependFontStylesheets(
-          preservedBody,
-          collectDocumentFontStylesheets(preservedBody, htmlRef.current, fontFacesRef.current),
+          body,
+          collectDocumentFontStylesheets(body, htmlRef.current, fontFacesRef.current),
         ),
         coalesce,
       )
     },
     [recordHtml],
+  )
+
+  const recordVisualInputHtml = useCallback(
+    (body: string, coalesce: boolean) => {
+      return recordVisualHtml(preservePageAtRuleInBody(body, htmlRef.current), coalesce)
+    },
+    [recordVisualHtml],
   )
 
   const serializePageBody = useCallback((body: string, previousPageHtml: string) => {
@@ -958,7 +957,8 @@ export function Editor({
     return currentPages.map((previous, index) => {
       const flushed = multi?.flushPageHtml(index)
       if (flushed === null) return previous
-      return serializePageBody(flushed, previous)
+      const body = preservePageAtRuleInBody(flushed, extractFontStylesheets(previous).body)
+      return serializePageBody(body, previous)
     })
   }, [serializePageBody])
 
@@ -975,21 +975,26 @@ export function Editor({
   const recordVisualHtmlFromRoot = useCallback(
     (root: HTMLElement, coalesce: boolean) => {
       if (!enableMultiPagesRef.current) {
-        recordVisualHtml(root.innerHTML, coalesce)
+        recordVisualHtml(preservePageAtRuleInBody(root.innerHTML, htmlRef.current), coalesce)
         return
       }
       const container = multiPageVisualRef.current?.getContainer()
       if (!container) {
-        recordVisualHtml(root.innerHTML, coalesce)
+        recordVisualHtml(preservePageAtRuleInBody(root.innerHTML, htmlRef.current), coalesce)
         return
       }
       for (let index = 0; index < splitPagesFromHtml(htmlRef.current).length; index += 1) {
         if (queryPageSurface(container, index) === root) {
-          recordPageVisualHtml(index, root.innerHTML, coalesce)
+          const previous = splitPagesFromHtml(htmlRef.current)[index] ?? ''
+          recordPageVisualHtml(
+            index,
+            preservePageAtRuleInBody(root.innerHTML, extractFontStylesheets(previous).body),
+            coalesce,
+          )
           return
         }
       }
-      recordVisualHtml(root.innerHTML, coalesce)
+      recordVisualHtml(preservePageAtRuleInBody(root.innerHTML, htmlRef.current), coalesce)
     },
     [recordPageVisualHtml, recordVisualHtml],
   )
@@ -1687,12 +1692,22 @@ export function Editor({
       if (!root) return
       restoreVisualRange(root)
       setPageDialog((prev) => ({ ...prev, open: false }))
-      if (!applyPagePropertiesInDocument(root, draft)) {
+      const currentPageHtml = enableMultiPagesRef.current
+        ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+        : htmlRef.current
+      const atRuleChanged =
+        JSON.stringify(draft.atRule) !==
+        JSON.stringify(queryPageAtRule(extractFontStylesheets(currentPageHtml).body))
+      const result = applyPagePropertiesInDocument(root, draft)
+      if (atRuleChanged) {
+        syncPageCanvasLayout(root, result.pageHtml)
+      }
+      if (!result.changed && !atRuleChanged) {
         captureSelection()
         refreshMarkState()
         return
       }
-      recordVisualHtmlFromRoot(root, false)
+      recordVisualHtml(extractFontStylesheets(result.pageHtml).body, false)
       captureSelection()
       refreshMarkState()
     },
@@ -1985,7 +2000,10 @@ export function Editor({
       return htmlRef.current
     }
     if (modeRef.current === 'visual' && visualRootRef.current) {
-      const flushed = visualRootRef.current.innerHTML
+      const flushed = preservePageAtRuleInBody(
+        visualRootRef.current.innerHTML,
+        extractFontStylesheets(htmlRef.current).body,
+      )
       const serialized = prependFontStylesheets(
         flushed,
         collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
@@ -2296,10 +2314,17 @@ export function Editor({
         if (modeRef.current !== 'visual') return
         const root = visualRootRef.current
         if (root) restoreVisualRange(root)
+        const pageHtml = enableMultiPagesRef.current
+          ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+          : htmlRef.current
+        const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
         setPageDialog({
           open: true,
           tab: tab ?? 'font',
-          value: root ? queryPageProperties(root) : emptyPagePropertiesApply(),
+          value: {
+            ...fromDom,
+            atRule: queryPageAtRule(extractFontStylesheets(pageHtml).body),
+          },
         })
       },
       applyPageProperties: (draft: PagePropertiesApply) => {
@@ -2966,7 +2991,14 @@ export function Editor({
             visualRootRef.current = surface
           }
         }}
-        onPageChange={(index, next) => recordPageVisualHtml(index, next, true)}
+        onPageChange={(index, next) => {
+          const previous = splitPagesFromHtml(htmlRef.current)[index] ?? ''
+          recordPageVisualHtml(
+            index,
+            preservePageAtRuleInBody(next, extractFontStylesheets(previous).body),
+            true,
+          )
+        }}
         onBeforeInput={handleVisualBeforeInput}
         onPointerDown={(event) => {
           if (event.currentTarget instanceof HTMLDivElement) {
@@ -2983,7 +3015,7 @@ export function Editor({
       <VisualSurface
         ref={visualRootRef}
         html={extractFontStylesheets(html).body}
-        onChange={(next) => recordVisualHtml(next, true)}
+        onChange={(next) => recordVisualInputHtml(next, true)}
         onBeforeInput={handleVisualBeforeInput}
         onPointerDown={handleVisualPointerDown}
         onMouseUp={handleVisualMouseUp}
@@ -3163,8 +3195,12 @@ export function Editor({
           onResetAtRule={() => {
             const root = visualRootRef.current
             if (!root || modeRef.current !== 'visual') return
-            if (!resetPageAtRuleInDocument(root)) return
-            recordVisualHtmlFromRoot(root, false)
+            const pageHtml = enableMultiPagesRef.current
+              ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+              : extractFontStylesheets(htmlRef.current).body
+            const result = resetPageAtRuleInDocument(root, pageHtml)
+            if (!result.changed) return
+            recordVisualHtml(extractFontStylesheets(result.pageHtml).body, false)
             setPageDialog((prev) => ({
               ...prev,
               value: {
