@@ -266,7 +266,7 @@ export function App() {
   const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
   const [fileCallbacksMode, setFileCallbacksMode] = useState<FileCallbacksMode>('local')
   const [multiPagesEnabled, setMultiPagesEnabled] = useState(false)
-  const [commentsEnabled, setCommentsEnabled] = useState(true)
+  const [commentsEnabled, setCommentsEnabled] = useState(false)
   const [comments, setComments] = useState<CommentThread[]>([])
   const [lastHostSaveAt, setLastHostSaveAt] = useState<number | null>(null)
   const [hostDocumentStored, setHostDocumentStored] = useState(() => playgroundDocumentHtml !== null)

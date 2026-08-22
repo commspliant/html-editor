@@ -214,3 +214,29 @@ export function commentThreadElementAtPoint(
   if (marked instanceof HTMLElement && isInside(root, marked)) return marked
   return null
 }
+
+export function selectCommentThreadAnchor(root: HTMLElement, threadId: string): boolean {
+  const el = root.querySelector(`[${COMMENT_THREAD_ATTR}="${threadId}"]`)
+  if (!(el instanceof HTMLElement)) return false
+
+  const sel = window.getSelection()
+  if (!sel) return false
+
+  const range = document.createRange()
+  if (el instanceof HTMLImageElement) {
+    range.selectNode(el)
+  } else {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+    const firstText = walker.nextNode()
+    if (firstText instanceof Text) {
+      range.setStart(firstText, 0)
+      range.collapse(true)
+    } else {
+      range.selectNodeContents(el)
+      range.collapse(true)
+    }
+  }
+  sel.removeAllRanges()
+  sel.addRange(range)
+  return true
+}

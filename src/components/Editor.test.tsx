@@ -2578,7 +2578,7 @@ describe('Editor comments', () => {
     await user.click(screen.getByRole('button', { name: 'Add comment on selection' }))
 
     expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
-    await user.type(screen.getByPlaceholderText('Write a reply…'), 'Please review')
+    await user.type(screen.getByPlaceholderText('Write a comment…'), 'Please review')
     await user.click(screen.getByRole('button', { name: 'Post' }))
 
     expect(onCommentsChange).toHaveBeenCalled()
@@ -2586,6 +2586,25 @@ describe('Editor comments', () => {
     expect(threads?.[0]?.messages[0]?.message).toBe('Please review')
     expect(threads?.[0]?.messages[0]?.userName).toBe('Alice')
     expect(visual.innerHTML).toContain('data-comment-thread')
+  })
+
+  it('keeps the comment panel open when adding a comment from Insert menu', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Comment' }))
+
+    expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Write a comment…')).toHaveFocus()
   })
 
   it('supports read-only commenting without onChange', async () => {
@@ -2606,12 +2625,32 @@ describe('Editor comments', () => {
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Add comment on selection' }))
-    await user.type(screen.getByPlaceholderText('Write a reply…'), 'Review note')
+    await user.type(screen.getByPlaceholderText('Write a comment…'), 'Review note')
     await user.click(screen.getByRole('button', { name: 'Post' }))
 
     expect(onCommentsChange).toHaveBeenCalled()
     expect(onChange).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Bold' })).toBeDisabled()
+  })
+
+  it('starts with comments hidden when defaultCommentsVisible is false', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        defaultCommentsVisible={false}
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Show comments' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Hide comments' })).toBeNull()
+
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'Show comments' }))
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Hide comments' })).toBeInTheDocument()
   })
 
   it('toggles comment visibility without removing thread data', async () => {
@@ -2629,7 +2668,7 @@ describe('Editor comments', () => {
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     await selectVisualText(visual, 0, 5)
     await user.click(screen.getByRole('button', { name: 'Add comment on selection' }))
-    await user.type(screen.getByPlaceholderText('Write a reply…'), 'Still here')
+    await user.type(screen.getByPlaceholderText('Write a comment…'), 'Still here')
     await user.click(screen.getByRole('button', { name: 'Post' }))
 
     const threads = onCommentsChange.mock.calls.at(-1)?.[0]
@@ -2639,5 +2678,132 @@ describe('Editor comments', () => {
     await user.click(screen.getByRole('menuitemcheckbox', { name: 'Hide comments' }))
     expect(screen.queryByRole('menuitemcheckbox', { name: 'Hide comments' })).toBeNull()
     expect(threads?.[0]?.messages[0]?.message).toBe('Still here')
+  })
+
+  it('does not show the comment panel when the caret is outside a comment', async () => {
+    const threads = [
+      {
+        id: 'cmt_existing',
+        anchor: { type: 'text' as const, text: 'Hello', start: 0, end: 5 },
+        messages: [{ id: 'msg_1', userId: 'u1', userName: 'Alice', message: 'Note', createdAt: '2026-01-01T12:00:00.000Z' }],
+      },
+    ]
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        comments={threads}
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 6, 6)
+
+    expect(screen.queryByRole('dialog', { name: 'Comment' })).toBeNull()
+  })
+
+  it('shows the comment panel when the caret is inside a comment', async () => {
+    const threads = [
+      {
+        id: 'cmt_existing',
+        anchor: { type: 'text' as const, text: 'Hello', start: 0, end: 5 },
+        messages: [{ id: 'msg_1', userId: 'u1', userName: 'Alice', message: 'Note', createdAt: '2026-01-01T12:00:00.000Z' }],
+      },
+    ]
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        comments={threads}
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 2, 2)
+
+    expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
+    expect(screen.getByText('Note')).toBeInTheDocument()
+  })
+
+  it('closes the comment panel when clicking outside the comment', async () => {
+    const user = userEvent.setup()
+    const threads = [
+      {
+        id: 'cmt_existing',
+        anchor: { type: 'text' as const, text: 'Hello', start: 0, end: 5 },
+        messages: [{ id: 'msg_1', userId: 'u1', userName: 'Alice', message: 'Note', createdAt: '2026-01-01T12:00:00.000Z' }],
+      },
+    ]
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        comments={threads}
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 2, 2)
+    expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
+
+    await user.pointer({ keys: '[MouseLeft>]', target: visual, offset: 10 })
+    await user.pointer({ keys: '[/MouseLeft]' })
+    await selectVisualText(visual, 8, 8)
+
+    expect(screen.queryByRole('dialog', { name: 'Comment' })).toBeNull()
+  })
+
+  it('closes the comment panel after adding a comment and clicking away', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+    await user.click(screen.getByRole('button', { name: 'Add comment on selection' }))
+    expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
+
+    await user.pointer({ keys: '[MouseLeft>]', target: visual, offset: 10 })
+    await user.pointer({ keys: '[/MouseLeft]' })
+    await selectVisualText(visual, 8, 8)
+    expect(screen.queryByRole('dialog', { name: 'Comment' })).toBeNull()
+  })
+
+  it('keeps the comment panel open while replying in the panel', async () => {
+    const user = userEvent.setup()
+    const threads = [
+      {
+        id: 'cmt_existing',
+        anchor: { type: 'text' as const, text: 'Hello', start: 0, end: 5 },
+        messages: [{ id: 'msg_1', userId: 'u1', userName: 'Alice', message: 'Note', createdAt: '2026-01-01T12:00:00.000Z' }],
+      },
+    ]
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        comments={threads}
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 2, 2)
+    expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
+
+    const reply = screen.getByPlaceholderText('Write a reply…')
+    await user.click(reply)
+    await user.type(reply, 'Follow up')
+
+    expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
+    expect(reply).toHaveValue('Follow up')
   })
 })

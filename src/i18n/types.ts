@@ -459,6 +459,7 @@ export type Messages = {
   hideComments: string
   toggleCommentsVisibleAria: string
   commentPanelTitle: string
+  commentPlaceholder: string
   commentReplyPlaceholder: string
   commentPost: string
   commentEmpty: string

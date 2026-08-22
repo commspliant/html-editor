@@ -141,6 +141,28 @@ const ENTRIES: MenuEntry[] = [
   },
 ]
 
+function getVisibleEntries(kind: ContextMenuKind, flags: ContextMenuFlags): MenuEntry[] {
+  const result: MenuEntry[] = []
+  let pendingSeparator = false
+
+  for (const entry of ENTRIES) {
+    if (entry.type === 'separator') {
+      if (result.length > 0) {
+        pendingSeparator = true
+      }
+      continue
+    }
+    if (!entry.enabled(kind, flags)) continue
+    if (pendingSeparator) {
+      result.push({ type: 'separator' })
+      pendingSeparator = false
+    }
+    result.push(entry)
+  }
+
+  return result
+}
+
 function itemSelector(): string {
   return '[role="menuitem"]:not(:disabled)'
 }
@@ -211,6 +233,8 @@ export function ContextMenu({
 
   if (!open) return null
 
+  const visibleEntries = getVisibleEntries(kind, { inTable, canMergeCells, canUnmergeCells })
+
   const onMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
     const items = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>(itemSelector()) ?? [])]
@@ -237,11 +261,10 @@ export function ContextMenu({
       <span id={labelId} hidden>
         {t('contextMenuAria')}
       </span>
-      {ENTRIES.map((entry, index) => {
+      {visibleEntries.map((entry, index) => {
         if (entry.type === 'separator') {
           return <div key={`separator-${index}`} role="separator" className={styles.separator} />
         }
-        const enabled = entry.enabled(kind, { inTable, canMergeCells, canUnmergeCells })
         return (
           <button
             key={entry.command}
@@ -249,9 +272,7 @@ export function ContextMenu({
             role="menuitem"
             className={styles.item}
             aria-label={t(entry.ariaKey)}
-            disabled={!enabled}
             onClick={() => {
-              if (!enabled) return
               onClose()
               runEditorCommand(commands, entry.command)
             }}

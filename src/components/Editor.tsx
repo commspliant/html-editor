@@ -109,6 +109,7 @@ import { insertBookmarkInDocument, listBookmarks } from '../core/bookmark'
 import {
   applyCommentAnchor,
   commentThreadElementAtPoint,
+  selectCommentThreadAnchor,
   setCommentHighlightsVisible,
   snapshotCommentAnchor,
   syncCommentAnchorsToDom,
@@ -309,6 +310,7 @@ export function Editor({
   defaultPages,
   onPagesChange,
   enableComments = false,
+  defaultCommentsVisible = true,
   commentAuthor,
   comments: commentsProp,
   defaultComments = [],
@@ -337,7 +339,7 @@ export function Editor({
     defaultValue: defaultFullscreen,
     onChange: onFullscreenChange,
   })
-  const [commentsVisible, setCommentsVisible] = useState(true)
+  const [commentsVisible, setCommentsVisible] = useState(defaultCommentsVisible)
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [commentThreads, setCommentThreadsState] = useControllableState({
     value: commentsProp,
@@ -345,6 +347,7 @@ export function Editor({
     onChange: onCommentsChange,
   })
   const visualRootRef = useRef<HTMLDivElement | null>(null)
+  const commentPanelRef = useRef<HTMLDivElement | null>(null)
   const workspaceRef = useRef<HTMLDivElement | null>(null)
   const multiPageVisualRef = useRef<MultiPageVisualSurfaceHandle>(null)
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null)
@@ -1314,6 +1317,14 @@ export function Editor({
         refreshMarkState()
         setSelectedImage(imageAtSelection(root))
         refreshTableState(root)
+        if (enableCommentsRef.current && commentsVisibleRef.current) {
+          if (!commentPanelRef.current?.contains(document.activeElement)) {
+            const snapshot = selectionRef.current
+            if (snapshot) {
+              setActiveThreadId(threadIdAtSelection(root, snapshot))
+            }
+          }
+        }
       })
     }
     document.addEventListener('selectionchange', onSelectionChange)
@@ -1325,6 +1336,25 @@ export function Editor({
       }
     }
   }, [captureSelection, clearPendingMarksIfSelectionMoved, refreshMarkState, refreshTableState])
+
+  useEffect(() => {
+    if (!enableComments || mode !== 'visual' || !commentsVisible) {
+      setActiveThreadId(null)
+    }
+  }, [enableComments, mode, commentsVisible])
+
+  useEffect(() => {
+    if (!activeThreadId) return
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (commentPanelRef.current?.contains(target)) return
+      const root = visualRootRef.current
+      if (root && commentThreadElementAtPoint(root, target)) return
+      setActiveThreadId(null)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [activeThreadId])
 
   useEffect(() => {
     if (mode !== 'html') return
@@ -2557,10 +2587,11 @@ export function Editor({
         if (!anchor) return
         const thread = createCommentThread(anchor)
         if (!applyCommentAnchor(root, thread.id, snapshot)) return
+        selectCommentThreadAnchor(root, thread.id)
+        captureSelection()
         recordCommentAnchorsFromRoot(root, false)
         setCommentThreadsState([...commentThreadsRef.current, thread])
         setActiveThreadId(thread.id)
-        captureSelection()
       },
       toggleCommentsVisible: () => {
         setCommentsVisible((prev) => {
@@ -2579,7 +2610,13 @@ export function Editor({
       isCommentsEnabled: () => enableCommentsRef.current,
       getCommentThreads: () => commentThreadsRef.current,
       setCommentThreads: (threads) => setCommentThreadsState(threads),
-      openCommentThread: (id) => setActiveThreadId(id),
+      openCommentThread: (id) => {
+        const root = visualRootRef.current
+        if (!root || modeRef.current !== 'visual') return
+        if (!selectCommentThreadAnchor(root, id)) return
+        captureSelection()
+        setActiveThreadId(id)
+      },
       isContentLocked: () => contentLockedRef.current,
       isLink: () => linkActiveRef.current,
       isImageSelected: () => modeRef.current === 'visual' && selectedImageRef.current !== null,
@@ -3289,6 +3326,7 @@ export function Editor({
         ) : null}
         {enableComments && commentsVisible && activeCommentThread ? (
           <CommentPanel
+            panelRef={commentPanelRef}
             thread={activeCommentThread}
             locale={locale}
             disabled={disabled}

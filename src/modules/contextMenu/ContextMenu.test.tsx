@@ -128,12 +128,12 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Link' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Font properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Paragraph properties' })).toBeEnabled()
-    expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Table properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Cell properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Row properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Merge selected cells' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Split merged cells' })).toBeDisabled()
+    expect(screen.queryByRole('menuitem', { name: 'Image properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Table properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Cell properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Row properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Merge selected cells' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Split merged cells' })).not.toBeInTheDocument()
   })
 
   it('enables clipboard and image properties for an image', () => {
@@ -142,11 +142,11 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Cut' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Copy' })).toBeEnabled()
-    expect(screen.getByRole('menuitem', { name: 'Link' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Font properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Paragraph properties' })).toBeDisabled()
+    expect(screen.queryByRole('menuitem', { name: 'Link' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Font properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Paragraph properties' })).not.toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeEnabled()
-    expect(screen.getByRole('menuitem', { name: 'Table properties' })).toBeDisabled()
+    expect(screen.queryByRole('menuitem', { name: 'Table properties' })).not.toBeInTheDocument()
   })
 
   it('enables table properties when the caret is in a table', () => {
@@ -155,9 +155,9 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Table properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Cell properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Row properties' })).toBeEnabled()
-    expect(screen.getByRole('menuitem', { name: 'Merge selected cells' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Split merged cells' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeDisabled()
+    expect(screen.queryByRole('menuitem', { name: 'Merge selected cells' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Split merged cells' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Image properties' })).not.toBeInTheDocument()
   })
 
   it('enables image and table properties for an image inside a table', () => {
@@ -180,19 +180,31 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Split merged cells' })).toBeEnabled()
   })
 
-  it('disables clipboard and image properties at the caret', () => {
+  it('hides clipboard and image properties at the caret', () => {
     renderMenu('caret')
 
-    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Cut' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Copy' })).toBeDisabled()
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Cut' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Copy' })).not.toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Link' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Font properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Paragraph properties' })).toBeEnabled()
-    expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Table properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Cell properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Row properties' })).toBeDisabled()
+    expect(screen.queryByRole('menuitem', { name: 'Image properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Table properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Cell properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Row properties' })).not.toBeInTheDocument()
+  })
+
+  it('renders separators only between visible groups in caret mode', () => {
+    renderMenu('caret')
+
+    expect(screen.getAllByRole('separator')).toHaveLength(1)
+  })
+
+  it('renders separators between clipboard, link, and properties groups in text mode', () => {
+    renderMenu('text')
+
+    expect(screen.getAllByRole('separator')).toHaveLength(2)
   })
 
   it('runs the command and closes on click', async () => {
