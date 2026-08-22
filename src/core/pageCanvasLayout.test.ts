@@ -96,4 +96,17 @@ describe('pageCanvasLayout', () => {
     expect(el.style.minHeight).toBe('')
     expect(el.style.paddingTop).toBe('')
   })
+
+  it('syncPageCanvasLayout re-upserts @page style when DOM lost it', () => {
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
+    const el = document.createElement('div')
+    el.innerHTML = '<div data-page><p>Hello</p></div>'
+
+    syncPageCanvasLayout(el, pageHtml)
+
+    expect(el.getAttribute(PAGE_SIZED_ATTR)).toBe('')
+    expect(el.style.width).toBe('210mm')
+    expect(el.querySelector('style[data-page-at-rule]')?.textContent).toContain('size: A4')
+  })
 })

@@ -1384,6 +1384,55 @@ describe('Editor paragraph chrome', () => {
     expect(visual.style.minHeight).toBe('297mm')
   })
 
+  const preloadedPageHtml =
+    '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
+
+  function expectPreloadedPageCanvas(visual: HTMLElement) {
+    expect(visual).toHaveAttribute('data-page-sized')
+    expect(visual.style.width).toBe('210mm')
+    expect(visual.style.minHeight).toBe('297mm')
+    expect(visual.style.paddingTop).toBe('20pt')
+  }
+
+  it('sizes the visual canvas from preloaded @page HTML', () => {
+    render(<Editor defaultValue={preloadedPageHtml} />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expectPreloadedPageCanvas(visual)
+  })
+
+  it('sizes the visual canvas after switching from HTML mode with @page HTML', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultMode="html" defaultValue={preloadedPageHtml} />)
+
+    await user.click(screen.getByRole('button', { name: 'Switch to visual mode' }))
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expectPreloadedPageCanvas(visual)
+  })
+
+  it('sizes the visual canvas when a controlled value with @page HTML is set', () => {
+    const { rerender } = render(<Editor value="" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual).not.toHaveAttribute('data-page-sized')
+
+    rerender(<Editor value={preloadedPageHtml} />)
+    expectPreloadedPageCanvas(visual)
+  })
+
+  it('sizes each page surface from preloaded @page HTML in multi-page mode', () => {
+    const pageOne =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
+    const pageTwo =
+      '<style data-page-at-rule>@page { size: letter; }</style><div data-page><p>Two</p></div>'
+    render(<Editor enableMultiPages defaultPages={[pageOne, pageTwo]} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(surfaces[0]).toHaveAttribute('data-page-sized')
+    expect(surfaces[0].style.width).toBe('210mm')
+    expect(surfaces[1]).toHaveAttribute('data-page-sized')
+    expect(surfaces[1].style.width).toBe('8.5in')
+  })
+
   it('applies screen zoom from the View menu', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)

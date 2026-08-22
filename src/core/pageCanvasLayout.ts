@@ -1,6 +1,11 @@
 import { formatCssLength } from './cssLength'
 import { BOX_SIDES, type BoxSides } from './paragraphBox'
-import { queryPageAtRule, type PageAtRuleApply } from './pageAtRule'
+import {
+  applyPageAtRule,
+  extractPageAtRuleCss,
+  queryPageAtRule,
+  type PageAtRuleApply,
+} from './pageAtRule'
 
 export const PAGE_SIZED_ATTR = 'data-page-sized'
 
@@ -87,6 +92,11 @@ function clearPageCanvasLayout(visualRoot: HTMLElement): void {
 
 /** Apply page size and print-margin preview to the visual holder. Does not change document HTML. */
 export function syncPageCanvasLayout(visualRoot: HTMLElement, pageHtml: string): void {
+  const pageCss = extractPageAtRuleCss(pageHtml)
+  if (pageCss && !extractPageAtRuleCss(visualRoot.innerHTML)) {
+    visualRoot.innerHTML = applyPageAtRule(visualRoot.innerHTML, queryPageAtRule(pageHtml))
+  }
+
   const atRule = queryPageAtRule(pageHtml)
   const size = resolvePageCanvasSize(atRule)
 

@@ -129,6 +129,14 @@ export function queryPageAtRule(pageHtml: string): PageAtRuleApply {
   return parsePageAtRuleCss(extractPageAtRuleCss(pageHtml))
 }
 
+/** Re-apply a previous @page rule when body HTML lost the managed style tag. */
+export function preservePageAtRuleInBody(bodyHtml: string, previousPageHtml: string): string {
+  if (extractPageAtRuleCss(bodyHtml)) return bodyHtml
+  const previousCss = extractPageAtRuleCss(previousPageHtml)
+  if (!previousCss) return bodyHtml
+  return applyPageAtRule(bodyHtml, queryPageAtRule(previousPageHtml))
+}
+
 function formatMargin(margin: BoxSides): string | null {
   const sides = BOX_SIDES.map((side) => margin[side])
   if (sides.every((side) => side === null)) return null

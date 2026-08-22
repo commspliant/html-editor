@@ -46,8 +46,8 @@ import {
   queryPageProperties,
   resetPageAtRuleInDocument,
 } from '../core/pageProperties'
-import { emptyPageAtRuleApply, queryPageAtRule } from '../core/pageAtRule'
-import { isPageCanvasSized } from '../core/pageCanvasLayout'
+import { emptyPageAtRuleApply, preservePageAtRuleInBody, queryPageAtRule } from '../core/pageAtRule'
+import { isPageCanvasSized, syncPageCanvasLayout } from '../core/pageCanvasLayout'
 import { resolvePageZoomScale } from '../core/pageZoom'
 import {
   joinPagesToHtml,
@@ -807,6 +807,13 @@ export function Editor({
 
   useLayoutEffect(() => {
     if (mode !== 'visual') return
+    const root = visualRootRef.current
+    if (!root) return
+    syncPageCanvasLayout(root, activePageHtml)
+  }, [mode, activePageHtml, activePageIndex, enableMultiPages])
+
+  useLayoutEffect(() => {
+    if (mode !== 'visual') return
     const workspace = workspaceRef.current
     if (!workspace) return
 
@@ -924,10 +931,11 @@ export function Editor({
 
   const recordVisualHtml = useCallback(
     (body: string, coalesce: boolean) => {
+      const preservedBody = preservePageAtRuleInBody(body, htmlRef.current)
       return recordHtml(
         prependFontStylesheets(
-          body,
-          collectDocumentFontStylesheets(body, htmlRef.current, fontFacesRef.current),
+          preservedBody,
+          collectDocumentFontStylesheets(preservedBody, htmlRef.current, fontFacesRef.current),
         ),
         coalesce,
       )
