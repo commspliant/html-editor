@@ -3,6 +3,7 @@ import {
   applyPageAtRule,
   emptyPageAtRuleApply,
   parsePageAtRuleCss,
+  preservePageAtRuleInBody,
   queryPageAtRule,
   resetPageAtRule,
   serializePageAtRuleCss,
@@ -39,5 +40,27 @@ describe('pageAtRule', () => {
     expect(queryPageAtRule(withRule).sizePreset).toBe('letter')
     expect(resetPageAtRule(withRule)).toContain('<div data-page')
     expect(resetPageAtRule(withRule)).toContain('<p>Hello</p>')
+  })
+
+  it('preservePageAtRuleInBody re-applies a lost @page rule from previous html', () => {
+    const previous =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
+    const body = '<div data-page><p>Hello</p></div>'
+    const preserved = preservePageAtRuleInBody(body, previous)
+    expect(preserved).toContain('data-page-at-rule')
+    expect(queryPageAtRule(preserved).sizePreset).toBe('A4')
+  })
+
+  it('preservePageAtRuleInBody leaves body unchanged when @page is still present', () => {
+    const previous =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>Hello</p></div>'
+    const body =
+      '<style data-page-at-rule>@page { size: letter; }</style><div data-page><p>Hello</p></div>'
+    expect(preservePageAtRuleInBody(body, previous)).toBe(body)
+  })
+
+  it('preservePageAtRuleInBody leaves body unchanged when previous had no @page rule', () => {
+    const body = '<div data-page><p>Hello</p></div>'
+    expect(preservePageAtRuleInBody(body, '<p>Old</p>')).toBe(body)
   })
 })
