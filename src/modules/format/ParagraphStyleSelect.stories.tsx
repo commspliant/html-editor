@@ -61,6 +61,7 @@ const meta = {
       openImageProperties: () => undefined,
       applyImageProperties: () => undefined,
       insertHorizontalRule: () => undefined,
+      insertPageBreak: () => undefined,
       openTableDialog: () => undefined,
       applyTable: () => undefined,
       openTableProperties: () => undefined,

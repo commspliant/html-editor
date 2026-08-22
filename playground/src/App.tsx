@@ -1242,26 +1242,28 @@ export function App() {
             <h2 id="audio-gallery-title" className="ai-dialog-title">
               {t.audioGalleryTitle}
             </h2>
-            <div className="image-gallery">
-              {PLAYGROUND_AUDIO_GALLERY.map((item) => {
-                const title = t[item.titleKey]
-                return (
-                  <button
-                    key={item.src}
-                    type="button"
-                    className="image-gallery-item"
-                    onClick={() => {
-                      audioInsert({
-                        src: item.src,
-                        title,
-                      })
-                      setAudioInsert(null)
-                    }}
-                  >
-                    <span>{title}</span>
-                  </button>
-                )
-              })}
+            <div className="ai-dialog-body">
+              <div className="image-gallery">
+                {PLAYGROUND_AUDIO_GALLERY.map((item) => {
+                  const title = t[item.titleKey]
+                  return (
+                    <button
+                      key={item.src}
+                      type="button"
+                      className="image-gallery-item"
+                      onClick={() => {
+                        audioInsert({
+                          src: item.src,
+                          title,
+                        })
+                        setAudioInsert(null)
+                      }}
+                    >
+                      <span>{title}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div className="ai-dialog-actions">
               <button
@@ -1288,26 +1290,28 @@ export function App() {
             <h2 id="video-gallery-title" className="ai-dialog-title">
               {t.videoGalleryTitle}
             </h2>
-            <div className="image-gallery">
-              {PLAYGROUND_VIDEO_GALLERY.map((item) => {
-                const title = t[item.titleKey]
-                return (
-                  <button
-                    key={item.src}
-                    type="button"
-                    className="image-gallery-item"
-                    onClick={() => {
-                      videoInsert({
-                        src: item.src,
-                        title,
-                      })
-                      setVideoInsert(null)
-                    }}
-                  >
-                    <span>{title}</span>
-                  </button>
-                )
-              })}
+            <div className="ai-dialog-body">
+              <div className="image-gallery">
+                {PLAYGROUND_VIDEO_GALLERY.map((item) => {
+                  const title = t[item.titleKey]
+                  return (
+                    <button
+                      key={item.src}
+                      type="button"
+                      className="image-gallery-item"
+                      onClick={() => {
+                        videoInsert({
+                          src: item.src,
+                          title,
+                        })
+                        setVideoInsert(null)
+                      }}
+                    >
+                      <span>{title}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div className="ai-dialog-actions">
               <button
@@ -1334,29 +1338,31 @@ export function App() {
             <h2 id="image-gallery-title" className="ai-dialog-title">
               {t.imageGalleryTitle}
             </h2>
-            <div className="image-gallery">
-              {PLAYGROUND_GALLERY.map((item) => {
-                const alt = t[item.altKey]
-                return (
-                  <button
-                    key={item.src}
-                    type="button"
-                    className="image-gallery-item"
-                    onClick={() => {
-                      imageInsert({
-                        src: item.src,
-                        alt,
-                        title: alt,
-                        css: 'width: 200px; border-radius: 8px',
-                      })
-                      setImageInsert(null)
-                    }}
-                  >
-                    <img src={item.src} alt={alt} />
-                    <span>{alt}</span>
-                  </button>
-                )
-              })}
+            <div className="ai-dialog-body">
+              <div className="image-gallery">
+                {PLAYGROUND_GALLERY.map((item) => {
+                  const alt = t[item.altKey]
+                  return (
+                    <button
+                      key={item.src}
+                      type="button"
+                      className="image-gallery-item"
+                      onClick={() => {
+                        imageInsert({
+                          src: item.src,
+                          alt,
+                          title: alt,
+                          css: 'width: 200px; border-radius: 8px',
+                        })
+                        setImageInsert(null)
+                      }}
+                    >
+                      <img src={item.src} alt={alt} />
+                      <span>{alt}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div className="ai-dialog-actions">
               <button
@@ -1378,22 +1384,24 @@ export function App() {
             <h2 id="ai-dialog-title" className="ai-dialog-title">
               {t.aiDialogTitle}
             </h2>
-            <label className="ai-dialog-field">
-              <span>{t.aiHtmlLabel}</span>
-              <textarea
-                className="ai-dialog-text"
-                value={aiHtml}
-                onChange={(event) => setAiHtml(event.target.value)}
-              />
-            </label>
-            <label className="ai-dialog-field">
-              <span>{t.aiFormattedLabel}</span>
-              <textarea
-                className="ai-dialog-text ai-dialog-text-optional"
-                value={aiFormatted}
-                onChange={(event) => setAiFormatted(event.target.value)}
-              />
-            </label>
+            <div className="ai-dialog-body">
+              <label className="ai-dialog-field">
+                <span>{t.aiHtmlLabel}</span>
+                <textarea
+                  className="ai-dialog-text"
+                  value={aiHtml}
+                  onChange={(event) => setAiHtml(event.target.value)}
+                />
+              </label>
+              <label className="ai-dialog-field">
+                <span>{t.aiFormattedLabel}</span>
+                <textarea
+                  className="ai-dialog-text ai-dialog-text-optional"
+                  value={aiFormatted}
+                  onChange={(event) => setAiFormatted(event.target.value)}
+                />
+              </label>
+            </div>
             <div className="ai-dialog-actions">
               <button
                 type="button"

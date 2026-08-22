@@ -30,12 +30,14 @@ export function CodeExampleDialog({ blockId, messages, onClose }: CodeExampleDia
         <h2 id="code-example-title" className="ai-dialog-title">
           {title}
         </h2>
-        <p className="code-example-body">{body}</p>
-        {block.snippets.map((snippet) => (
-          <pre key={snippet} className="code-example-pre">
-            <code>{snippet}</code>
-          </pre>
-        ))}
+        <div className="ai-dialog-body">
+          <p className="code-example-body">{body}</p>
+          {block.snippets.map((snippet) => (
+            <pre key={snippet} className="code-example-pre">
+              <code>{snippet}</code>
+            </pre>
+          ))}
+        </div>
         <div className="ai-dialog-actions">
           <button type="button" className="ai-dialog-button" onClick={onClose}>
             {messages.codeExamplesClose}

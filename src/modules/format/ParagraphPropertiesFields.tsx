@@ -12,10 +12,16 @@ import {
   type BorderStyle,
   type BoxSide,
   type BoxSides,
+  type BreakBeforeAfterValue,
+  type BreakInsideValue,
   type CssLength,
   type LineHeightValue,
   type ParagraphShadow,
 } from '../../core/paragraphBox'
+import {
+  BREAK_BEFORE_AFTER_VALUES,
+  BREAK_INSIDE_VALUES,
+} from '../../core/paragraphBreak'
 import { TEXT_ALIGN_VALUES, type TextAlign } from '../../core/textAlign'
 import {
   AlignCenterIcon,
@@ -88,6 +94,17 @@ const DEFAULT_SHADOW: ParagraphShadow = {
   inset: false,
 }
 
+const BREAK_INSIDE_OPTION_KEYS: Record<BreakInsideValue, MessageKey> = {
+  auto: 'paragraphDialogBreakAuto',
+  avoid: 'paragraphDialogBreakAvoid',
+}
+
+const BREAK_BEFORE_AFTER_OPTION_KEYS: Record<BreakBeforeAfterValue, MessageKey> = {
+  auto: 'paragraphDialogBreakAuto',
+  avoid: 'paragraphDialogBreakAvoid',
+  page: 'paragraphDialogBreakPage',
+}
+
 export type ParagraphPropertiesFieldsProps = {
   tab: ParagraphDialogTab
   value: ParagraphPropertiesApply
@@ -139,6 +156,9 @@ export function ParagraphPropertiesFields({
     ? mergedDialogTabs().filter((item) => tabs.includes(item.id))
     : PARAGRAPH_DIALOG_TABS
   const borderStyleId = useId()
+  const breakInsideId = useId()
+  const breakAfterId = useId()
+  const breakBeforeId = useId()
   const [marginLinked, setMarginLinked] = useState(() =>
     boxSidesEqual(value.margin, setAllSides(value.margin.top)),
   )
@@ -284,6 +304,81 @@ export function ParagraphPropertiesFields({
                 onChange({ ...value, lineHeight, lineHeightMixed: false })
               }}
             />
+            <fieldset className={styles.nestedGroup}>
+              <legend className={styles.subLabel}>{t('paragraphDialogPageBreaks')}</legend>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor={breakInsideId}>
+                  {t('paragraphDialogBreakInside')}
+                </label>
+                <select
+                  id={breakInsideId}
+                  className={styles.select}
+                  value={value.breakInsideMixed ? 'auto' : value.breakInside}
+                  disabled={disabled}
+                  onChange={(event) => {
+                    onChange({
+                      ...value,
+                      breakInside: event.target.value as BreakInsideValue,
+                      breakInsideMixed: false,
+                    })
+                  }}
+                >
+                  {BREAK_INSIDE_VALUES.map((item) => (
+                    <option key={item} value={item}>
+                      {t(BREAK_INSIDE_OPTION_KEYS[item])}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor={breakAfterId}>
+                  {t('paragraphDialogBreakAfter')}
+                </label>
+                <select
+                  id={breakAfterId}
+                  className={styles.select}
+                  value={value.breakAfterMixed ? 'auto' : value.breakAfter}
+                  disabled={disabled}
+                  onChange={(event) => {
+                    onChange({
+                      ...value,
+                      breakAfter: event.target.value as BreakBeforeAfterValue,
+                      breakAfterMixed: false,
+                    })
+                  }}
+                >
+                  {BREAK_BEFORE_AFTER_VALUES.map((item) => (
+                    <option key={item} value={item}>
+                      {t(BREAK_BEFORE_AFTER_OPTION_KEYS[item])}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor={breakBeforeId}>
+                  {t('paragraphDialogBreakBefore')}
+                </label>
+                <select
+                  id={breakBeforeId}
+                  className={styles.select}
+                  value={value.breakBeforeMixed ? 'auto' : value.breakBefore}
+                  disabled={disabled}
+                  onChange={(event) => {
+                    onChange({
+                      ...value,
+                      breakBefore: event.target.value as BreakBeforeAfterValue,
+                      breakBeforeMixed: false,
+                    })
+                  }}
+                >
+                  {BREAK_BEFORE_AFTER_VALUES.map((item) => (
+                    <option key={item} value={item}>
+                      {t(BREAK_BEFORE_AFTER_OPTION_KEYS[item])}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </fieldset>
           </fieldset>
         ) : null}
         {tab === 'border' ? (

@@ -111,7 +111,7 @@
   position: fixed;
   z-index: 1300;
   min-width: 4.5rem;
-  max-height: 12rem;
+  max-height: min(12rem, calc(100vh - 8px));
   margin: 0;
   padding: 0.15rem 0;
   overflow: auto;

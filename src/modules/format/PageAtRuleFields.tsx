@@ -68,7 +68,7 @@ export function PageAtRuleFields({ value, disabled, onChange, onReset }: PageAtR
   }
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.body}>
       <div className={styles.field}>
         <label className={styles.label} htmlFor={sizeId}>
           {t('pageAtRuleSize')}

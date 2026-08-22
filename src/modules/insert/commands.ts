@@ -17,6 +17,7 @@ export function createInsertCommands(
   | 'openImageProperties'
   | 'applyImageProperties'
   | 'insertHorizontalRule'
+  | 'insertPageBreak'
   | 'insertPage'
 > {
   return {
@@ -58,6 +59,9 @@ export function createInsertCommands(
     },
     insertHorizontalRule: () => {
       ctx.insertHorizontalRule()
+    },
+    insertPageBreak: () => {
+      ctx.insertPageBreak()
     },
     insertPage: () => {
       ctx.insertPage()

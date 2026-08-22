@@ -1,6 +1,6 @@
 import { PagePropertiesIcon } from '../../icons'
 import type { ToolbarCatalog } from '../../toolbar/types'
-import { AudioIcon, BookmarkIcon, HorizontalRuleIcon, ImageIcon, LinkIcon, YoutubeIcon } from '../../icons'
+import { AudioIcon, BookmarkIcon, HorizontalRuleIcon, ImageIcon, LinkIcon, PageBreakIcon, YoutubeIcon } from '../../icons'
 
 export const insertCatalog: ToolbarCatalog = {
   menus: {
@@ -65,6 +65,14 @@ export const insertCatalog: ToolbarCatalog = {
       icon: HorizontalRuleIcon,
       labelKey: 'commandHorizontalRule',
       ariaKey: 'commandHorizontalRuleAria',
+      enabled: 'isVisualMode',
+    },
+    pageBreak: {
+      id: 'pageBreak',
+      command: 'insertPageBreak',
+      icon: PageBreakIcon,
+      labelKey: 'commandPageBreak',
+      ariaKey: 'commandPageBreakAria',
       enabled: 'isVisualMode',
     },
     insertPage: {

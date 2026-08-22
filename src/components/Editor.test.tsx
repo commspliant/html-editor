@@ -844,6 +844,25 @@ describe('Editor history', () => {
 
     expect(printHtml).toHaveBeenCalledWith('<p>Hello</p>')
   })
+
+  it('inserts a page break on Ctrl+Enter', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>HelloWorld</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    visual.focus()
+    await selectVisualText(visual, 5, 5)
+
+    await user.keyboard('{Control>}{Enter}{/Control}')
+
+    const pageBreak = visual.querySelector('div')
+    expect(pageBreak).not.toBeNull()
+    expect(pageBreak?.style.breakAfter).toBe('page')
+    expect(pageBreak?.style.pageBreakAfter).toBe('always')
+    expect(visual.querySelectorAll('p')).toHaveLength(2)
+    expect(visual.querySelectorAll('p')[0]?.textContent).toBe('Hello')
+    expect(visual.querySelectorAll('p')[1]?.textContent).toBe('World')
+  })
 })
 
 describe('Editor font marks', () => {
@@ -2298,6 +2317,21 @@ describe('Editor context menu', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Horizontal line' }))
 
     expect(visual.querySelector('hr')).not.toBeNull()
+  })
+
+  it('inserts a page break from the Insert menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>HelloWorld</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 5, 5)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page break' }))
+
+    const pageBreak = visual.querySelector('div')
+    expect(pageBreak).not.toBeNull()
+    expect(pageBreak?.style.breakAfter).toBe('page')
+    expect(visual.querySelectorAll('p')).toHaveLength(2)
   })
 
   it('inserts audio from the Insert menu', async () => {

@@ -144,6 +144,7 @@ import { insertAudioInDocument } from '../core/audio'
 import { closestImage, insertImageInDocument, selectImageInDocument } from '../core/image'
 import { insertYoutubeInDocument, insertVideoInDocument } from '../core/youtube'
 import { insertHorizontalRuleInDocument } from '../core/horizontalRule'
+import { insertPageBreakInDocument } from '../core/pageBreak'
 import { writeImagePixelSize } from '../core/imageResize'
 import {
   applyImagePropertiesInDocument,
@@ -2429,6 +2430,16 @@ export function Editor({
         captureSelection()
         refreshMarkState()
       },
+      insertPageBreak: () => {
+        if (modeRef.current !== 'visual') return
+        const root = visualRootRef.current
+        if (!root) return
+        restoreVisualRange(root)
+        if (!insertPageBreakInDocument(root)) return
+        recordVisualHtmlFromRoot(root, false)
+        captureSelection()
+        refreshMarkState()
+      },
       insertPage: () => {
         insertPageAfterActive()
       },
@@ -2825,6 +2836,11 @@ export function Editor({
         return
       }
       if (!(event.ctrlKey || event.metaKey)) return
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault()
+        commandContext.insertPageBreak()
+        return
+      }
       const key = event.key.toLowerCase()
       if (key === 'z' && !event.shiftKey) {
         event.preventDefault()

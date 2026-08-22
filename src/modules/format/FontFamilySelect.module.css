@@ -74,7 +74,7 @@
   position: fixed;
   z-index: 1300;
   min-width: 12rem;
-  max-height: 18rem;
+  max-height: min(18rem, calc(100vh - 8px));
   margin: 0;
   padding: 0.15rem 0;
   overflow: auto;
@@ -89,7 +89,7 @@
   position: static;
   z-index: auto;
   min-width: 100%;
-  max-height: 14rem;
+  max-height: min(14rem, calc(100vh - 8px));
   box-shadow: none;
 }
 

@@ -126,6 +126,35 @@ describe('applyCustomParagraphInDocument', () => {
     expect(p?.style.backgroundColor).toBe('')
     expect(p?.style.opacity).toBe('')
   })
+
+  it('applies and clears page-break fields from a style', () => {
+    const el = mountVisual('<p>Hello</p>')
+    selectOffsets(el, 0, 5)
+
+    expect(
+      applyCustomParagraphInDocument(el, {
+        breakInside: 'avoid',
+        breakAfter: 'page',
+        breakBefore: 'avoid',
+      }),
+    ).toBe(true)
+
+    const p = el.querySelector('p')
+    expect(p?.style.breakInside).toBe('avoid')
+    expect(p?.style.breakAfter).toBe('page')
+    expect(p?.style.breakBefore).toBe('avoid')
+
+    expect(
+      applyCustomParagraphInDocument(el, {
+        breakInside: 'auto',
+        breakAfter: 'auto',
+        breakBefore: 'auto',
+      }),
+    ).toBe(true)
+    expect(p?.style.breakInside).toBe('')
+    expect(p?.style.breakAfter).toBe('')
+    expect(p?.style.breakBefore).toBe('')
+  })
 })
 
 describe('paragraphApplyToStyle', () => {
@@ -146,6 +175,9 @@ describe('paragraphApplyToStyle', () => {
       boxShadow: draft.boxShadow,
       backgroundColor: draft.backgroundColor,
       opacity: draft.opacity,
+      breakInside: draft.breakInside,
+      breakAfter: draft.breakAfter,
+      breakBefore: draft.breakBefore,
     })
   })
 })

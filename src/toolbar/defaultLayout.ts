@@ -15,6 +15,7 @@ export const defaultToolbarLayout: ToolbarLayout = {
         'youtube',
         'table',
         'horizontalRule',
+        'pageBreak',
         'insertComment',
         'insertPage',
       ],

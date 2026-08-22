@@ -85,6 +85,7 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
     insertHorizontalRule: vi.fn(),
+    insertPageBreak: vi.fn(),
     insertPage: vi.fn(),
     isMultiPagesEnabled: () => false,
     getActivePageHtml: () => '',
@@ -232,6 +233,15 @@ describe('createInsertCommands', () => {
     commands.insertHorizontalRule()
 
     expect(insertHorizontalRule).toHaveBeenCalledTimes(1)
+  })
+
+  it('inserts a page break', () => {
+    const insertPageBreak = vi.fn()
+    const commands = createInsertCommands(context({ insertPageBreak }))
+
+    commands.insertPageBreak()
+
+    expect(insertPageBreak).toHaveBeenCalledTimes(1)
   })
 })
 
