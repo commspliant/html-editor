@@ -74,6 +74,9 @@ export function paragraphApplyToStyle(
     boxShadow: draft.shadowMixed ? undefined : draft.boxShadow,
     backgroundColor: draft.backgroundMixed ? undefined : draft.backgroundColor,
     opacity: draft.opacityMixed ? undefined : draft.opacity,
+    breakInside: draft.breakInsideMixed ? undefined : draft.breakInside,
+    breakAfter: draft.breakAfterMixed ? undefined : draft.breakAfter,
+    breakBefore: draft.breakBeforeMixed ? undefined : draft.breakBefore,
   }
 }
 
@@ -94,6 +97,9 @@ export function styleToParagraphApply(
       shadowMixed: true,
       backgroundMixed: true,
       opacityMixed: true,
+      breakInsideMixed: true,
+      breakAfterMixed: true,
+      breakBeforeMixed: true,
     }
   }
   return {
@@ -119,5 +125,13 @@ export function styleToParagraphApply(
     backgroundMixed: paragraph.backgroundColor === undefined,
     opacity: paragraph.opacity === undefined ? empty.opacity : paragraph.opacity,
     opacityMixed: paragraph.opacity === undefined,
+    breakInside:
+      paragraph.breakInside === undefined ? empty.breakInside : paragraph.breakInside,
+    breakInsideMixed: paragraph.breakInside === undefined,
+    breakAfter: paragraph.breakAfter === undefined ? empty.breakAfter : paragraph.breakAfter,
+    breakAfterMixed: paragraph.breakAfter === undefined,
+    breakBefore:
+      paragraph.breakBefore === undefined ? empty.breakBefore : paragraph.breakBefore,
+    breakBeforeMixed: paragraph.breakBefore === undefined,
   }
 }

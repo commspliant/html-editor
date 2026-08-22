@@ -1,0 +1,47 @@
+---
+description: Chrome overlays stay in the viewport; content scrolls inside
+alwaysApply: true
+---
+
+# Chrome overlays
+
+Dialogs, menus, and popovers must stay inside the viewport. Title, tabs, and footer actions stay visible. The content region is the only scroller.
+
+```css
+/* ❌ BAD — shell clips; body never shrinks so overflow:auto never runs */
+.dialog {
+  max-height: 32rem;
+  overflow: hidden;
+}
+.body {
+  overflow: auto;
+}
+
+/* ✅ GOOD — cap to the viewport; chrome does not shrink; body is the scrollport */
+.dialog {
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.header, .tabs, .actions {
+  flex-shrink: 0;
+}
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+```
+
+Do not hardcode a pixel height that can exceed the viewport. Prefer `max-height: 100%` (padded backdrop) or `min(24rem, calc(100vh - 8px))` for lists and pickers. `overflow: hidden` on the shell is OK only when a child is the scrollport.
+
+Flyout menus (toolbar pulldowns and submenus) must keep `overflow: visible` so a `position: absolute` submenu can paint at `left: 100%`. Do not put `overflow: auto` on a menu that hosts flyouts — CSS cannot combine `overflow-y: auto` with `overflow-x: visible`.
+
+```css
+/* ❌ BAD — clips File/Edit flyouts inside a 10rem scroll box */
+.menu { overflow: auto; }
+
+/* ✅ GOOD — submenu can sit beside the parent */
+.menu { overflow: visible; }
+```

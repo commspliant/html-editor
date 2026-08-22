@@ -462,6 +462,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
   background: var(--overlay);
   backdrop-filter: blur(4px);
 }
@@ -469,9 +470,14 @@ body {
 .ai-dialog {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
   gap: 0.75rem;
-  width: min(32rem, calc(100% - 2rem));
+  width: min(32rem, 100%);
+  max-width: 100%;
+  min-width: 0;
+  max-height: 100%;
   padding: 1.25rem 1.25rem 1.35rem;
+  overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
@@ -479,6 +485,7 @@ body {
 }
 
 .ai-dialog-title {
+  flex-shrink: 0;
   margin: 0;
   font-family: var(--font-serif);
   font-size: 1.125rem;
@@ -516,8 +523,18 @@ body {
   min-height: 4rem;
 }
 
+.ai-dialog-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow: auto;
+}
+
 .ai-dialog-actions {
   display: flex;
+  flex-shrink: 0;
   justify-content: flex-end;
   gap: 0.5rem;
 }
@@ -559,9 +576,8 @@ body {
 }
 
 .code-example-dialog {
-  width: min(40rem, calc(100% - 2rem));
+  width: min(40rem, 100%);
   max-height: min(90vh, 44rem);
-  overflow: auto;
 }
 
 .code-example-body {

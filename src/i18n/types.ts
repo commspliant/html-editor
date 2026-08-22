@@ -91,6 +91,8 @@ export type Messages = {
   commandTableAria: string
   commandHorizontalRule: string
   commandHorizontalRuleAria: string
+  commandPageBreak: string
+  commandPageBreakAria: string
   commandInsertPage: string
   commandInsertPageAria: string
   commandTableProperties: string
@@ -412,6 +414,13 @@ export type Messages = {
   paragraphDialogBorderStyleOutset: string
   paragraphDialogBackgroundColor: string
   paragraphDialogOpacity: string
+  paragraphDialogPageBreaks: string
+  paragraphDialogBreakInside: string
+  paragraphDialogBreakAfter: string
+  paragraphDialogBreakBefore: string
+  paragraphDialogBreakAuto: string
+  paragraphDialogBreakAvoid: string
+  paragraphDialogBreakPage: string
   fontSizeUnitPt: string
   fontSizeUnitPx: string
   fontSizeUnitEm: string

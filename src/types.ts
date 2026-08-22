@@ -5,6 +5,8 @@ import type { ListType } from './core/lists'
 import type { FontMarkState } from './core/marks'
 import type {
   BoxSides,
+  BreakBeforeAfterValue,
+  BreakInsideValue,
   CssLength,
   LineHeightValue,
   ParagraphBorder,
@@ -16,6 +18,8 @@ import type { IconProps } from './icons'
 
 export type {
   BoxSides,
+  BreakBeforeAfterValue,
+  BreakInsideValue,
   CssLength,
   LineHeightValue,
   ParagraphBorder,
@@ -113,6 +117,9 @@ export type CustomParagraphStyleParagraph = {
   boxShadow?: ParagraphShadow | null
   backgroundColor?: string | null
   opacity?: number | null
+  breakInside?: BreakInsideValue
+  breakAfter?: BreakBeforeAfterValue
+  breakBefore?: BreakBeforeAfterValue
 }
 
 export type CustomParagraphStyle = {

@@ -286,6 +286,43 @@ describe('applyParagraphBoxInDocument', () => {
     expect(el.querySelector('p')).toHaveStyle({ backgroundColor: 'rgb(204, 0, 0)' })
     expect(el.querySelector('p')?.style.opacity).toBe('0.4')
   })
+
+  it('applies page-break styles with legacy pairing', () => {
+    const el = mountVisual('<p>Hello</p>')
+    selectOffsets(el, 0, 5)
+
+    expect(
+      applyParagraphBoxInDocument(
+        el,
+        apply({
+          breakInside: 'avoid',
+          breakAfter: 'page',
+          breakBefore: 'avoid',
+        }),
+      ),
+    ).toBe(true)
+
+    const p = el.querySelector('p')
+    expect(p?.style.breakInside).toBe('avoid')
+    expect(p?.style.pageBreakInside).toBe('avoid')
+    expect(p?.style.breakAfter).toBe('page')
+    expect(p?.style.pageBreakAfter).toBe('always')
+    expect(p?.style.breakBefore).toBe('avoid')
+    expect(p?.style.pageBreakBefore).toBe('avoid')
+  })
+
+  it('clears page-break styles on auto', () => {
+    const el = mountVisual(
+      '<p style="break-inside: avoid; break-after: page; break-before: avoid">Hello</p>',
+    )
+    selectOffsets(el, 0, 5)
+
+    expect(applyParagraphBoxInDocument(el, apply())).toBe(true)
+    const p = el.querySelector('p')
+    expect(p?.style.breakInside).toBe('')
+    expect(p?.style.breakAfter).toBe('')
+    expect(p?.style.breakBefore).toBe('')
+  })
 })
 
 describe('queryParagraphBox', () => {
@@ -321,5 +358,20 @@ describe('queryParagraphBox', () => {
     expect(query.backgroundColor).toBe('#cc0000')
     expect(query.opacityMixed).toBe(true)
     expect(query.opacity).toBe(0.4)
+  })
+
+  it('reads and reports mixed page-break styles', () => {
+    const el = mountVisual(
+      '<p style="break-inside: avoid; break-after: page">One</p><p style="break-inside: auto; break-after: avoid">Two</p>',
+    )
+    selectOffsets(el, 0, 6)
+
+    const query = queryParagraphBox(el)
+    expect(query.breakInside).toBe('avoid')
+    expect(query.breakInsideMixed).toBe(true)
+    expect(query.breakAfter).toBe('page')
+    expect(query.breakAfterMixed).toBe(true)
+    expect(query.breakBefore).toBe('auto')
+    expect(query.breakBeforeMixed).toBe(false)
   })
 })

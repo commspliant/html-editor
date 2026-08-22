@@ -104,6 +104,7 @@ export type CommandName =
   | 'openYoutubeDialog'
   | 'openImageProperties'
   | 'insertHorizontalRule'
+  | 'insertPageBreak'
   | 'insertPage'
   | 'openTableDialog'
   | 'openTableProperties'
@@ -258,6 +259,7 @@ export type CommandContext = {
   openImageProperties: (tab?: ImageDialogTab) => void
   applyImageProperties: (draft: ImagePropertiesApply) => void
   insertHorizontalRule: () => void
+  insertPageBreak: () => void
   insertPage: () => void
   isMultiPagesEnabled: () => boolean
   getActivePageHtml: () => string
@@ -370,6 +372,7 @@ export type EditorCommands = {
   openImageProperties: (tab?: ImageDialogTab) => void
   applyImageProperties: (draft: ImagePropertiesApply) => void
   insertHorizontalRule: () => void
+  insertPageBreak: () => void
   insertPage: () => void
   openTableDialog: () => void
   applyTable: (draft: TableApply) => void

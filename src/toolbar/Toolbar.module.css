@@ -295,6 +295,7 @@
   min-width: 10rem;
   margin: 0;
   padding: 0.25rem 0;
+  overflow: visible;
   border: 1px solid var(--wysiwyg-chrome-divider, #d0d0d0);
   border-radius: 4px;
   background: var(--wysiwyg-menu-background, var(--wysiwyg-chrome-menu, #fff));

@@ -86,6 +86,7 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     openImageProperties: vi.fn(),
     applyImageProperties: vi.fn(),
     insertHorizontalRule: vi.fn(),
+    insertPageBreak: vi.fn(),
     insertPage: vi.fn(),
     isMultiPagesEnabled: () => false,
     getActivePageHtml: () => '',

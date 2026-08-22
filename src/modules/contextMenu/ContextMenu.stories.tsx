@@ -65,6 +65,7 @@ const commands: EditorCommands = {
   openImageProperties: noop,
   applyImageProperties: noop,
   insertHorizontalRule: noop,
+  insertPageBreak: noop,
   openTableDialog: noop,
   applyTable: noop,
   openTableProperties: noop,

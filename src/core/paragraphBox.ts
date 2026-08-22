@@ -13,6 +13,18 @@ import {
 } from './cssLength'
 import { normalizeCssColor } from './inlineColor'
 import { formatFontSizeNumber, roundFontSize, type FontSizeUnit } from './fontSizeUnits'
+import {
+  breakBeforeAfterValuesEqual,
+  breakInsideValuesEqual,
+  readParagraphBreak,
+  writeBreakAfter,
+  writeBreakBefore,
+  writeBreakInside,
+  type BreakBeforeAfterValue,
+  type BreakInsideValue,
+} from './paragraphBreak'
+
+export type { BreakBeforeAfterValue, BreakInsideValue } from './paragraphBreak'
 
 export type { CssLength }
 
@@ -65,6 +77,9 @@ export type ParagraphBox = {
   boxShadow: ParagraphShadow | null
   backgroundColor: string | null
   opacity: number | null
+  breakInside: BreakInsideValue
+  breakAfter: BreakBeforeAfterValue
+  breakBefore: BreakBeforeAfterValue
 }
 
 export type ParagraphBoxApply = {
@@ -84,6 +99,12 @@ export type ParagraphBoxApply = {
   backgroundMixed: boolean
   opacity: number | null
   opacityMixed: boolean
+  breakInside: BreakInsideValue
+  breakInsideMixed: boolean
+  breakAfter: BreakBeforeAfterValue
+  breakAfterMixed: boolean
+  breakBefore: BreakBeforeAfterValue
+  breakBeforeMixed: boolean
 }
 
 export const EMPTY_BOX_SIDES: BoxSides = {
@@ -113,6 +134,9 @@ export function emptyParagraphBox(): ParagraphBox {
     boxShadow: null,
     backgroundColor: null,
     opacity: null,
+    breakInside: 'auto',
+    breakAfter: 'auto',
+    breakBefore: 'auto',
   }
 }
 
@@ -135,6 +159,12 @@ export function emptyParagraphBoxApply(): ParagraphBoxApply {
     backgroundMixed: false,
     opacity: box.opacity,
     opacityMixed: false,
+    breakInside: box.breakInside,
+    breakInsideMixed: false,
+    breakAfter: box.breakAfter,
+    breakAfterMixed: false,
+    breakBefore: box.breakBefore,
+    breakBeforeMixed: false,
   }
 }
 
@@ -183,7 +213,10 @@ export function paragraphBoxesEqual(a: ParagraphBox, b: ParagraphBox): boolean {
     cssLengthsEqual(a.borderRadius, b.borderRadius) &&
     shadowsEqual(a.boxShadow, b.boxShadow) &&
     a.backgroundColor === b.backgroundColor &&
-    a.opacity === b.opacity
+    a.opacity === b.opacity &&
+    breakInsideValuesEqual(a.breakInside, b.breakInside) &&
+    breakBeforeAfterValuesEqual(a.breakAfter, b.breakAfter) &&
+    breakBeforeAfterValuesEqual(a.breakBefore, b.breakBefore)
   )
 }
 
@@ -493,6 +526,7 @@ function writeOpacity(el: HTMLElement, value: number | null): boolean {
 }
 
 export function readParagraphBox(el: HTMLElement): ParagraphBox {
+  const breaks = readParagraphBreak(el)
   return {
     margin: readBoxSides(el, 'margin'),
     padding: readBoxSides(el, 'padding'),
@@ -502,6 +536,9 @@ export function readParagraphBox(el: HTMLElement): ParagraphBox {
     boxShadow: readShadow(el),
     backgroundColor: readBackgroundColor(el),
     opacity: readOpacity(el),
+    breakInside: breaks.breakInside,
+    breakAfter: breaks.breakAfter,
+    breakBefore: breaks.breakBefore,
   }
 }
 
@@ -515,6 +552,9 @@ export function writeParagraphBox(el: HTMLElement, draft: ParagraphBoxApply): bo
   if (!draft.shadowMixed && writeShadow(el, draft.boxShadow)) changed = true
   if (!draft.backgroundMixed && writeBackgroundColor(el, draft.backgroundColor)) changed = true
   if (!draft.opacityMixed && writeOpacity(el, draft.opacity)) changed = true
+  if (!draft.breakInsideMixed && writeBreakInside(el, draft.breakInside)) changed = true
+  if (!draft.breakAfterMixed && writeBreakAfter(el, draft.breakAfter)) changed = true
+  if (!draft.breakBeforeMixed && writeBreakBefore(el, draft.breakBefore)) changed = true
   if (changed) clearEmptyStyle(el)
   return changed
 }
@@ -544,6 +584,16 @@ export function queryParagraphBox(root: HTMLElement): ParagraphBoxApply {
     backgroundMixed: boxes.some((box) => box.backgroundColor !== first.backgroundColor),
     opacity: first.opacity,
     opacityMixed: boxes.some((box) => box.opacity !== first.opacity),
+    breakInside: first.breakInside,
+    breakInsideMixed: boxes.some((box) => !breakInsideValuesEqual(box.breakInside, first.breakInside)),
+    breakAfter: first.breakAfter,
+    breakAfterMixed: boxes.some(
+      (box) => !breakBeforeAfterValuesEqual(box.breakAfter, first.breakAfter),
+    ),
+    breakBefore: first.breakBefore,
+    breakBeforeMixed: boxes.some(
+      (box) => !breakBeforeAfterValuesEqual(box.breakBefore, first.breakBefore),
+    ),
   }
 }
 
