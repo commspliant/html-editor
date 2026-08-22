@@ -424,6 +424,18 @@ export type Messages = {
   previewDialogTitle: string
   previewDialogClose: string
   previewDialogCloseAria: string
+  commandAddComment: string
+  commandAddCommentAria: string
+  commandInsertComment: string
+  commandInsertCommentAria: string
+  showComments: string
+  hideComments: string
+  toggleCommentsVisibleAria: string
+  commentPanelTitle: string
+  commentReplyPlaceholder: string
+  commentPost: string
+  commentEmpty: string
+  commentPanelCloseAria: string
 }
 
 export type MessageKey = keyof Messages

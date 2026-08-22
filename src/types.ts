@@ -217,6 +217,45 @@ export type ToolbarPositionPersistence = {
   save: (position: ToolbarPosition) => void | Promise<void>
 }
 
+export type CommentMessage = {
+  id: string
+  userId: string
+  userName: string
+  message: string
+  createdAt: string
+}
+
+export type TextCommentAnchor = {
+  type: 'text'
+  text: string
+  start?: number
+  end?: number
+  prefix?: string
+  suffix?: string
+}
+
+export type ImageCommentAnchor = {
+  type: 'image'
+  elementId?: string
+  src?: string
+}
+
+export type CommentAnchor = TextCommentAnchor | ImageCommentAnchor
+
+export type CommentThread = {
+  id: string
+  anchor: CommentAnchor
+  messages: CommentMessage[]
+  createdAt: string
+  resolvedAt?: string | null
+  resolvedBy?: string | null
+}
+
+export type CommentAuthor = {
+  userId: string
+  userName: string
+}
+
 export type EditorProps = {
   value?: string
   defaultValue?: string
@@ -374,4 +413,16 @@ export type EditorProps = {
   defaultPages?: string[]
   /** Fires when any page changes while `enableMultiPages` is true. */
   onPagesChange?: (pages: string[], activePageIndex: number) => void
+  /**
+   * When true, comment chrome and thread state are enabled. Default `false`.
+   */
+  enableComments?: boolean
+  /** Identity used when posting comment messages. Required to enable Post in the panel. */
+  commentAuthor?: CommentAuthor
+  /** Controlled comment threads (metadata separate from document HTML). */
+  comments?: CommentThread[]
+  /** Initial comment threads when uncontrolled. Default `[]`. */
+  defaultComments?: CommentThread[]
+  /** Fires when comment threads change. */
+  onCommentsChange?: (threads: CommentThread[]) => void
 }

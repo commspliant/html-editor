@@ -11,6 +11,7 @@ import { mergeFontFaces } from '../core/fontFamily'
 import { mergeCustomActions } from '../core/customActions'
 import { defaultToolbarCatalog } from './defaultCatalog'
 import { defaultToolbarLayout } from './defaultLayout'
+import { mergeCommentsCatalog, mergeCommentsLayout } from './commentsChrome'
 import { EditorToolbar } from './EditorToolbar'
 import type { EditorToolbarProps } from './EditorToolbar'
 import { MENU_SEPARATOR } from './types'
@@ -107,6 +108,8 @@ function renderToolbar(
     deleteSelection: vi.fn(),
     clearFormatting: vi.fn(),
     toggleFormatBrush: vi.fn(),
+    addComment: vi.fn(),
+    toggleCommentsVisible: vi.fn(),
     ...overrides.commands,
   }
   const queries = {
@@ -158,6 +161,9 @@ function renderToolbar(
     isFormatBrushActive: () => false,
     isMultiPagesEnabled: () => false,
     canInsertPage: () => false,
+    canAddComment: () => true,
+    areCommentsVisible: () => true,
+    isCommentsEnabled: () => true,
     ...overrides.queries,
   }
   const toolbar = (
@@ -1623,6 +1629,30 @@ describe('EditorToolbar', () => {
 
       expect(screen.getByRole('dialog', { name: 'Menú del editor' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Cerrar menú' })).toBeInTheDocument()
+    })
+  })
+
+  describe('comments chrome', () => {
+    it('omits comment controls from the default catalog', () => {
+      renderToolbar()
+      expect(screen.queryByRole('button', { name: 'Add comment on selection' })).toBeNull()
+      expect(screen.queryByRole('menuitem', { name: 'Comment' })).toBeNull()
+    })
+
+    it('shows comment controls when the comments catalog is merged', async () => {
+      const user = userEvent.setup()
+      const commentsCatalog = mergeCommentsCatalog(defaultToolbarCatalog, true)
+      const commentsLayout = mergeCommentsLayout(defaultToolbarLayout)
+      const { commands } = renderToolbar({ catalog: commentsCatalog, layout: commentsLayout })
+
+      expect(screen.getByRole('button', { name: 'Add comment on selection' })).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+      expect(screen.getByRole('menuitem', { name: 'Comment' })).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'View menu' }))
+      expect(screen.getByRole('menuitemcheckbox', { name: 'Hide comments' })).toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Add comment on selection' }))
+      expect(commands.addComment).toHaveBeenCalledTimes(1)
     })
   })
 })

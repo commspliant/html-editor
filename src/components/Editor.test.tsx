@@ -2491,3 +2491,90 @@ describe('Editor image resize', () => {
     expect(restored.style.height).toBe('100px')
   })
 })
+
+describe('Editor comments', () => {
+  it('does not show comment chrome by default', () => {
+    render(<Editor defaultValue="<p>Hello world</p>" />)
+    expect(screen.queryByRole('button', { name: 'Add comment on selection' })).toBeNull()
+  })
+
+  it('adds a text comment thread and message', async () => {
+    const onCommentsChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+        onCommentsChange={onCommentsChange}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+    await user.click(screen.getByRole('button', { name: 'Add comment on selection' }))
+
+    expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
+    await user.type(screen.getByPlaceholderText('Write a reply…'), 'Please review')
+    await user.click(screen.getByRole('button', { name: 'Post' }))
+
+    expect(onCommentsChange).toHaveBeenCalled()
+    const threads = onCommentsChange.mock.calls.at(-1)?.[0]
+    expect(threads?.[0]?.messages[0]?.message).toBe('Please review')
+    expect(threads?.[0]?.messages[0]?.userName).toBe('Alice')
+    expect(visual.innerHTML).toContain('data-comment-thread')
+  })
+
+  it('supports read-only commenting without onChange', async () => {
+    const onChange = vi.fn()
+    const onCommentsChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        readOnly
+        enableComments
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+        onChange={onChange}
+        onCommentsChange={onCommentsChange}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+    await user.click(screen.getByRole('button', { name: 'Add comment on selection' }))
+    await user.type(screen.getByPlaceholderText('Write a reply…'), 'Review note')
+    await user.click(screen.getByRole('button', { name: 'Post' }))
+
+    expect(onCommentsChange).toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Bold' })).toBeDisabled()
+  })
+
+  it('toggles comment visibility without removing thread data', async () => {
+    const onCommentsChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+        onCommentsChange={onCommentsChange}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+    await user.click(screen.getByRole('button', { name: 'Add comment on selection' }))
+    await user.type(screen.getByPlaceholderText('Write a reply…'), 'Still here')
+    await user.click(screen.getByRole('button', { name: 'Post' }))
+
+    const threads = onCommentsChange.mock.calls.at(-1)?.[0]
+    expect(threads?.length).toBe(1)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'Hide comments' }))
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Hide comments' })).toBeNull()
+    expect(threads?.[0]?.messages[0]?.message).toBe('Still here')
+  })
+})

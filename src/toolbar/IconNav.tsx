@@ -2,6 +2,7 @@ import { useT } from '../i18n/LocaleProvider'
 import type { EditorCommands, EditorQueries } from '../core/commandTypes'
 import { runEditorCommand } from '../core/commandTypes'
 import { resolveChromeAria, resolveChromeLabel } from './resolveChrome'
+import { isChromeItemLocked, type ChromeLockOptions } from './commentsChrome'
 import { Tooltip } from './Tooltip'
 import type { ToolbarCatalog, ToolbarIconGroup, ToolbarItemId } from './types'
 import styles from './Toolbar.module.css'
@@ -14,6 +15,7 @@ type IconNavProps = {
   commands: EditorCommands
   queries: EditorQueries
   disabled?: boolean
+  chromeLock?: ChromeLockOptions
 }
 
 function splitFullscreenGroups(groups: ToolbarIconGroup[]): {
@@ -36,7 +38,7 @@ function splitFullscreenGroups(groups: ToolbarIconGroup[]): {
   return { main, trailing }
 }
 
-export function IconNav({ groups, catalog, commands, queries, disabled }: IconNavProps) {
+export function IconNav({ groups, catalog, commands, queries, disabled, chromeLock }: IconNavProps) {
   const t = useT()
   const { main, trailing } = splitFullscreenGroups(groups)
 
@@ -76,7 +78,11 @@ export function IconNav({ groups, catalog, commands, queries, disabled }: IconNa
                 className={styles.iconButton}
                 aria-label={resolveChromeAria(t, item)}
                 aria-pressed={pressed}
-                disabled={disabled || unavailable}
+                disabled={
+                  disabled ||
+                  (chromeLock ? isChromeItemLocked(id, chromeLock) : false) ||
+                  unavailable
+                }
                 onPointerDown={(event) => event.preventDefault()}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => {

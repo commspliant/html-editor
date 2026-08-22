@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -128,6 +128,31 @@ export function MultiPageEditor() {
         const response = await fetch('/api/documents/current/pages')
         if (!response.ok) return null
         return response.json() as Promise<string[]>
+      }}
+    />
+  )
+}`,
+    ],
+  },
+  comments: {
+    titleKey: 'commentsAria',
+    bodyKey: 'commentsExampleBody',
+    snippets: [
+      `import { useState } from 'react'
+import { Editor, stripCommentAnchors, type CommentThread } from 'commspliant-html-editor'
+
+export function CommentingEditor() {
+  const [comments, setComments] = useState<CommentThread[]>([])
+
+  return (
+    <Editor
+      enableComments
+      commentAuthor={{ userId: 'u1', userName: 'Reviewer' }}
+      comments={comments}
+      onCommentsChange={setComments}
+      onChange={(html) => {
+        const publishHtml = stripCommentAnchors(html)
+        // persist publishHtml separately from comments
       }}
     />
   )

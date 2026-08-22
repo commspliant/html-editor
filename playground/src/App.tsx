@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type KeyboardEvent, type Pointe
 import {
   Editor,
   type AllowedChrome,
+  type CommentThread,
   type CustomAction,
   type CustomActionApi,
   type CustomAudioInsert,
@@ -38,6 +39,11 @@ type AllowedChromePreset = 'all' | 'fileEdit' | 'format'
 type FileCallbacksMode = 'local' | 'host'
 
 const PLAYGROUND_HOST_OPEN_SAMPLE = '<p>Sample document from mock host storage</p>'
+
+const DEFAULT_EDITOR_HTML = '<p>Hello <strong>world</strong></p>'
+
+const COMMENTS_DEMO_HTML =
+  '<p>Price was <strong>£150</strong> last week. Select text or the image below, then use <strong>Add comment</strong>.</p><p><img src="https://picsum.photos/seed/wysiwyg-comments/320/180" alt="Sample diagram" width="320" height="180"></p>'
 
 const FILE_EDIT_CHROME: AllowedChrome = {
   menus: ['file', 'edit'],
@@ -260,6 +266,8 @@ export function App() {
   const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
   const [fileCallbacksMode, setFileCallbacksMode] = useState<FileCallbacksMode>('local')
   const [multiPagesEnabled, setMultiPagesEnabled] = useState(false)
+  const [commentsEnabled, setCommentsEnabled] = useState(true)
+  const [comments, setComments] = useState<CommentThread[]>([])
   const [lastHostSaveAt, setLastHostSaveAt] = useState<number | null>(null)
   const [hostDocumentStored, setHostDocumentStored] = useState(() => playgroundDocumentHtml !== null)
   const [customActionsEnabled, setCustomActionsEnabled] = useState(true)
@@ -656,6 +664,39 @@ export function App() {
                       {t.multiPagesOn}
                     </button>
                   </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.commentsAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('comments')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.commentsAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!commentsEnabled}
+                      onClick={() => setCommentsEnabled(false)}
+                    >
+                      {t.commentsOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={commentsEnabled}
+                      onClick={() => setCommentsEnabled(true)}
+                    >
+                      {t.commentsOn}
+                    </button>
+                  </div>
+                  {commentsEnabled ? (
+                    <p className="control-group-status">{t.commentsHint}</p>
+                  ) : null}
+                  {commentsEnabled && comments.length > 0 ? (
+                    <p className="control-group-status">
+                      {t.commentsThreadCount.replace('{count}', String(comments.length))}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
@@ -1127,6 +1168,7 @@ export function App() {
         <section className="editor-pane">
           <div className="editor-slot">
             <Editor
+              key={commentsEnabled ? 'comments-demo' : 'default-demo'}
               locale={locale}
               menuVisible={menuVisible}
               toolbarVisible={toolbarVisible}
@@ -1136,6 +1178,12 @@ export function App() {
               readOnly={readOnly}
               disableHtmlFileDrop={disableHtmlFileDrop}
               enableMultiPages={multiPagesEnabled}
+              enableComments={commentsEnabled}
+              commentAuthor={
+                commentsEnabled ? { userId: 'playground', userName: 'Playground user' } : undefined
+              }
+              comments={commentsEnabled ? comments : undefined}
+              onCommentsChange={commentsEnabled ? setComments : undefined}
               onAutoSave={autoSave ? onAutoSave : undefined}
               onSave={fileCallbacksMode === 'host' ? onSave : undefined}
               onOpen={fileCallbacksMode === 'host' ? onOpen : undefined}
@@ -1147,7 +1195,7 @@ export function App() {
                     ? roundedBorder
                     : undefined
               }
-              defaultValue="<p>Hello <strong>world</strong></p>"
+              defaultValue={commentsEnabled ? COMMENTS_DEMO_HTML : DEFAULT_EDITOR_HTML}
               placeholder={t.placeholder}
               customActions={customActionsEnabled ? customActions : undefined}
               customFonts={googleFonts ? playgroundGoogleFonts : undefined}
