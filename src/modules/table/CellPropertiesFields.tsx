@@ -8,11 +8,27 @@ import {
   type BoxSides,
   type CssLength,
 } from '../../core/paragraphBox'
+import type { TextAlign } from '../../core/textAlign'
+import { AlignCenterIcon, AlignLeftIcon, AlignRightIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
 import type { MessageKey } from '../../i18n/types'
 import { ColorField } from '../format/ColorField'
 import { LengthField } from '../format/LengthField'
 import styles from '../format/FontPropertiesDialog.module.css'
+
+const CELL_TEXT_ALIGNS = ['left', 'center', 'right'] as const satisfies readonly TextAlign[]
+
+const TEXT_ALIGN_ICONS = {
+  left: AlignLeftIcon,
+  center: AlignCenterIcon,
+  right: AlignRightIcon,
+} as const
+
+const TEXT_ALIGN_KEYS: Record<(typeof CELL_TEXT_ALIGNS)[number], MessageKey> = {
+  left: 'commandAlignLeftAria',
+  center: 'commandAlignCenterAria',
+  right: 'commandAlignRightAria',
+}
 
 const SIDE_KEYS: Record<BoxSide, MessageKey> = {
   top: 'paragraphDialogSideTop',
@@ -102,6 +118,31 @@ export function CellPropertiesFields({ value, disabled, onChange }: CellProperti
               }}
             />
           ))}
+        </div>
+      </fieldset>
+      <fieldset className={styles.group}>
+        <legend className={styles.label}>{t('paragraphDialogAlignment')}</legend>
+        <div className={styles.iconRow} role="radiogroup" aria-label={t('paragraphDialogAlignment')}>
+          {CELL_TEXT_ALIGNS.map((align) => {
+            const Icon = TEXT_ALIGN_ICONS[align]
+            const pressed = (value.textAlign ?? 'left') === align
+            return (
+              <button
+                key={align}
+                type="button"
+                className={styles.iconButton}
+                role="radio"
+                aria-checked={pressed}
+                aria-label={t(TEXT_ALIGN_KEYS[align])}
+                disabled={disabled}
+                onClick={() => {
+                  onChange({ ...value, textAlign: align === 'left' ? null : align })
+                }}
+              >
+                <Icon />
+              </button>
+            )
+          })}
         </div>
       </fieldset>
       <div className={styles.field}>

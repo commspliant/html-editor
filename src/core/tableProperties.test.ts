@@ -133,6 +133,36 @@ describe('cell properties', () => {
     expect(readCellProperties(cell).verticalAlign).toBe('middle')
   })
 
+  it('writes text align and round-trips through readCellProperties', () => {
+    const el = mountVisual('<p>x</p>')
+    const table = insertAndSelect(el)
+    const cell = table.rows[0].cells[0]
+
+    expect(
+      applyCellPropertiesInDocument(
+        el,
+        defaultCellPropertiesApply({
+          textAlign: 'center',
+        }),
+      ),
+    ).toBe(true)
+
+    expect(cell.style.textAlign).toBe('center')
+    expect(readCellProperties(cell).textAlign).toBe('center')
+
+    expect(
+      applyCellPropertiesInDocument(
+        el,
+        defaultCellPropertiesApply({
+          textAlign: null,
+        }),
+      ),
+    ).toBe(true)
+
+    expect(cell.style.textAlign).toBe('')
+    expect(readCellProperties(cell).textAlign).toBeNull()
+  })
+
   it('writes colspan and rowspan onto the caret cell', () => {
     const el = mountVisual('<p>x</p>')
     const table = insertAndSelect(el)
