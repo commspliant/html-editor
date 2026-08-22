@@ -12,6 +12,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     setFullscreen: vi.fn(),
     getDarkMode: () => false,
     setDarkMode: vi.fn(),
+    getPageZoom: () => 'fitWidth' as const,
+    setPageZoom: vi.fn(),
     getToolbarPosition: () => 'top',
     setToolbarPosition: vi.fn(),
     openCustomizeToolbar: vi.fn(),
@@ -202,6 +204,18 @@ describe('createViewCommands', () => {
     commands.setToolbarPositionBottom()
     expect(setToolbarPosition).toHaveBeenCalledWith('bottom')
   })
+
+  it('sets page zoom presets', () => {
+    const setPageZoom = vi.fn()
+    const commands = createViewCommands(context({ setPageZoom }))
+
+    commands.setPageZoomFitWidth()
+    expect(setPageZoom).toHaveBeenCalledWith('fitWidth')
+    commands.setPageZoom100()
+    expect(setPageZoom).toHaveBeenCalledWith(100)
+    commands.setPageZoom200()
+    expect(setPageZoom).toHaveBeenCalledWith(200)
+  })
 })
 
 describe('createViewQueries', () => {
@@ -237,5 +251,11 @@ describe('createViewQueries', () => {
     expect(createViewQueries(context({ isReadingAloud: () => true })).isReadingAloud()).toBe(true)
     expect(createViewQueries(context({ canReadAloud: () => true })).canReadAloud()).toBe(true)
     expect(createViewQueries(context({ canReadAloud: () => false })).canReadAloud()).toBe(false)
+  })
+
+  it('reports page zoom preset', () => {
+    expect(createViewQueries(context({ getPageZoom: () => 'fitWidth' })).isPageZoomFitWidth()).toBe(true)
+    expect(createViewQueries(context({ getPageZoom: () => 100 })).isPageZoom100()).toBe(true)
+    expect(createViewQueries(context({ getPageZoom: () => 'fitPage' })).isPageZoomFitWidth()).toBe(false)
   })
 })

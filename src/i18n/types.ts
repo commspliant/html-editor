@@ -351,6 +351,24 @@ export type Messages = {
   pageAtRuleMargins: string
   pageAtRuleReset: string
   pageAtRuleResetAria: string
+  menuZoom: string
+  menuZoomAria: string
+  pageZoomFitWidth: string
+  pageZoomFitWidthAria: string
+  pageZoomFitPage: string
+  pageZoomFitPageAria: string
+  pageZoom50: string
+  pageZoom50Aria: string
+  pageZoom75: string
+  pageZoom75Aria: string
+  pageZoom100: string
+  pageZoom100Aria: string
+  pageZoom125: string
+  pageZoom125Aria: string
+  pageZoom150: string
+  pageZoom150Aria: string
+  pageZoom200: string
+  pageZoom200Aria: string
   pageBackgroundImagePreview: string
   pageBackgroundImagePreviewAlt: string
   pageBackgroundImageClear: string

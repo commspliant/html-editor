@@ -46,7 +46,9 @@ import {
   queryPageProperties,
   resetPageAtRuleInDocument,
 } from '../core/pageProperties'
-import { emptyPageAtRuleApply } from '../core/pageAtRule'
+import { emptyPageAtRuleApply, queryPageAtRule } from '../core/pageAtRule'
+import { isPageCanvasSized } from '../core/pageCanvasLayout'
+import { resolvePageZoomScale } from '../core/pageZoom'
 import {
   joinPagesToHtml,
   normalizePages,
@@ -209,6 +211,10 @@ import {
   writeDarkModeToStorage,
 } from '../modules/view/darkModePersistence'
 import {
+  readPageZoomFromStorage,
+  writePageZoomToStorage,
+} from '../modules/view/pageZoomPersistence'
+import {
   parseToolbarPosition,
   readToolbarPositionFromStorage,
   writeToolbarPositionToStorage,
@@ -240,6 +246,7 @@ import type {
   CustomVideoInsert,
   EditorMode,
   EditorProps,
+  PageZoomPreset,
   ToolbarCustomization,
   ToolbarPosition,
 } from '../types'
@@ -337,6 +344,7 @@ export function Editor({
     onChange: onCommentsChange,
   })
   const visualRootRef = useRef<HTMLDivElement | null>(null)
+  const workspaceRef = useRef<HTMLDivElement | null>(null)
   const multiPageVisualRef = useRef<MultiPageVisualSurfaceHandle>(null)
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null)
   const enableMultiPagesRef = useRef(enableMultiPages)
@@ -462,6 +470,10 @@ export function Editor({
     if (toolbarPositionPersistence) return toolbarPosition
     return readToolbarPositionFromStorage() ?? toolbarPosition
   })
+  const [pageZoom, setPageZoom] = useState<PageZoomPreset>(
+    () => readPageZoomFromStorage() ?? 'fitWidth',
+  )
+  const [pageZoomScale, setPageZoomScale] = useState(1)
   const [paragraphDialog, setParagraphDialog] = useState<{
     open: boolean
     tab: ParagraphDialogTab
@@ -617,6 +629,8 @@ export function Editor({
   darkRef.current = dark
   const toolbarPosRef = useRef(toolbarPos)
   toolbarPosRef.current = toolbarPos
+  const pageZoomRef = useRef(pageZoom)
+  pageZoomRef.current = pageZoom
   const disableBuiltinImageInsertRef = useRef(disableBuiltinImageInsert)
   disableBuiltinImageInsertRef.current = disableBuiltinImageInsert
   const disableBuiltinAudioInsertRef = useRef(disableBuiltinAudioInsert)
@@ -640,6 +654,16 @@ export function Editor({
   const visualPageBodies = useMemo(
     () => splitPagesFromHtml(html).map((page) => extractFontStylesheets(page).body),
     [html],
+  )
+  const activePageHtml = useMemo(() => {
+    if (enableMultiPages) {
+      return visualPageBodies[activePageIndex] ?? ''
+    }
+    return extractFontStylesheets(html).body
+  }, [enableMultiPages, visualPageBodies, activePageIndex, html])
+  const pageCanvasSized = useMemo(
+    () => isPageCanvasSized(queryPageAtRule(activePageHtml)),
+    [activePageHtml],
   )
 
   useEffect(() => {
@@ -750,6 +774,11 @@ export function Editor({
     writeDarkModeToStorage(next)
   }, [])
 
+  const persistPageZoom = useCallback((next: PageZoomPreset) => {
+    setPageZoom(next)
+    writePageZoomToStorage(next)
+  }, [])
+
   useEffect(() => {
     const host = darkModePersistence
     if (!host?.load || !host.save) {
@@ -771,6 +800,38 @@ export function Editor({
       darkModeLoadGenerationRef.current += 1
     }
   }, [darkModePersistence, darkMode])
+
+  useLayoutEffect(() => {
+    if (mode !== 'visual') return
+    const workspace = workspaceRef.current
+    if (!workspace) return
+
+    const measure = () => {
+      const surface = visualRootRef.current
+      const workspaceStyle = getComputedStyle(workspace)
+      const padX =
+        parseFloat(workspaceStyle.paddingLeft) + parseFloat(workspaceStyle.paddingRight)
+      const padY =
+        parseFloat(workspaceStyle.paddingTop) + parseFloat(workspaceStyle.paddingBottom)
+      const availW = Math.max(0, workspace.clientWidth - padX)
+      const availH = Math.max(0, workspace.clientHeight - padY)
+      const pageW = surface?.offsetWidth ?? availW
+      const pageH = surface?.offsetHeight ?? availH
+      setPageZoomScale(
+        resolvePageZoomScale(pageZoomRef.current, availW, availH, pageW, pageH),
+      )
+    }
+
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(workspace)
+    const surface = visualRootRef.current
+    if (surface) observer.observe(surface)
+    measure()
+    return () => observer.disconnect()
+  }, [mode, html, activePageIndex, visualPageBodies, pageZoom, pageCanvasSized])
 
   const persistToolbarPosition = useCallback(async (next: ToolbarPosition) => {
     setToolbarPos(next)
@@ -1946,6 +2007,8 @@ export function Editor({
       setDarkMode: (next) => {
         void persistDarkMode(next)
       },
+      getPageZoom: () => pageZoomRef.current,
+      setPageZoom: persistPageZoom,
       getToolbarPosition: () => toolbarPosRef.current,
       setToolbarPosition: (next) => {
         void persistToolbarPosition(next)
@@ -2523,7 +2586,7 @@ export function Editor({
           }
         : {}),
     }),
-    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, insertPageAfterActive, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState],
+    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistPageZoom, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, insertPageAfterActive, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2600,7 +2663,7 @@ export function Editor({
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
-    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos],
+    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos, pageZoom],
   )
 
   const handleVisualBeforeInput = useCallback(
@@ -2825,6 +2888,58 @@ export function Editor({
     border,
   })
   const themeAttr = chromeThemeProps(dark)['data-wysiwyg-theme']
+  const pageZoomViewportStyle = useMemo((): CSSProperties | undefined => {
+    if (mode !== 'visual' || pageZoomScale === 1) return undefined
+    return { transform: `scale(${pageZoomScale})` }
+  }, [mode, pageZoomScale])
+  const visualSurface = mode === 'visual' ? (
+    enableMultiPages ? (
+      <MultiPageVisualSurface
+        ref={multiPageVisualRef}
+        pages={visualPageBodies}
+        activePageIndex={activePageIndex}
+        onActivePageIndexChange={(index) => {
+          setActivePageIndex(index)
+          const surface = multiPageVisualRef.current?.getActivePageRoot()
+          if (surface instanceof HTMLDivElement) {
+            visualRootRef.current = surface
+          }
+        }}
+        onPageChange={(index, next) => recordPageVisualHtml(index, next, true)}
+        onBeforeInput={handleVisualBeforeInput}
+        onPointerDown={(event) => {
+          if (event.currentTarget instanceof HTMLDivElement) {
+            visualRootRef.current = event.currentTarget
+          }
+          handleVisualPointerDown(event)
+        }}
+        onMouseUp={handleVisualMouseUp}
+        onContextMenu={handleVisualContextMenu}
+        placeholder={placeholder}
+        disabled={contentLocked}
+      />
+    ) : (
+      <VisualSurface
+        ref={visualRootRef}
+        html={extractFontStylesheets(html).body}
+        onChange={(next) => recordVisualHtml(next, true)}
+        onBeforeInput={handleVisualBeforeInput}
+        onPointerDown={handleVisualPointerDown}
+        onMouseUp={handleVisualMouseUp}
+        onContextMenu={handleVisualContextMenu}
+        placeholder={placeholder}
+        disabled={contentLocked}
+      />
+    )
+  ) : (
+    <HtmlSurface
+      ref={htmlAreaRef}
+      html={html}
+      onChange={(next) => recordHtml(next, true)}
+      placeholder={placeholder}
+      disabled={contentLocked}
+    />
+  )
 
   return (
     <LocaleProvider locale={locale}>
@@ -2872,59 +2987,19 @@ export function Editor({
             </div>
           ) : null}
           <div
-            className={styles.workspace}
+            ref={workspaceRef}
+            className={`${styles.workspace} ${pageCanvasSized ? styles.workspacePageSized : ''}`}
             onDragEnter={htmlFileDrop.onDragEnter}
             onDragOver={htmlFileDrop.onDragOver}
             onDragLeave={htmlFileDrop.onDragLeave}
             onDrop={htmlFileDrop.onDrop}
           >
             {mode === 'visual' ? (
-              enableMultiPages ? (
-                <MultiPageVisualSurface
-                  ref={multiPageVisualRef}
-                  pages={visualPageBodies}
-                  activePageIndex={activePageIndex}
-                  onActivePageIndexChange={(index) => {
-                    setActivePageIndex(index)
-                    const surface = multiPageVisualRef.current?.getActivePageRoot()
-                    if (surface instanceof HTMLDivElement) {
-                      visualRootRef.current = surface
-                    }
-                  }}
-                  onPageChange={(index, next) => recordPageVisualHtml(index, next, true)}
-                  onBeforeInput={handleVisualBeforeInput}
-                  onPointerDown={(event) => {
-                    if (event.currentTarget instanceof HTMLDivElement) {
-                      visualRootRef.current = event.currentTarget
-                    }
-                    handleVisualPointerDown(event)
-                  }}
-                  onMouseUp={handleVisualMouseUp}
-                  onContextMenu={handleVisualContextMenu}
-                  placeholder={placeholder}
-                  disabled={contentLocked}
-                />
-              ) : (
-                <VisualSurface
-                  ref={visualRootRef}
-                  html={extractFontStylesheets(html).body}
-                  onChange={(next) => recordVisualHtml(next, true)}
-                  onBeforeInput={handleVisualBeforeInput}
-                  onPointerDown={handleVisualPointerDown}
-                  onMouseUp={handleVisualMouseUp}
-                  onContextMenu={handleVisualContextMenu}
-                  placeholder={placeholder}
-                  disabled={contentLocked}
-                />
-              )
+              <div className={styles.pageCanvasViewport} style={pageZoomViewportStyle}>
+                {visualSurface}
+              </div>
             ) : (
-              <HtmlSurface
-                ref={htmlAreaRef}
-                html={html}
-                onChange={(next) => recordHtml(next, true)}
-                placeholder={placeholder}
-                disabled={contentLocked}
-              />
+              visualSurface
             )}
             {htmlFileDrop.dragging ? <HtmlFileDropOverlay /> : null}
           </div>

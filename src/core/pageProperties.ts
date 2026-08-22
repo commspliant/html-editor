@@ -10,6 +10,7 @@ import {
 import { fontFamiliesEqual } from './fontFamily'
 import { normalizeCssColor } from './inlineColor'
 import { emptyFontMarkState, type FontMarkState } from './marks'
+import { syncPageCanvasLayout } from './pageCanvasLayout'
 import { ensurePageShell, ensurePageShellLayout, queryPageShell, syncPageHolderBackground } from './page'
 import {
   emptyPageBackgroundImageApply,
@@ -214,11 +215,13 @@ export function applyPagePropertiesInDocument(
   const wroteBox = writeParagraphBox(shell, boxWithPageFill(draft))
   const wroteBackgroundImage = writePageBackgroundImage(shell, draft.backgroundImage)
   syncPageHolderBackground(root)
+  syncPageCanvasLayout(root, root.innerHTML)
 
   const previousAtRule = queryPageAtRule(root.innerHTML)
   const nextHtml = applyPageAtRule(root.innerHTML, draft.atRule)
   if (nextHtml !== root.innerHTML) {
     root.innerHTML = nextHtml
+    syncPageCanvasLayout(root, root.innerHTML)
   }
   const wroteAtRule = JSON.stringify(previousAtRule) !== JSON.stringify(draft.atRule)
 
@@ -234,5 +237,6 @@ export function resetPageAtRuleInDocument(root: HTMLElement): boolean {
   if (nextHtml === root.innerHTML) return false
   root.innerHTML = nextHtml
   syncPageHolderBackground(root)
+  syncPageCanvasLayout(root, root.innerHTML)
   return true
 }

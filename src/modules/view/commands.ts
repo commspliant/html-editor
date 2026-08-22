@@ -1,4 +1,16 @@
 import type { CommandContext, EditorCommands, EditorQueries } from '../../core/commandTypes'
+import type { PageZoomPreset } from '../../types'
+import { PAGE_ZOOM_PRESETS } from '../../core/pageZoom'
+
+function createPageZoomSetter(ctx: CommandContext, zoom: PageZoomPreset) {
+  return () => {
+    ctx.setPageZoom(zoom)
+  }
+}
+
+function createPageZoomQuery(ctx: CommandContext, zoom: PageZoomPreset) {
+  return () => ctx.getPageZoom() === zoom
+}
 
 export function createViewCommands(
   ctx: CommandContext,
@@ -12,6 +24,14 @@ export function createViewCommands(
   | 'toggleReadAloud'
   | 'setLightMode'
   | 'setDarkMode'
+  | 'setPageZoomFitWidth'
+  | 'setPageZoomFitPage'
+  | 'setPageZoom50'
+  | 'setPageZoom75'
+  | 'setPageZoom100'
+  | 'setPageZoom125'
+  | 'setPageZoom150'
+  | 'setPageZoom200'
   | 'setToolbarPositionTop'
   | 'setToolbarPositionLeft'
   | 'setToolbarPositionRight'
@@ -42,6 +62,14 @@ export function createViewCommands(
     setDarkMode: () => {
       ctx.setDarkMode(true)
     },
+    setPageZoomFitWidth: createPageZoomSetter(ctx, 'fitWidth'),
+    setPageZoomFitPage: createPageZoomSetter(ctx, 'fitPage'),
+    setPageZoom50: createPageZoomSetter(ctx, 50),
+    setPageZoom75: createPageZoomSetter(ctx, 75),
+    setPageZoom100: createPageZoomSetter(ctx, 100),
+    setPageZoom125: createPageZoomSetter(ctx, 125),
+    setPageZoom150: createPageZoomSetter(ctx, 150),
+    setPageZoom200: createPageZoomSetter(ctx, 200),
     setToolbarPositionTop: () => {
       ctx.setToolbarPosition('top')
     },
@@ -66,6 +94,14 @@ export function createViewQueries(
   | 'isFullscreen'
   | 'isLightMode'
   | 'isDarkMode'
+  | 'isPageZoomFitWidth'
+  | 'isPageZoomFitPage'
+  | 'isPageZoom50'
+  | 'isPageZoom75'
+  | 'isPageZoom100'
+  | 'isPageZoom125'
+  | 'isPageZoom150'
+  | 'isPageZoom200'
   | 'isToolbarPositionTop'
   | 'isToolbarPositionLeft'
   | 'isToolbarPositionRight'
@@ -79,6 +115,14 @@ export function createViewQueries(
     isFullscreen: () => ctx.getFullscreen(),
     isLightMode: () => !ctx.getDarkMode(),
     isDarkMode: () => ctx.getDarkMode(),
+    isPageZoomFitWidth: createPageZoomQuery(ctx, 'fitWidth'),
+    isPageZoomFitPage: createPageZoomQuery(ctx, 'fitPage'),
+    isPageZoom50: createPageZoomQuery(ctx, 50),
+    isPageZoom75: createPageZoomQuery(ctx, 75),
+    isPageZoom100: createPageZoomQuery(ctx, 100),
+    isPageZoom125: createPageZoomQuery(ctx, 125),
+    isPageZoom150: createPageZoomQuery(ctx, 150),
+    isPageZoom200: createPageZoomQuery(ctx, 200),
     isToolbarPositionTop: () => ctx.getToolbarPosition() === 'top',
     isToolbarPositionLeft: () => ctx.getToolbarPosition() === 'left',
     isToolbarPositionRight: () => ctx.getToolbarPosition() === 'right',
@@ -87,3 +131,5 @@ export function createViewQueries(
     canReadAloud: () => ctx.canReadAloud(),
   }
 }
+
+export { PAGE_ZOOM_PRESETS }

@@ -6,6 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { syncPageHolderBackground } from '../core/page'
+import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
 import { useT } from '../i18n/LocaleProvider'
 import styles from './Editor.module.css'
 
@@ -46,6 +47,7 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
         el.innerHTML = html
       }
       syncPageHolderBackground(el)
+      syncPageCanvasLayout(el, html)
     }, [html])
 
     useLayoutEffect(() => {

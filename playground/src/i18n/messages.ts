@@ -264,7 +264,7 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     fileCallbacksExampleBody:
       'By default, File → Save and Open use the built-in local HTML file picker. Pass onSave and/or onOpen to delegate to the host instead. The two props are independent. HTML file drag-drop is unchanged.',
     multiPagesExampleBody:
-      'Set enableMultiPages to edit multiple independent HTML pages in visual mode. Host onSave, onOpen, and onAutoSave receive all pages as a string array. Built-in file save/open still operate on the focused page only. HTML source mode shows all pages separated by <!-- wysiwyg-page-separator -->.',
+      'Set enableMultiPages to edit multiple independent HTML pages in visual mode. Host onSave, onOpen, and onAutoSave receive all pages as a string array. Built-in file save/open still operate on the focused page only. HTML source mode shows all pages separated by <!-- wysiwyg-page-separator -->. Edit → Page → Page properties → Print sets @page size and margins; the visual canvas previews each page. View → Zoom adjusts screen-only fit and percentage zoom.',
     commentsExampleBody:
       'Set enableComments to add comment threads anchored with data-comment-thread markers. Pass commentAuthor for posting identity and onCommentsChange to persist CommentThread[] separately from document HTML. Use stripCommentAnchors(html) for sanitized publish HTML. In readOnly mode, comment operations fire onCommentsChange only.',
     customActionsExampleBody:
@@ -433,7 +433,7 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     fileCallbacksExampleBody:
       'Por defecto, Archivo → Guardar y Abrir usan el selector de archivo HTML integrado. Pasa onSave y/o onOpen para delegar en el anfitrión. Las dos propiedades son independientes. Soltar un archivo HTML no cambia.',
     multiPagesExampleBody:
-      'Con enableMultiPages puedes editar varias páginas HTML independientes en modo visual. Los callbacks del anfitrión onSave, onOpen y onAutoSave reciben todas las páginas como un array de cadenas. Guardar/abrir integrado sigue operando solo en la página activa. El modo HTML muestra todas las páginas separadas por <!-- wysiwyg-page-separator -->.',
+      'Con enableMultiPages puedes editar varias páginas HTML independientes en modo visual. Los callbacks del anfitrión onSave, onOpen y onAutoSave reciben todas las páginas como un array de cadenas. Guardar/abrir integrado sigue operando solo en la página activa. El modo HTML muestra todas las páginas separadas por <!-- wysiwyg-page-separator -->. Editar → Página → Propiedades de página → Impresión define el tamaño y márgenes @page; el lienzo visual los previsualiza. Ver → Zoom ajusta el ajuste y el porcentaje solo en pantalla.',
     commentsExampleBody:
       'Con enableComments puedes añadir hilos de comentarios anclados con data-comment-thread. Pasa commentAuthor para la identidad al publicar y onCommentsChange para persistir CommentThread[] aparte del HTML del documento. Usa stripCommentAnchors(html) para HTML publicado sin anclajes. En modo readOnly, las operaciones de comentarios solo disparan onCommentsChange.',
     customActionsExampleBody:
