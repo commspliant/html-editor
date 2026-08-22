@@ -1,4 +1,4 @@
-import type { CustomActionSelection, CustomParagraphStyle, CommentThread, EditorMode, ToolbarPosition } from '../types'
+import type { CustomActionSelection, CustomParagraphStyle, CommentThread, EditorMode, PageZoomPreset, ToolbarPosition } from '../types'
 import type { LinkAttrs } from './link'
 import type { ImageAttrs } from './image'
 import type { AudioAttrs } from './audio'
@@ -73,6 +73,14 @@ export type CommandName =
   | 'toggleReadAloud'
   | 'setLightMode'
   | 'setDarkMode'
+  | 'setPageZoomFitWidth'
+  | 'setPageZoomFitPage'
+  | 'setPageZoom50'
+  | 'setPageZoom75'
+  | 'setPageZoom100'
+  | 'setPageZoom125'
+  | 'setPageZoom150'
+  | 'setPageZoom200'
   | 'setToolbarPositionTop'
   | 'setToolbarPositionLeft'
   | 'setToolbarPositionRight'
@@ -130,6 +138,14 @@ export type QueryName =
   | 'isFullscreen'
   | 'isLightMode'
   | 'isDarkMode'
+  | 'isPageZoomFitWidth'
+  | 'isPageZoomFitPage'
+  | 'isPageZoom50'
+  | 'isPageZoom75'
+  | 'isPageZoom100'
+  | 'isPageZoom125'
+  | 'isPageZoom150'
+  | 'isPageZoom200'
   | 'isToolbarPositionTop'
   | 'isToolbarPositionLeft'
   | 'isToolbarPositionRight'
@@ -171,6 +187,8 @@ export type CommandContext = {
   setFullscreen: (fullscreen: boolean) => void
   getDarkMode: () => boolean
   setDarkMode: (dark: boolean) => void
+  getPageZoom: () => PageZoomPreset
+  setPageZoom: (zoom: PageZoomPreset) => void
   getToolbarPosition: () => ToolbarPosition
   setToolbarPosition: (position: ToolbarPosition) => void
   openCustomizeToolbar: () => void
@@ -301,6 +319,14 @@ export type EditorCommands = {
   toggleReadAloud: () => void
   setLightMode: () => void
   setDarkMode: () => void
+  setPageZoomFitWidth: () => void
+  setPageZoomFitPage: () => void
+  setPageZoom50: () => void
+  setPageZoom75: () => void
+  setPageZoom100: () => void
+  setPageZoom125: () => void
+  setPageZoom150: () => void
+  setPageZoom200: () => void
   setToolbarPositionTop: () => void
   setToolbarPositionLeft: () => void
   setToolbarPositionRight: () => void
@@ -381,6 +407,14 @@ export type EditorQueries = {
   isFullscreen: () => boolean
   isLightMode: () => boolean
   isDarkMode: () => boolean
+  isPageZoomFitWidth: () => boolean
+  isPageZoomFitPage: () => boolean
+  isPageZoom50: () => boolean
+  isPageZoom75: () => boolean
+  isPageZoom100: () => boolean
+  isPageZoom125: () => boolean
+  isPageZoom150: () => boolean
+  isPageZoom200: () => boolean
   isToolbarPositionTop: () => boolean
   isToolbarPositionLeft: () => boolean
   isToolbarPositionRight: () => boolean

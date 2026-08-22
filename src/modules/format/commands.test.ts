@@ -14,6 +14,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     setFullscreen: vi.fn(),
     getDarkMode: () => false,
     setDarkMode: vi.fn(),
+    getPageZoom: () => 'fitWidth' as const,
+    setPageZoom: vi.fn(),
     getToolbarPosition: () => 'top',
     setToolbarPosition: vi.fn(),
     openCustomizeToolbar: vi.fn(),

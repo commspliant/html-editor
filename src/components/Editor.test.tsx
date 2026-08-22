@@ -1348,6 +1348,35 @@ describe('Editor paragraph chrome', () => {
     expect(visual.innerHTML).toContain('data-page')
   })
 
+  it('sizes the visual canvas from print page properties', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Print' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Page size' }), 'A4')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    expect(visual).toHaveAttribute('data-page-sized')
+    expect(visual.style.width).toBe('210mm')
+    expect(visual.style.minHeight).toBe('297mm')
+  })
+
+  it('applies screen zoom from the View menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Zoom submenu' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '150%' }))
+
+    const viewport = document.querySelector('[class*="pageCanvasViewport"]')
+    expect(viewport).toHaveStyle({ transform: 'scale(1.5)' })
+  })
+
   it('renders multiple visual surfaces when enableMultiPages is true', () => {
     render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
     expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)

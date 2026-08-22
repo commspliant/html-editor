@@ -10,6 +10,7 @@ import {
 import { extractFontStylesheets } from '../core/fontFamily'
 import { PAGE_SURFACE_ATTR, queryPageSurface } from '../core/multiPage'
 import { syncPageHolderBackground } from '../core/page'
+import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
 import { useT } from '../i18n/LocaleProvider'
 import styles from './Editor.module.css'
 
@@ -81,6 +82,7 @@ export const MultiPageVisualSurface = forwardRef<
       surface.innerHTML = body
     }
     syncPageHolderBackground(surface)
+    syncPageCanvasLayout(surface, html)
   }, [])
 
   useLayoutEffect(() => {

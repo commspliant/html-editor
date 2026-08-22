@@ -118,6 +118,14 @@ function renderToolbar(
     isFullscreen: () => false,
     isLightMode: () => true,
     isDarkMode: () => false,
+    isPageZoomFitWidth: () => true,
+    isPageZoomFitPage: () => false,
+    isPageZoom50: () => false,
+    isPageZoom75: () => false,
+    isPageZoom100: () => false,
+    isPageZoom125: () => false,
+    isPageZoom150: () => false,
+    isPageZoom200: () => false,
     isToolbarPositionTop: () => true,
     isToolbarPositionLeft: () => false,
     isToolbarPositionRight: () => false,
@@ -636,6 +644,8 @@ describe('EditorToolbar', () => {
       'separator',
       null,
       'separator',
+      null,
+      'separator',
       'menuitemradio',
       'menuitemradio',
       'separator',
@@ -643,7 +653,7 @@ describe('EditorToolbar', () => {
       'menuitemcheckbox',
       'menuitemcheckbox',
     ])
-    expect(screen.getAllByRole('separator')).toHaveLength(3)
+    expect(screen.getAllByRole('separator')).toHaveLength(4)
   })
 
   it('separates print from save and open in the File menu', async () => {

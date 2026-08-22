@@ -28,6 +28,10 @@ export type { Locale }
 
 export type EditorMode = 'visual' | 'html'
 
+export type PageZoomPercent = 50 | 75 | 100 | 125 | 150 | 200
+
+export type PageZoomPreset = 'fitWidth' | 'fitPage' | PageZoomPercent
+
 export type CustomActionShowIn = 'menu' | 'toolbar' | 'both'
 
 export type CustomActionSelection = {
