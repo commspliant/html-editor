@@ -66,31 +66,39 @@ function readShorthandMargin(block: string): BoxSides {
 }
 
 function readSize(block: string): Pick<PageAtRuleApply, 'sizePreset' | 'customWidth' | 'customHeight' | 'orientation'> {
+  const empty = {
+    sizePreset: 'auto' as const,
+    customWidth: null,
+    customHeight: null,
+    orientation: null,
+  }
   const match = block.match(/(?:^|[\s{;])size\s*:\s*([^;]+)/i)
-  if (!match) {
-    return { sizePreset: 'auto', customWidth: null, customHeight: null, orientation: null }
-  }
+  if (!match) return empty
+
   const raw = match[1].trim().toLowerCase()
-  if (raw === 'auto') {
-    return { sizePreset: 'auto', customWidth: null, customHeight: null, orientation: null }
-  }
-  if (raw === 'a4') {
-    return { sizePreset: 'A4', customWidth: null, customHeight: null, orientation: null }
-  }
-  if (raw === 'letter') {
-    return { sizePreset: 'letter', customWidth: null, customHeight: null, orientation: null }
-  }
-  if (raw === 'legal') {
-    return { sizePreset: 'legal', customWidth: null, customHeight: null, orientation: null }
-  }
+  if (raw === 'auto') return empty
+
   const landscape = raw.includes('landscape')
   const portrait = raw.includes('portrait')
   const orientation = landscape ? 'landscape' : portrait ? 'portrait' : null
   const cleaned = raw.replace(/\b(landscape|portrait)\b/g, '').trim()
-  const dims = cleaned.split(/\s+/).filter(Boolean)
-  if (dims.length >= 2) {
-    const width = parseCssLength(dims[0])
-    const height = parseCssLength(dims[1])
+  const tokens = cleaned.split(/\s+/).filter(Boolean)
+
+  if (tokens.length === 1) {
+    if (tokens[0] === 'a4') {
+      return { sizePreset: 'A4', customWidth: null, customHeight: null, orientation }
+    }
+    if (tokens[0] === 'letter') {
+      return { sizePreset: 'letter', customWidth: null, customHeight: null, orientation }
+    }
+    if (tokens[0] === 'legal') {
+      return { sizePreset: 'legal', customWidth: null, customHeight: null, orientation }
+    }
+  }
+
+  if (tokens.length >= 2) {
+    const width = parseCssLength(tokens[0])
+    const height = parseCssLength(tokens[1])
     if (width && height) {
       return {
         sizePreset: 'custom',
@@ -100,7 +108,12 @@ function readSize(block: string): Pick<PageAtRuleApply, 'sizePreset' | 'customWi
       }
     }
   }
-  return { sizePreset: 'auto', customWidth: null, customHeight: null, orientation }
+
+  if (!cleaned && orientation) {
+    return { sizePreset: 'auto', customWidth: null, customHeight: null, orientation }
+  }
+
+  return empty
 }
 
 export function parsePageAtRuleCss(css: string | null): PageAtRuleApply {
@@ -180,7 +193,8 @@ export function serializePageAtRuleCss(draft: PageAtRuleApply): string | null {
   return `@page { ${[size, margin].filter(Boolean).join(' ')} }`
 }
 
-function stripAtRuleStyle(html: string): string {
+/** Remove the managed @page style tag from page HTML, leaving editable body content. */
+export function stripPageAtRuleFromHtml(html: string): string {
   const doc = parsePageHtml(html)
   for (const style of doc.querySelectorAll(`style[${PAGE_AT_RULE_ATTR}]`)) {
     style.remove()
@@ -207,7 +221,7 @@ export function applyPageAtRule(pageHtml: string, draft: PageAtRuleApply): strin
 }
 
 export function resetPageAtRule(pageHtml: string): string {
-  return stripAtRuleStyle(pageHtml)
+  return stripPageAtRuleFromHtml(pageHtml)
 }
 
 export function collectPageAtRulesForPrint(pages: readonly string[]): string {

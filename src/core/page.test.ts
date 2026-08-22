@@ -155,7 +155,7 @@ describe('applyPagePropertiesInDocument', () => {
           },
           backgroundColor: '#ccffff',
         }),
-      ),
+      ).changed,
     ).toBe(true)
 
     const shell = queryPageShell(el)
@@ -183,7 +183,7 @@ describe('applyPagePropertiesInDocument', () => {
           shadowMixed: true,
           backgroundMixed: true,
         }),
-      ),
+      ).changed,
     ).toBe(true)
 
     const shell = queryPageShell(el)
@@ -267,7 +267,7 @@ describe('applyPagePropertiesInDocument', () => {
           fontColor: '#cc0000',
           marks: { ...emptyFontMarkState(), bold: true, italic: true },
         }),
-      ),
+      ).changed,
     ).toBe(true)
 
     const shell = queryPageShell(el)
@@ -288,7 +288,7 @@ describe('applyPagePropertiesInDocument', () => {
         applyFont({
           fontFamily: 'Georgia, serif',
         }),
-      ),
+      ).changed,
     ).toBe(true)
 
     const shell = queryPageShell(el)

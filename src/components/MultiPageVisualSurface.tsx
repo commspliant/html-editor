@@ -11,6 +11,7 @@ import { extractFontStylesheets } from '../core/fontFamily'
 import { PAGE_SURFACE_ATTR, queryPageSurface } from '../core/multiPage'
 import { syncPageHolderBackground } from '../core/page'
 import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
+import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import { useT } from '../i18n/LocaleProvider'
 import styles from './Editor.module.css'
 
@@ -77,7 +78,7 @@ export const MultiPageVisualSurface = forwardRef<
   }))
 
   const syncSurfaceHtml = useCallback((surface: HTMLElement, html: string) => {
-    const body = extractFontStylesheets(html).body
+    const body = stripPageAtRuleFromHtml(extractFontStylesheets(html).body)
     if (surface.innerHTML !== body) {
       surface.innerHTML = body
     }

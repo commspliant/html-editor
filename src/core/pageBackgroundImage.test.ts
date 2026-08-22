@@ -229,7 +229,7 @@ describe('applyPagePropertiesInDocument background image', () => {
       height: { ...DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH },
     }
 
-    expect(applyPagePropertiesInDocument(visual, draft)).toBe(true)
+    expect(applyPagePropertiesInDocument(visual, draft).changed).toBe(true)
     const layer = queryPageBackgroundLayer(shell)
     expect(layer?.style.backgroundSize).toBe('100% 100%')
     expect(layer?.style.backgroundPosition).toBe('right')

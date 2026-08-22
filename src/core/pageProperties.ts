@@ -20,8 +20,10 @@ import {
 import {
   applyPageAtRule,
   emptyPageAtRuleApply,
+  extractPageAtRuleCss,
   queryPageAtRule,
   resetPageAtRule,
+  stripPageAtRuleFromHtml,
 } from './pageAtRule'
 import {
   emptyParagraphBoxApply,
@@ -196,10 +198,15 @@ export function queryPageProperties(root: HTMLElement): PagePropertiesApply {
   }
 }
 
+export type PagePropertiesDocumentResult = {
+  changed: boolean
+  pageHtml: string
+}
+
 export function applyPagePropertiesInDocument(
   root: HTMLElement,
   draft: PagePropertiesApply,
-): boolean {
+): PagePropertiesDocumentResult {
   const range = currentRange(root)
   const start = range
     ? textOffsetFromRoot(root, range.startContainer, range.startOffset)
@@ -215,28 +222,35 @@ export function applyPagePropertiesInDocument(
   const wroteBox = writeParagraphBox(shell, boxWithPageFill(draft))
   const wroteBackgroundImage = writePageBackgroundImage(shell, draft.backgroundImage)
   syncPageHolderBackground(root)
-  syncPageCanvasLayout(root, root.innerHTML)
 
   const previousAtRule = queryPageAtRule(root.innerHTML)
   const nextHtml = applyPageAtRule(root.innerHTML, draft.atRule)
-  if (nextHtml !== root.innerHTML) {
-    root.innerHTML = nextHtml
-    syncPageCanvasLayout(root, root.innerHTML)
+  const editableHtml = stripPageAtRuleFromHtml(nextHtml)
+  if (editableHtml !== stripPageAtRuleFromHtml(root.innerHTML)) {
+    root.innerHTML = editableHtml
   }
+  syncPageCanvasLayout(root, nextHtml)
   const wroteAtRule = JSON.stringify(previousAtRule) !== JSON.stringify(draft.atRule)
 
   if (start !== null && end !== null) {
     restoreOffsets(root, Math.min(start, end), Math.max(start, end))
   }
 
-  return !existed || wroteFont || wroteBox || wroteBackgroundImage || wroteAtRule
+  const changed = !existed || wroteFont || wroteBox || wroteBackgroundImage || wroteAtRule
+  return { changed, pageHtml: nextHtml }
 }
 
-export function resetPageAtRuleInDocument(root: HTMLElement): boolean {
-  const nextHtml = resetPageAtRule(root.innerHTML)
-  if (nextHtml === root.innerHTML) return false
-  root.innerHTML = nextHtml
+export function resetPageAtRuleInDocument(
+  root: HTMLElement,
+  sourceHtml?: string,
+): PagePropertiesDocumentResult {
+  const source = sourceHtml ?? root.innerHTML
+  const nextHtml = resetPageAtRule(source)
+  if (!extractPageAtRuleCss(source)) {
+    return { changed: false, pageHtml: nextHtml }
+  }
+  root.innerHTML = stripPageAtRuleFromHtml(nextHtml)
   syncPageHolderBackground(root)
-  syncPageCanvasLayout(root, root.innerHTML)
-  return true
+  syncPageCanvasLayout(root, nextHtml)
+  return { changed: true, pageHtml: nextHtml }
 }

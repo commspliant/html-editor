@@ -1367,6 +1367,16 @@ describe('Editor paragraph chrome', () => {
     expect(visual.innerHTML).toContain('data-page')
   })
 
+  const preloadedPageHtml =
+    '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
+
+  function expectPreloadedPageCanvas(visual: HTMLElement) {
+    expect(visual).toHaveAttribute('data-page-sized')
+    expect(visual.style.width).toBe('210mm')
+    expect(visual.style.minHeight).toBe('297mm')
+    expect(visual.style.paddingTop).toBe('20pt')
+  }
+
   it('sizes the visual canvas from print page properties', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)
@@ -1382,17 +1392,66 @@ describe('Editor paragraph chrome', () => {
     expect(visual).toHaveAttribute('data-page-sized')
     expect(visual.style.width).toBe('210mm')
     expect(visual.style.minHeight).toBe('297mm')
+    expect(visual.innerHTML).not.toContain('data-page-at-rule')
   })
 
-  const preloadedPageHtml =
-    '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
+  it('preserves @page in onChange after applying A4 page size', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" onChange={onChange} />)
 
-  function expectPreloadedPageCanvas(visual: HTMLElement) {
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Print' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Page size' }), 'A4')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    const lastHtml = onChange.mock.calls.at(-1)?.[0] as string | undefined
+    expect(lastHtml).toContain('data-page-at-rule')
+    expect(lastHtml).toContain('size: A4')
+  })
+
+  it('keeps the canvas sized after bold following A4 apply', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Print' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Page size' }), 'A4')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    await selectVisualText(visual, 0, 5)
+    await user.click(screen.getByRole('button', { name: 'Bold' }))
+
     expect(visual).toHaveAttribute('data-page-sized')
     expect(visual.style.width).toBe('210mm')
     expect(visual.style.minHeight).toBe('297mm')
-    expect(visual.style.paddingTop).toBe('20pt')
-  }
+  })
+
+  it('sizes the visual canvas from preloaded @page HTML when innerHTML strips style tags', () => {
+    const { rerender } = render(<Editor defaultValue={preloadedPageHtml} />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' }) as HTMLDivElement
+    let stored = visual.innerHTML
+
+    Object.defineProperty(visual, 'innerHTML', {
+      configurable: true,
+      get() {
+        return stored.replace(/<style[\s\S]*?<\/style>/gi, '')
+      },
+      set(value: string) {
+        stored = value.replace(/<style[\s\S]*?<\/style>/gi, '')
+      },
+    })
+
+    rerender(<Editor defaultValue={preloadedPageHtml} />)
+
+    expectPreloadedPageCanvas(visual)
+    expect(visual.innerHTML).not.toContain('data-page-at-rule')
+  })
 
   it('sizes the visual canvas from preloaded @page HTML', () => {
     render(<Editor defaultValue={preloadedPageHtml} />)
