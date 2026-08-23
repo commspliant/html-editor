@@ -339,9 +339,15 @@ export type EditorProps = {
    */
   customFonts?: CustomFont[]
   /**
+   * When true (default), strip `<script>` tags and `javascript:` URLs from document HTML
+   * on inbound `value` / `defaultValue` / `pages` and on every outbound write.
+   * Set false to disable; use `transformHtml` for custom filtering instead.
+   */
+  sanitizeHtml?: boolean
+  /**
    * Optional map over document HTML before it is stored and passed to `onChange`.
+   * Runs after built-in sanitization when `sanitizeHtml` is true (default).
    * Runs on every edit (visual, HTML source, open, file drop, insert, `setHtml`).
-   * Does not run for the inbound `value` / `defaultValue`.
    */
   transformHtml?: (html: string) => string
   /**
