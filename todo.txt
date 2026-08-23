@@ -34,10 +34,10 @@ Fit, % zoom on screen only (DONE)
 Pages (DONE)
 Page Break (DONE)
 Add to praragraph properties: break-inside: avoid;, break-after: avoid;break-before: page; (DONE)
+Built-in HTML sanitization: strip script tags and javascript: URLs (sanitizeHtml, default on) (DONE)
 
 --- Not done
 Not only add table, but add responsive grid system, editable properties for mobile devices.
-customizable auto sanitize Javascipt, including javascript: in tags
 Animation library
 Add special HTML block, like toggle, (witch custom CSS provided by us), configurable if allowed to use
 

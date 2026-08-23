@@ -1,5 +1,6 @@
 export { Editor } from './components/Editor'
 export { stripCommentAnchors } from './core/comments/sanitize'
+export { sanitizeDocumentHtml, sanitizePageHtml } from './core/sanitizeHtml'
 export {
   PAGE_SEPARATOR,
   joinPagesToHtml,

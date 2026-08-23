@@ -1531,6 +1531,93 @@ describe('Editor paragraph chrome', () => {
     render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
     expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
   })
+
+  it('preserves other pages when applying print settings on page 2', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Print' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Page size' }), 'A4')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(2)
+    expect(lastPages[0]).toContain('One')
+    expect(lastPages[1]).toContain('Two')
+    expect(lastPages[1]).toContain('data-page-at-rule')
+  })
+
+  it('preserves page 1 after inserting page 2 and setting print size', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor enableMultiPages defaultPages={['<p>One</p>']} onPagesChange={onPagesChange} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page' }))
+
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Print' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Page size' }), 'A4')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(2)
+    expect(lastPages[0]).toContain('One')
+    expect(lastPages[1]).toContain('data-page-at-rule')
+  })
+
+  it('preserves page 1 when resetting print settings on page 2', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    const pageTwo =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>Two</p></div>'
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', pageTwo]}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Print' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Remove @page print settings from this page' }),
+    )
+
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(2)
+    expect(lastPages[0]).toContain('One')
+    expect(lastPages[1]).toContain('Two')
+    expect(lastPages[1]).not.toContain('data-page-at-rule')
+  })
 })
 
 describe('Editor custom actions', () => {
@@ -1727,6 +1814,53 @@ describe('Editor transformHtml', () => {
     await user.click(screen.getByRole('button', { name: 'Open HTML file' }))
 
     expect(screen.getByRole('textbox', { name: 'Visual editor' })).toContainHTML('<p>clean</p>')
+  })
+})
+
+describe('Editor sanitizeHtml', () => {
+  it('strips script tags from visual edits by default', () => {
+    const onChange = vi.fn()
+    render(<Editor onChange={onChange} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    visual.innerHTML = '<p>Hi</p><script>alert(1)</script>'
+    fireEvent.input(visual)
+
+    const lastHtml = onChange.mock.calls.at(-1)?.[0] as string
+    expect(lastHtml).not.toContain('<script')
+    expect(lastHtml).toContain('Hi')
+  })
+
+  it('sanitizes inbound defaultValue', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue='<p>Hi</p><script>alert(1)</script>' />)
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    expect(screen.getByRole('textbox', { name: 'HTML editor' }).value).not.toContain('<script')
+    expect(screen.getByRole('textbox', { name: 'HTML editor' }).value).toContain('Hi')
+  })
+
+  it('strips javascript: URLs from inbound HTML', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue='<a href="javascript:alert(1)">Link</a>' />)
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    expect(screen.getByRole('textbox', { name: 'HTML editor' }).value).not.toContain('javascript:')
+    expect(screen.getByRole('textbox', { name: 'HTML editor' }).value).toContain('Link')
+  })
+
+  it('does not strip script tags when sanitizeHtml is false', () => {
+    const onChange = vi.fn()
+    render(<Editor sanitizeHtml={false} onChange={onChange} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    visual.innerHTML = '<p>Hi</p><script>alert(1)</script>'
+    fireEvent.input(visual)
+
+    const lastHtml = onChange.mock.calls.at(-1)?.[0] as string
+    expect(lastHtml).toContain('<script')
   })
 })
 

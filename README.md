@@ -76,7 +76,8 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `loadCustomParagraphStyles` | `() => CustomParagraphStyle[] \| Promise<…>` | — | Load host-persisted custom paragraph styles. See [Custom paragraph styles](#custom-paragraph-styles) |
 | `onSaveCustomParagraphStyle` | `(style: CustomParagraphStyle) => void` | — | Persist a created or edited custom paragraph style. Custom styles stay hidden unless this and `loadCustomParagraphStyles` are both set |
 | `onDeleteCustomParagraphStyle` | `(id: string) => void` | — | Persist deletion of a custom paragraph style. The Delete button is shown only when this is set |
-| `transformHtml` | `(html: string) => string` | — | Optional map over document HTML before it is stored and passed to `onChange`. See [Transform HTML](#transform-html) |
+| `sanitizeHtml` | `boolean` | `true` | Strip `<script>` tags and `javascript:` URLs from document HTML on load and every write. See [HTML sanitization](#html-sanitization) |
+| `transformHtml` | `(html: string) => string` | — | Optional map over document HTML after built-in sanitization. See [Transform HTML](#transform-html) |
 | `customImagePicker` | `CustomImagePicker` | — | Optional third Insert image source. See [Custom image picker](#custom-image-picker) |
 | `disableBuiltinImageInsert` | `boolean` | `false` | Skip the Insert image dialog and call `customImagePicker.onPick` from the toolbar or Insert menu |
 | `customAudioPicker` | `CustomAudioPicker` | — | Optional third Insert audio source. See [Custom audio picker](#custom-audio-picker) |
@@ -357,24 +358,46 @@ let stored: CustomParagraphStyle[] = []
 
 Omit all three props to keep only the built-in styles.
 
+### HTML sanitization
+
+By default (`sanitizeHtml={true}`), the editor strips `<script>` tags (and their content) and removes `javascript:` URLs from element attributes on **inbound** `value` / `defaultValue` / `pages` and on **every outbound write** (visual typing, paste, HTML-source edits, file load/drop, inserts, `setHtml`). The stored HTML and `onChange` / `onPagesChange` payloads are sanitized.
+
+```tsx
+import { Editor, sanitizeDocumentHtml } from 'commspliant-html-editor'
+
+// Disable built-in sanitization and use transformHtml instead:
+<Editor sanitizeHtml={false} transformHtml={mySanitizer} />
+
+// Sanitize publish HTML the same way (e.g. after stripCommentAnchors):
+const publishHtml = sanitizeDocumentHtml(stripCommentAnchors(html))
+```
+
+**What is removed:** `<script>…</script>` tags; `javascript:` in `href`, `src`, `style`, and other attributes.
+
+**What is left alone:** other tags and attributes (including `onclick`), `vbscript:`, arbitrary inline CSS, and HTML comments (including the multi-page `<!-- wysiwyg-page-separator -->` marker).
+
+This is a **minimal** XSS guard, not a full HTML allowlist (no DOMPurify). For untrusted content, combine with host-side validation or a stricter `transformHtml`.
+
+Set `sanitizeHtml={false}` to skip built-in sanitization.
+
 ### Transform HTML
 
-Pass `transformHtml` to sanitize or enhance the document on every write: visual typing and paste, HTML-source edits, Load, dropped HTML files, inserts, and `setHtml`. The result is what the editor stores and what `onChange` receives. Inbound `value` / `defaultValue` are not transformed — sanitize those before passing if needed.
+Pass `transformHtml` to further sanitize or enhance the document on every write: visual typing and paste, HTML-source edits, Load, dropped HTML files, inserts, and `setHtml`. It runs **after** built-in sanitization when `sanitizeHtml` is true (default). The result is what the editor stores and what `onChange` receives.
 
 ```tsx
 <Editor
   defaultValue="<p>Hello</p>"
-  transformHtml={(html) => html.replace(/<script[\s\S]*?<\/script>/gi, '')}
+  transformHtml={(html) => html.replace(/<iframe[\s\S]*?<\/iframe>/gi, '')}
 />
 ```
 
-Keep the callback idempotent. If it rewrites markup on every keystroke (pretty-print, wrap tags), the visual surface resyncs `innerHTML` and the caret may jump. Prefer stripping disallowed tags over format-on-type.
+Keep the callback idempotent. If it rewrites markup on every keystroke (pretty-print, wrap tags), the visual surface resyncs `innerHTML` and the caret may jump. Prefer stripping disallowed tags over format-on-type. Do **not** strip HTML comments in `transformHtml` when using multi-page mode — that removes `<!-- wysiwyg-page-separator -->` and collapses pages.
 
 ### Auto save
 
 Pass `onAutoSave` to persist the document HTML from the host. The editor polls every second and calls the callback only when that HTML changed since the last auto-save. Omit the prop to disable (the default). The callback is not awaited, so a slow or failing save does not block editing.
 
-The HTML is the same string `onChange` receives (after `transformHtml`, with font stylesheet links when a custom face is used). The initial document is not treated as a change.
+The HTML is the same string `onChange` receives (after built-in sanitization and `transformHtml`, with font stylesheet links when a custom face is used). The initial document is not treated as a change.
 
 ```tsx
 import { Editor } from 'commspliant-html-editor'
@@ -391,7 +414,7 @@ import { Editor } from 'commspliant-html-editor'
 
 By default, File → Save and the Save toolbar button write the document to a local HTML file (browser save picker or download). File → Open and the Open toolbar button load from a local HTML file. Omit both callbacks to keep that behavior.
 
-Pass `onSave` to persist through the host instead of the built-in file picker. It receives the current document HTML (same as `onChange`, after `transformHtml`) and is awaited.
+Pass `onSave` to persist through the host instead of the built-in file picker. It receives the current document HTML (same as `onChange`, after sanitization and `transformHtml`) and is awaited.
 
 Pass `onOpen` to load through the host instead of the built-in file picker. Return document HTML to replace the editor, or `null` to cancel. The callback is awaited. HTML file drag-drop is unchanged — it still reads a local file and does not call `onOpen`.
 

@@ -56,6 +56,7 @@ import {
   splitPagesFromHtml,
   emptyPageHtml,
 } from '../core/multiPage'
+import { sanitizeDocumentHtml } from '../core/sanitizeHtml'
 import {
   queryTextAlign,
   setTextAlignInDocument,
@@ -290,6 +291,7 @@ export function Editor({
   customActions,
   customFonts,
   transformHtml,
+  sanitizeHtml = true,
   loadCustomParagraphStyles,
   onSaveCustomParagraphStyle,
   onDeleteCustomParagraphStyle,
@@ -321,9 +323,14 @@ export function Editor({
   const initialPages = normalizePages(
     defaultPages ?? (defaultValue.trim() ? [defaultValue] : [emptyPageHtml()]),
   )
-  const initialHtml = enableMultiPages ? joinPagesToHtml(initialPages) : defaultValue
-  const controlledHtml =
+  const initialHtmlRaw = enableMultiPages ? joinPagesToHtml(initialPages) : defaultValue
+  const initialHtml = sanitizeHtml ? sanitizeDocumentHtml(initialHtmlRaw) : initialHtmlRaw
+  const controlledHtmlRaw =
     enableMultiPages && pagesProp !== undefined ? joinPagesToHtml(normalizePages(pagesProp)) : value
+  const controlledHtml = useMemo(() => {
+    if (controlledHtmlRaw === undefined) return undefined
+    return sanitizeHtml ? sanitizeDocumentHtml(controlledHtmlRaw) : controlledHtmlRaw
+  }, [controlledHtmlRaw, sanitizeHtml])
   const [html, setHtml] = useControllableState({
     value: controlledHtml,
     defaultValue: initialHtml,
@@ -392,6 +399,8 @@ export function Editor({
   }
   const transformHtmlRef = useRef(transformHtml)
   transformHtmlRef.current = transformHtml
+  const sanitizeHtmlRef = useRef(sanitizeHtml)
+  sanitizeHtmlRef.current = sanitizeHtml
   const pendingMarksRef = useRef<PendingFontMarks>({})
   const pendingFontSizeRef = useRef<FontSizeValue | null>(null)
   const pendingFontFamilyRef = useRef<PendingFontFamily>(null)
@@ -659,6 +668,20 @@ export function Editor({
     () => splitPagesFromHtml(html).map((page) => extractFontStylesheets(page).body),
     [html],
   )
+  const getActiveVisualRoot = useCallback((): HTMLElement | null => {
+    if (enableMultiPagesRef.current) {
+      const surface = multiPageVisualRef.current?.getActivePageRoot()
+      if (surface instanceof HTMLElement) return surface
+    }
+    return visualRootRef.current
+  }, [])
+  useLayoutEffect(() => {
+    if (!enableMultiPages) return
+    const surface = multiPageVisualRef.current?.getActivePageRoot()
+    if (surface instanceof HTMLDivElement) {
+      visualRootRef.current = surface
+    }
+  }, [enableMultiPages, activePageIndex, visualPageBodies.length])
   const activePageHtml = useMemo(() => {
     if (enableMultiPages) {
       return visualPageBodies[activePageIndex] ?? ''
@@ -878,7 +901,8 @@ export function Editor({
 
   const commitHtml = useCallback(
     (next: string) => {
-      const transformed = transformHtmlRef.current?.(next) ?? next
+      const sanitized = sanitizeHtmlRef.current ? sanitizeDocumentHtml(next) : next
+      const transformed = transformHtmlRef.current?.(sanitized) ?? sanitized
       if (transformed !== htmlRef.current) {
         documentDirtyRef.current = true
       }
@@ -970,6 +994,18 @@ export function Editor({
       recordHtml(joinPagesToHtml(nextPages), coalesce)
     },
     [recordHtml, serializePageBody],
+  )
+
+  const recordActivePageHtml = useCallback(
+    (pageHtml: string, coalesce: boolean) => {
+      const body = extractFontStylesheets(pageHtml).body
+      if (enableMultiPagesRef.current) {
+        recordPageVisualHtml(activePageIndexRef.current, body, coalesce)
+      } else {
+        recordVisualHtml(body, coalesce)
+      }
+    },
+    [recordPageVisualHtml, recordVisualHtml],
   )
 
   const recordVisualHtmlFromRoot = useCallback(
@@ -1255,10 +1291,13 @@ export function Editor({
         },
         setHtml: (next) => {
           if (modeRef.current === 'visual') {
-            recordVisualHtml(
+            const previousPageHtml = enableMultiPagesRef.current
+              ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+              : htmlRef.current
+            recordActivePageHtml(
               preservePageAtRuleInBody(
                 extractFontStylesheets(next).body,
-                extractFontStylesheets(htmlRef.current).body,
+                extractFontStylesheets(previousPageHtml).body,
               ),
               false,
             )
@@ -1270,7 +1309,7 @@ export function Editor({
         asHtml,
       })
     },
-    [recordHtml, recordVisualHtml],
+    [recordHtml, recordActivePageHtml],
   )
 
   const handleModeChange = useCallback(
@@ -1697,7 +1736,7 @@ export function Editor({
   const applyPageProperties = useCallback(
     (draft: PagePropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = visualRootRef.current
+      const root = getActiveVisualRoot()
       if (!root) return
       restoreVisualRange(root)
       setPageDialog((prev) => ({ ...prev, open: false }))
@@ -1716,11 +1755,11 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordVisualHtml(extractFontStylesheets(result.pageHtml).body, false)
+      recordActivePageHtml(result.pageHtml, false)
       captureSelection()
       refreshMarkState()
     },
-    [restoreVisualRange, recordVisualHtml, captureSelection, refreshMarkState],
+    [restoreVisualRange, recordActivePageHtml, captureSelection, refreshMarkState, getActiveVisualRoot],
   )
 
   const applyLink = useCallback(
@@ -3202,14 +3241,14 @@ export function Editor({
           onTabChange={(tab) => setPageDialog({ ...pageDialog, open: true, tab })}
           onApply={(draft) => commandContext.applyPageProperties(draft)}
           onResetAtRule={() => {
-            const root = visualRootRef.current
+            const root = getActiveVisualRoot()
             if (!root || modeRef.current !== 'visual') return
             const pageHtml = enableMultiPagesRef.current
               ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
               : extractFontStylesheets(htmlRef.current).body
             const result = resetPageAtRuleInDocument(root, pageHtml)
             if (!result.changed) return
-            recordVisualHtml(extractFontStylesheets(result.pageHtml).body, false)
+            recordActivePageHtml(result.pageHtml, false)
             setPageDialog((prev) => ({
               ...prev,
               value: {
