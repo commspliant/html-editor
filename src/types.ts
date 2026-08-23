@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import type { DefaultPageProperties } from './core/commandTypes'
 import type { FontSizeUnit } from './core/fontSizeUnits'
 import type { FontFace } from './core/fontFamily'
 import type { ListType } from './core/lists'
@@ -29,6 +30,8 @@ export type {
 export type CustomFont = FontFace
 
 export type { Locale }
+
+export type { DefaultPageProperties } from './core/commandTypes'
 
 export type EditorMode = 'visual' | 'html'
 
@@ -419,6 +422,18 @@ export type EditorProps = {
    * the library does not use localStorage. Omit to persist in the browser.
    */
   toolbarPositionPersistence?: ToolbarPositionPersistence
+  /**
+   * When true, the Page properties dialog includes the Print tab (`@page` size, orientation, margins).
+   * Font and Paragraph tabs are always available under Edit → Page → Page properties.
+   * Default `false`.
+   */
+  enablePageProperties?: boolean
+  /**
+   * Optional default page settings applied to uncontrolled initial content
+   * (`defaultValue` / `defaultPages`) and to each page inserted with Insert → Page.
+   * Does not mutate controlled `value` / `pages` or documents opened from file.
+   */
+  defaultPageProperties?: DefaultPageProperties
   /**
    * When true, the editor manages multiple independent HTML pages in visual mode.
    * Default `false` (single document, unchanged behavior).

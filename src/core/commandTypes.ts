@@ -15,7 +15,7 @@ import type { InlineColorQuery } from './inlineColor'
 import type { ListType } from './lists'
 import type { FontMark, FontMarkState } from './marks'
 import type { ParagraphPropertiesApply } from './paragraphProperties'
-import type { ParagraphBoxApply } from './paragraphBox'
+import type { BoxSides, ParagraphBoxApply } from './paragraphBox'
 import type { TextAlign } from './textAlign'
 import type { PageBackgroundImageApply } from './pageBackgroundImage'
 import type { PageAtRuleApply } from './pageAtRule'
@@ -57,6 +57,17 @@ export type PagePropertiesApply = {
   box: ParagraphBoxApply
   backgroundImage: PageBackgroundImageApply
   atRule: PageAtRuleApply
+}
+
+/** Deep-partial page settings for `defaultPageProperties`. All fields optional. */
+export type DefaultPageProperties = {
+  font?: Partial<FontPropertiesApply> & { marks?: Partial<FontMarkState> }
+  box?: Partial<ParagraphBoxApply> & {
+    margin?: Partial<BoxSides>
+    padding?: Partial<BoxSides>
+  }
+  backgroundImage?: Partial<PageBackgroundImageApply>
+  atRule?: Partial<PageAtRuleApply> & { margin?: Partial<BoxSides> }
 }
 
 export type CommandName =
@@ -105,7 +116,8 @@ export type CommandName =
   | 'openImageProperties'
   | 'insertHorizontalRule'
   | 'insertPageBreak'
-  | 'insertPage'
+  | 'insertPageBefore'
+  | 'insertPageAfter'
   | 'openTableDialog'
   | 'openTableProperties'
   | 'openCellProperties'
@@ -174,7 +186,7 @@ export type QueryName =
   | 'canReadAloud'
   | 'isFormatBrushActive'
   | 'isMultiPagesEnabled'
-  | 'canInsertPage'
+  | 'hasSelectedPage'
   | 'canAddComment'
   | 'areCommentsVisible'
   | 'isCommentsEnabled'
@@ -260,8 +272,10 @@ export type CommandContext = {
   applyImageProperties: (draft: ImagePropertiesApply) => void
   insertHorizontalRule: () => void
   insertPageBreak: () => void
-  insertPage: () => void
+  insertPageBefore: () => void
+  insertPageAfter: () => void
   isMultiPagesEnabled: () => boolean
+  hasSelectedPage: () => boolean
   getActivePageHtml: () => string
   getAllPagesHtml: () => string[]
   openTableDialog: () => void
@@ -373,7 +387,8 @@ export type EditorCommands = {
   applyImageProperties: (draft: ImagePropertiesApply) => void
   insertHorizontalRule: () => void
   insertPageBreak: () => void
-  insertPage: () => void
+  insertPageBefore: () => void
+  insertPageAfter: () => void
   openTableDialog: () => void
   applyTable: (draft: TableApply) => void
   openTableProperties: () => void
@@ -460,7 +475,7 @@ export type EditorQueries = {
   canReadAloud: () => boolean
   isFormatBrushActive: () => boolean
   isMultiPagesEnabled: () => boolean
-  canInsertPage: () => boolean
+  hasSelectedPage: () => boolean
   canAddComment: () => boolean
   areCommentsVisible: () => boolean
   isCommentsEnabled: () => boolean

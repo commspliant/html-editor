@@ -199,6 +199,7 @@ describe('PagePropertiesDialog', () => {
         <PagePropertiesDialog
           open
           tab="print"
+          printTabVisible
           value={emptyPagePropertiesApply()}
           onTabChange={() => undefined}
           onApply={() => undefined}
@@ -211,5 +212,24 @@ describe('PagePropertiesDialog', () => {
     expect(screen.getByRole('tab', { name: 'Print' })).toHaveAttribute('aria-selected', 'true')
     await user.click(screen.getByRole('button', { name: 'Remove @page print settings from this page' }))
     expect(onResetAtRule).toHaveBeenCalledTimes(1)
+  })
+
+  it('hides the Print tab when printTabVisible is false', () => {
+    render(
+      <LocaleProvider>
+        <PagePropertiesDialog
+          open
+          tab="font"
+          printTabVisible={false}
+          value={emptyPagePropertiesApply()}
+          onTabChange={() => undefined}
+          onApply={() => undefined}
+          onClose={() => undefined}
+        />
+      </LocaleProvider>,
+    )
+
+    expect(screen.queryByRole('tab', { name: 'Print' })).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Font' })).toBeInTheDocument()
   })
 })

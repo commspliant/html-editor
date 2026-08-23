@@ -45,3 +45,19 @@ export function queryPageSurface(container: HTMLElement, index: number): HTMLEle
 export function getActivePageRoot(container: HTMLElement, activeIndex: number): HTMLElement | null {
   return queryPageSurface(container, activeIndex)
 }
+
+export function queryPageSurfaceIndex(surface: HTMLElement): number | null {
+  const attr = surface.getAttribute('data-page-index')
+  if (attr !== null) {
+    const parsed = Number.parseInt(attr, 10)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  let parent: HTMLElement | null = surface.parentElement
+  while (parent) {
+    const surfaces = [...parent.querySelectorAll<HTMLElement>(`[${PAGE_SURFACE_ATTR}]`)]
+    const index = surfaces.indexOf(surface)
+    if (index !== -1) return index
+    parent = parent.parentElement
+  }
+  return null
+}

@@ -33,6 +33,7 @@ type MultiPageVisualSurfaceProps = {
   pages: readonly string[]
   activePageIndex: number
   onActivePageIndexChange: (index: number) => void
+  onPageSelected?: (index: number) => void
   onPageChange: (index: number, html: string) => void
   placeholder?: string
   disabled?: boolean
@@ -50,6 +51,7 @@ export const MultiPageVisualSurface = forwardRef<
     pages,
     activePageIndex,
     onActivePageIndexChange,
+    onPageSelected,
     onPageChange,
     placeholder,
     disabled,
@@ -68,6 +70,23 @@ export const MultiPageVisualSurface = forwardRef<
   onBeforeInputRef.current = onBeforeInput
   const pageHtmlRef = useRef(pages)
   pageHtmlRef.current = pages
+  const onPageSelectedRef = useRef(onPageSelected)
+  onPageSelectedRef.current = onPageSelected
+
+  const activatePage = useCallback(
+    (index: number) => {
+      activeIndexRef.current = index
+      if (index !== activePageIndex) onActivePageIndexChange(index)
+      onPageSelectedRef.current?.(index)
+      const container = containerRef.current
+      if (!container) return
+      const surface = queryPageSurface(container, index)
+      if (surface) {
+        requestAnimationFrame(() => normalizeCaretInPageShell(surface))
+      }
+    },
+    [activePageIndex, onActivePageIndexChange],
+  )
 
   useImperativeHandle(ref, () => ({
     getContainer: () => containerRef.current,
@@ -126,16 +145,13 @@ export const MultiPageVisualSurface = forwardRef<
     return () => container.removeEventListener('beforeinput', handler)
   }, [])
 
-  const handleFocus = (index: number) => {
-    activeIndexRef.current = index
-    if (index !== activePageIndex) onActivePageIndexChange(index)
-    const container = containerRef.current
-    if (!container) return
-    const surface = queryPageSurface(container, index)
-    if (surface) {
-      requestAnimationFrame(() => normalizeCaretInPageShell(surface))
-    }
-  }
+  const handlePointerDown = useCallback(
+    (index: number, event: ReactPointerEvent<HTMLDivElement>) => {
+      activatePage(index)
+      onPointerDown?.(event)
+    },
+    [activatePage, onPointerDown],
+  )
 
   return (
     <div ref={containerRef} className={styles.multiPageContainer}>
@@ -153,8 +169,8 @@ export const MultiPageVisualSurface = forwardRef<
             aria-label={t('visualEditorAria')}
             aria-disabled={disabled || undefined}
             data-placeholder={index === 0 ? placeholder : undefined}
-            onFocus={() => handleFocus(index)}
-            onPointerDown={onPointerDown}
+            onFocus={() => activatePage(index)}
+            onPointerDown={(event) => handlePointerDown(index, event)}
             onMouseUp={onMouseUp}
             onContextMenu={onContextMenu}
             onInput={(event) => {

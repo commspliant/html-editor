@@ -1,5 +1,9 @@
 import { clearEmptyStyle, currentRange, restoreOffsets, textOffsetFromRoot } from './blocks'
-import type { FontPropertiesApply, PagePropertiesApply } from './commandTypes'
+import type {
+  DefaultPageProperties,
+  FontPropertiesApply,
+  PagePropertiesApply,
+} from './commandTypes'
 import {
   clampFontSize,
   DEFAULT_FONT_SIZE_UNIT,
@@ -29,6 +33,7 @@ import {
   emptyParagraphBoxApply,
   readParagraphBox,
   writeParagraphBox,
+  type BoxSides,
   type ParagraphBoxApply,
 } from './paragraphBox'
 
@@ -53,6 +58,82 @@ export function emptyPagePropertiesApply(): PagePropertiesApply {
     backgroundImage: emptyPageBackgroundImageApply(),
     atRule: emptyPageAtRuleApply(),
   }
+}
+
+function mergeBoxSides(current: BoxSides, partial?: Partial<BoxSides>): BoxSides {
+  if (!partial) return current
+  return {
+    top: partial.top !== undefined ? partial.top : current.top,
+    right: partial.right !== undefined ? partial.right : current.right,
+    bottom: partial.bottom !== undefined ? partial.bottom : current.bottom,
+    left: partial.left !== undefined ? partial.left : current.left,
+  }
+}
+
+function mergeParagraphBox(
+  current: ParagraphBoxApply,
+  partial?: DefaultPageProperties['box'],
+): ParagraphBoxApply {
+  if (!partial) return current
+  const { margin: marginPartial, padding: paddingPartial, ...rest } = partial
+  return {
+    ...current,
+    ...rest,
+    margin: marginPartial ? mergeBoxSides(current.margin, marginPartial) : current.margin,
+    padding: paddingPartial ? mergeBoxSides(current.padding, paddingPartial) : current.padding,
+  }
+}
+
+function mergeFontProperties(
+  current: FontPropertiesApply,
+  partial?: DefaultPageProperties['font'],
+): FontPropertiesApply {
+  if (!partial) return current
+  const { marks: marksPartial, ...rest } = partial
+  return {
+    ...current,
+    ...rest,
+    marks: marksPartial ? { ...current.marks, ...marksPartial } : current.marks,
+  }
+}
+
+export function mergePagePropertiesDefaults(
+  current: PagePropertiesApply,
+  defaults: DefaultPageProperties,
+): PagePropertiesApply {
+  const { margin: atRuleMarginPartial, ...atRuleRest } = defaults.atRule ?? {}
+  return {
+    font: mergeFontProperties(current.font, defaults.font),
+    box: mergeParagraphBox(current.box, defaults.box),
+    backgroundImage: defaults.backgroundImage
+      ? { ...current.backgroundImage, ...defaults.backgroundImage }
+      : current.backgroundImage,
+    atRule: defaults.atRule
+      ? {
+          ...current.atRule,
+          ...atRuleRest,
+          margin: atRuleMarginPartial
+            ? mergeBoxSides(current.atRule.margin, atRuleMarginPartial)
+            : current.atRule.margin,
+        }
+      : current.atRule,
+  }
+}
+
+export function hasDefaultPageProperties(defaults?: DefaultPageProperties): boolean {
+  if (!defaults) return false
+  return Boolean(defaults.font || defaults.box || defaults.backgroundImage || defaults.atRule)
+}
+
+export function applyDefaultPagePropertiesToPageHtml(
+  pageHtml: string,
+  defaults: DefaultPageProperties,
+): string {
+  if (!hasDefaultPageProperties(defaults)) return pageHtml
+  const root = document.createElement('div')
+  root.innerHTML = pageHtml
+  const merged = mergePagePropertiesDefaults(queryPageProperties(root), defaults)
+  return applyPagePropertiesInDocument(root, merged).pageHtml
 }
 
 function readPageFont(el: HTMLElement): FontPropertiesApply {

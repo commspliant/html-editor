@@ -1,4 +1,5 @@
 import type { ToolbarCatalog, ToolbarLayout } from './types'
+import { isMenuSubmenu } from './types'
 import { commentsCatalog, COMMENT_CHROME_ITEM_IDS } from '../modules/comments/catalog'
 
 export type ChromeLockOptions = {
@@ -47,7 +48,9 @@ export function mergeCommentsLayout(layout: ToolbarLayout): ToolbarLayout {
     menus: layout.menus.map((menu) => {
       if (menu.id === 'insert') {
         const items = [...menu.items]
-        const pageIndex = items.indexOf('insertPage')
+        const pageIndex = items.findIndex(
+          (item) => isMenuSubmenu(item) && item.submenu === 'insertPage',
+        )
         const insertAt = pageIndex === -1 ? items.length : pageIndex
         if (!items.includes('insertComment')) {
           items.splice(insertAt, 0, 'insertComment')

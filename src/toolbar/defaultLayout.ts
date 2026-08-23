@@ -17,7 +17,7 @@ export const defaultToolbarLayout: ToolbarLayout = {
         'horizontalRule',
         'pageBreak',
         'insertComment',
-        'insertPage',
+        { submenu: 'insertPage', items: ['insertPageBefore', 'insertPageAfter'] },
       ],
     },
     {

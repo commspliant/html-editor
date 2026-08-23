@@ -10,6 +10,14 @@ export const insertCatalog: ToolbarCatalog = {
       ariaKey: 'menuInsertAria',
     },
   },
+  submenus: {
+    insertPage: {
+      id: 'insertPage',
+      labelKey: 'menuInsertPage',
+      ariaKey: 'menuInsertPageAria',
+      enabled: 'hasSelectedPage',
+    },
+  },
   groups: {
     insert: {
       id: 'insert',
@@ -75,13 +83,21 @@ export const insertCatalog: ToolbarCatalog = {
       ariaKey: 'commandPageBreakAria',
       enabled: 'isVisualMode',
     },
-    insertPage: {
-      id: 'insertPage',
-      command: 'insertPage',
+    insertPageBefore: {
+      id: 'insertPageBefore',
+      command: 'insertPageBefore',
       icon: PagePropertiesIcon,
-      labelKey: 'commandInsertPage',
-      ariaKey: 'commandInsertPageAria',
-      enabled: 'canInsertPage',
+      labelKey: 'commandInsertPageBefore',
+      ariaKey: 'commandInsertPageBeforeAria',
+      enabled: 'hasSelectedPage',
+    },
+    insertPageAfter: {
+      id: 'insertPageAfter',
+      command: 'insertPageAfter',
+      icon: PagePropertiesIcon,
+      labelKey: 'commandInsertPageAfter',
+      ariaKey: 'commandInsertPageAfterAria',
+      enabled: 'hasSelectedPage',
     },
   },
 }

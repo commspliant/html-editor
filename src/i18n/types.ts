@@ -93,8 +93,12 @@ export type Messages = {
   commandHorizontalRuleAria: string
   commandPageBreak: string
   commandPageBreakAria: string
-  commandInsertPage: string
-  commandInsertPageAria: string
+  menuInsertPage: string
+  menuInsertPageAria: string
+  commandInsertPageBefore: string
+  commandInsertPageBeforeAria: string
+  commandInsertPageAfter: string
+  commandInsertPageAfterAria: string
   commandTableProperties: string
   commandTablePropertiesAria: string
   commandCellProperties: string

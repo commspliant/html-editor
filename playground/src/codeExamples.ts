@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'pageProperties' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -132,6 +132,21 @@ export function MultiPageEditor() {
     />
   )
 }`,
+    ],
+  },
+  pageProperties: {
+    titleKey: 'pagePropertiesAria',
+    bodyKey: 'pagePropertiesExampleBody',
+    snippets: [
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor
+  defaultPageProperties={{
+    atRule: { sizePreset: 'A4', orientation: 'portrait' },
+  }}
+/>
+// Omit defaultValue for a blank document; defaultPageProperties sizes the canvas on mount.
+// Pass enablePageProperties to add the Print tab to Edit → Page → Page properties.`,
     ],
   },
   comments: {

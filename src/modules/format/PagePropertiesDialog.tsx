@@ -54,6 +54,8 @@ export type PagePropertiesDialogProps = {
   value: PagePropertiesApply
   fonts?: readonly FontFace[]
   disabled?: boolean
+  /** When false (default), the Print tab is hidden. */
+  printTabVisible?: boolean
   customImagePicker?: CustomImagePicker
   onCustomImagePick?: () => void
   onTabChange: (tab: PageDialogTab) => void
@@ -68,6 +70,7 @@ export function PagePropertiesDialog({
   value,
   fonts,
   disabled,
+  printTabVisible = false,
   customImagePicker,
   onCustomImagePick,
   onTabChange,
@@ -97,7 +100,10 @@ export function PagePropertiesDialog({
     setBoxDraft(value.box)
     setBackgroundImageDraft(value.backgroundImage ?? emptyPageBackgroundImageApply())
     setAtRuleDraft(value.atRule ?? emptyPageAtRuleApply())
-  }, [open, value])
+    if (tab === 'print' && !printTabVisible) {
+      onTabChange('font')
+    }
+  }, [open, value, tab, printTabVisible, onTabChange])
 
   useEffect(() => {
     if (!open) return
@@ -134,6 +140,7 @@ export function PagePropertiesDialog({
   if (!open) return null
 
   const title = t('pageDialogTitle')
+  const activeTab = tab === 'print' && !printTabVisible ? 'font' : tab
 
   return (
       <ChromePortal>
@@ -155,7 +162,7 @@ export function PagePropertiesDialog({
             type="button"
             className={styles.tab}
             role="tab"
-            aria-selected={tab === 'font'}
+            aria-selected={activeTab === 'font'}
             onClick={() => onTabChange('font')}
           >
             {t('customStyleDialogTabFont')}
@@ -164,22 +171,24 @@ export function PagePropertiesDialog({
             type="button"
             className={styles.tab}
             role="tab"
-            aria-selected={tab === 'paragraph'}
+            aria-selected={activeTab === 'paragraph'}
             onClick={() => onTabChange('paragraph')}
           >
             {t('customStyleDialogTabParagraph')}
           </button>
-          <button
-            type="button"
-            className={styles.tab}
-            role="tab"
-            aria-selected={tab === 'print'}
-            onClick={() => onTabChange('print')}
-          >
-            {t('pageDialogTabPrint')}
-          </button>
+          {printTabVisible ? (
+            <button
+              type="button"
+              className={styles.tab}
+              role="tab"
+              aria-selected={activeTab === 'print'}
+              onClick={() => onTabChange('print')}
+            >
+              {t('pageDialogTabPrint')}
+            </button>
+          ) : null}
         </div>
-        {tab === 'font' ? (
+        {activeTab === 'font' ? (
           <div className={styles.nestedPanel}>
             <FontPropertiesFields
               tab={fontTab}
@@ -190,7 +199,7 @@ export function PagePropertiesDialog({
               onChange={setFontDraft}
             />
           </div>
-        ) : tab === 'paragraph' ? (
+        ) : activeTab === 'paragraph' ? (
           <div className={styles.nestedPanel}>
             <ParagraphPropertiesFields
               tab={paragraphTab}
@@ -235,7 +244,7 @@ export function PagePropertiesDialog({
                 font: fontDraft,
                 box: boxDraft,
                 backgroundImage: backgroundImageDraft,
-                atRule: atRuleDraft,
+                atRule: printTabVisible ? atRuleDraft : (value.atRule ?? emptyPageAtRuleApply()),
               })
             }
           >
