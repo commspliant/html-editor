@@ -36,6 +36,10 @@ Page Break (DONE)
 Add to praragraph properties: break-inside: avoid;, break-after: avoid;break-before: page; (DONE)
 Built-in HTML sanitization: strip script tags and javascript: URLs (sanitizeHtml, default on) (DONE)
 
+Add properties, default page size, default page orientation.
+Add property to disable the page properties editing completely
+
+
 --- Not done
 Not only add table, but add responsive grid system, editable properties for mobile devices.
 Animation library

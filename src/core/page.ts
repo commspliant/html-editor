@@ -1,3 +1,5 @@
+import { PAGE_SIZED_ATTR } from './pageCanvasLayout'
+
 export const PAGE_SHELL_ATTR = 'data-page'
 export const PAGE_BG_LAYER_ATTR = 'data-page-bg'
 export const PAGE_BG_LAYER_ID = 'commspliant-background'
@@ -42,6 +44,62 @@ export function ensurePageShellLayout(shell: HTMLElement): boolean {
   }
   if (shell.style.height !== '100%') {
     shell.style.height = '100%'
+    changed = true
+  }
+  return changed
+}
+
+/** Stretch the page shell to fill a sized visual holder's content box. */
+export function ensureSizedPageShellLayout(holder: HTMLElement, shell: HTMLElement): boolean {
+  if (!holder.hasAttribute(PAGE_SIZED_ATTR)) {
+    return ensurePageShellLayout(shell)
+  }
+  let changed = false
+  if (shell.style.width !== '100%') {
+    shell.style.width = '100%'
+    changed = true
+  }
+  if (shell.style.height !== 'auto') {
+    shell.style.height = 'auto'
+    changed = true
+  }
+  if (shell.style.minHeight !== '100%') {
+    shell.style.minHeight = '100%'
+    changed = true
+  }
+  return changed
+}
+
+function lastContentBlock(shell: HTMLElement): HTMLElement | null {
+  const blocks = shell.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li')
+  return (blocks[blocks.length - 1] as HTMLElement | undefined) ?? null
+}
+
+/** Move holder children that escaped the page shell back inside it. */
+export function absorbLooseBlocksIntoPageShell(holder: HTMLElement): boolean {
+  const shell = queryPageShell(holder)
+  if (!shell) return false
+  let changed = false
+  for (const child of [...holder.childNodes]) {
+    if (child === shell) continue
+    if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
+    if (child.nodeType === Node.TEXT_NODE) {
+      const text = child.textContent ?? ''
+      if (!text.trim()) {
+        child.remove()
+        changed = true
+        continue
+      }
+      let block = lastContentBlock(shell)
+      if (!block) {
+        block = document.createElement('p')
+        shell.appendChild(block)
+      }
+      block.appendChild(child)
+      changed = true
+      continue
+    }
+    shell.appendChild(child)
     changed = true
   }
   return changed
@@ -107,6 +165,59 @@ export function ensurePageShell(visualRoot: HTMLElement): HTMLElement {
 
 export function contentRoot(visualRoot: HTMLElement): HTMLElement {
   return queryPageShell(visualRoot) ?? visualRoot
+}
+
+function firstShellContentNode(shell: HTMLElement): Node | null {
+  for (const child of shell.childNodes) {
+    if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
+    return child
+  }
+  return null
+}
+
+function isSelectionOutsidePageShell(holder: HTMLElement, shell: HTMLElement, range: Range): boolean {
+  const { startContainer } = range
+  if (startContainer === shell || shell.contains(startContainer)) return false
+  if (startContainer === holder) return true
+  return holder.contains(startContainer)
+}
+
+function placeCaretInShell(shell: HTMLElement): void {
+  const range = document.createRange()
+  const first = firstShellContentNode(shell)
+  if (first instanceof HTMLElement) {
+    const text = first.firstChild
+    if (text?.nodeType === Node.TEXT_NODE) {
+      range.setStart(text, text.textContent?.length ?? 0)
+    } else if (first.firstChild) {
+      range.setStartBefore(first.firstChild)
+    } else {
+      range.setStart(first, 0)
+    }
+  } else if (first?.nodeType === Node.TEXT_NODE) {
+    range.setStart(first, first.textContent?.length ?? 0)
+  } else {
+    const paragraph = document.createElement('p')
+    paragraph.appendChild(document.createElement('br'))
+    shell.appendChild(paragraph)
+    range.setStart(paragraph, 0)
+  }
+  range.collapse(true)
+  const sel = window.getSelection()
+  if (!sel) return
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+/** Move the caret into the page shell when it landed on the holder or outside the shell. */
+export function normalizeCaretInPageShell(holder: HTMLElement): void {
+  const shell = queryPageShell(holder)
+  if (!shell) return
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return
+  const range = sel.getRangeAt(0)
+  if (!isSelectionOutsidePageShell(holder, shell, range)) return
+  placeCaretInShell(shell)
 }
 
 const PAGE_HOLDER_BG_PROPS = [

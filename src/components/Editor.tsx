@@ -48,6 +48,7 @@ import {
 } from '../core/pageProperties'
 import { emptyPageAtRuleApply, preservePageAtRuleInBody, queryPageAtRule } from '../core/pageAtRule'
 import { isPageCanvasSized, syncPageCanvasLayout } from '../core/pageCanvasLayout'
+import { normalizeCaretInPageShell } from '../core/page'
 import { resolvePageZoomScale } from '../core/pageZoom'
 import {
   joinPagesToHtml,
@@ -3024,7 +3025,7 @@ export function Editor({
   const themeAttr = chromeThemeProps(dark)['data-wysiwyg-theme']
   const pageZoomViewportStyle = useMemo((): CSSProperties | undefined => {
     if (mode !== 'visual' || pageZoomScale === 1) return undefined
-    return { transform: `scale(${pageZoomScale})` }
+    return { zoom: pageZoomScale }
   }, [mode, pageZoomScale])
   const visualSurface = mode === 'visual' ? (
     enableMultiPages ? (
@@ -3033,8 +3034,10 @@ export function Editor({
         pages={visualPageBodies}
         activePageIndex={activePageIndex}
         onActivePageIndexChange={(index) => {
+          activePageIndexRef.current = index
           setActivePageIndex(index)
-          const surface = multiPageVisualRef.current?.getActivePageRoot()
+          const container = multiPageVisualRef.current?.getContainer()
+          const surface = container ? queryPageSurface(container, index) : null
           if (surface instanceof HTMLDivElement) {
             visualRootRef.current = surface
           }
@@ -3053,6 +3056,10 @@ export function Editor({
             visualRootRef.current = event.currentTarget
           }
           handleVisualPointerDown(event)
+          if (event.currentTarget instanceof HTMLDivElement) {
+            const surface = event.currentTarget
+            requestAnimationFrame(() => normalizeCaretInPageShell(surface))
+          }
         }}
         onMouseUp={handleVisualMouseUp}
         onContextMenu={handleVisualContextMenu}
