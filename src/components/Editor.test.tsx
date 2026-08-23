@@ -1528,6 +1528,99 @@ describe('Editor paragraph chrome', () => {
     expect(viewport?.style.zoom).toBe('1.5')
   })
 
+  it('applies fit-width zoom on load without clicking the canvas', () => {
+    localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitWidth"')
+    render(<Editor defaultValue={preloadedPageHtml} />)
+
+    const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement | null
+    expect(viewport?.style.zoom).not.toBe('')
+    expect(viewport).toHaveAttribute('data-page-canvas-sized')
+
+    localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
+  })
+
+  it('updates zoom immediately when switching presets from the View menu', async () => {
+    localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitWidth"')
+    const user = userEvent.setup()
+    render(<Editor defaultValue={preloadedPageHtml} />)
+
+    const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement
+    expect(viewport.style.zoom).not.toBe('')
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Zoom submenu' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '100%' }))
+    expect(viewport.style.zoom).toBe('')
+
+    await user.click(screen.getByRole('button', { name: 'View menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Zoom submenu' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '150%' }))
+    expect(viewport.style.zoom).toBe('1.5')
+
+    localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
+  })
+
+  it('places caret inside page shell when focusing a sized page with fit-width zoom', async () => {
+    localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitWidth"')
+    const user = userEvent.setup()
+    render(<Editor defaultValue={preloadedPageHtml} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const shell = visual.querySelector('[data-page]') as HTMLElement
+    await user.click(visual)
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
+    const sel = window.getSelection()
+    expect(sel?.rangeCount).toBeGreaterThan(0)
+    const range = sel!.getRangeAt(0)
+    const node = range.startContainer
+    expect(shell.contains(node) || shell === node).toBe(true)
+
+    localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
+  })
+
+  async function sampleViewportZoom(samples: number): Promise<string[]> {
+    const values: string[] = []
+    for (let i = 0; i < samples; i++) {
+      const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement | null
+      values.push(viewport?.style.zoom ?? '')
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    }
+    return values
+  }
+
+  it('stabilizes fit-page zoom when focused on an unsized page', async () => {
+    localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitPage"')
+    const user = userEvent.setup()
+    const pageOne =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
+    render(<Editor enableMultiPages defaultPages={[pageOne]} />)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page' }))
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(surfaces).toHaveLength(2)
+    await user.click(surfaces[1])
+
+    const zoomOnUnsizedPage = await sampleViewportZoom(12)
+    const settledOnUnsizedPage = zoomOnUnsizedPage.slice(6)
+    expect(new Set(settledOnUnsizedPage).size).toBe(1)
+    for (let i = 1; i < zoomOnUnsizedPage.length; i++) {
+      const prev = Number.parseFloat(zoomOnUnsizedPage[i - 1] || '1')
+      const curr = Number.parseFloat(zoomOnUnsizedPage[i] || '1')
+      expect(curr).toBeLessThanOrEqual(prev + 0.001)
+    }
+
+    await user.click(surfaces[0])
+
+    const zoomOnSizedPage = await sampleViewportZoom(12)
+    const settledOnSizedPage = zoomOnSizedPage.slice(6)
+    expect(new Set(settledOnSizedPage).size).toBe(1)
+
+    localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
+  })
+
   it('keeps typed text inside page 2 shell in multi-page A4 mode', async () => {
     const user = userEvent.setup()
     const pageOne =

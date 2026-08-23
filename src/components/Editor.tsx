@@ -47,9 +47,13 @@ import {
   resetPageAtRuleInDocument,
 } from '../core/pageProperties'
 import { emptyPageAtRuleApply, preservePageAtRuleInBody, queryPageAtRule } from '../core/pageAtRule'
-import { isPageCanvasSized, syncPageCanvasLayout } from '../core/pageCanvasLayout'
+import {
+  isPageCanvasSized,
+  probePageCanvasDimensions,
+  syncPageCanvasLayout,
+} from '../core/pageCanvasLayout'
 import { normalizeCaretInPageShell } from '../core/page'
-import { resolvePageZoomScale } from '../core/pageZoom'
+import { isPageZoomFitPreset, resolvePageZoomScale } from '../core/pageZoom'
 import {
   joinPagesToHtml,
   normalizePages,
@@ -261,6 +265,8 @@ import {
   type MultiPageVisualSurfaceHandle,
 } from './MultiPageVisualSurface'
 import styles from './Editor.module.css'
+
+const PAGE_ZOOM_MEASURE_EPSILON = 0.001
 
 export function Editor({
   value,
@@ -645,6 +651,8 @@ export function Editor({
   toolbarPosRef.current = toolbarPos
   const pageZoomRef = useRef(pageZoom)
   pageZoomRef.current = pageZoom
+  const pageZoomScaleRef = useRef(pageZoomScale)
+  pageZoomScaleRef.current = pageZoomScale
   const disableBuiltinImageInsertRef = useRef(disableBuiltinImageInsert)
   disableBuiltinImageInsertRef.current = disableBuiltinImageInsert
   const disableBuiltinAudioInsertRef = useRef(disableBuiltinAudioInsert)
@@ -693,6 +701,71 @@ export function Editor({
     () => isPageCanvasSized(queryPageAtRule(activePageHtml)),
     [activePageHtml],
   )
+  const activePageHtmlRef = useRef(activePageHtml)
+  activePageHtmlRef.current = activePageHtml
+  const pageCanvasSizedRef = useRef(pageCanvasSized)
+  pageCanvasSizedRef.current = pageCanvasSized
+  const measurePageZoomRef = useRef<() => void>(() => {})
+  const measuringPageZoomRef = useRef(false)
+
+  const measurePageZoom = useCallback(() => {
+    if (measuringPageZoomRef.current) return
+    if (modeRef.current !== 'visual') return
+    const workspace = workspaceRef.current
+    if (!workspace) return
+
+    measuringPageZoomRef.current = true
+    try {
+      const workspaceStyle = getComputedStyle(workspace)
+      const padX =
+        parseFloat(workspaceStyle.paddingLeft) + parseFloat(workspaceStyle.paddingRight)
+      const padY =
+        parseFloat(workspaceStyle.paddingTop) + parseFloat(workspaceStyle.paddingBottom)
+      const availW = Math.max(0, workspace.clientWidth - padX)
+      const availH = Math.max(0, workspace.clientHeight - padY)
+
+      let pageW = 0
+      let pageH = 0
+
+      if (pageCanvasSizedRef.current) {
+        const probed = probePageCanvasDimensions(queryPageAtRule(activePageHtmlRef.current))
+        if (probed) {
+          pageW = probed.width
+          pageH = probed.height
+        }
+      } else {
+        const surface = getActiveVisualRoot()
+        const zoom = pageZoomScaleRef.current > 0 ? pageZoomScaleRef.current : 1
+        pageW = (surface?.offsetWidth ?? 0) / zoom
+        pageH = (surface?.offsetHeight ?? 0) / zoom
+      }
+
+      if (pageW <= 0) pageW = availW
+      if (pageH <= 0) pageH = availH
+
+      const nextScale = resolvePageZoomScale(
+        pageZoomRef.current,
+        availW,
+        availH,
+        pageW,
+        pageH,
+      )
+      if (Math.abs(nextScale - pageZoomScaleRef.current) >= PAGE_ZOOM_MEASURE_EPSILON) {
+        setPageZoomScale(nextScale)
+      }
+    } finally {
+      measuringPageZoomRef.current = false
+    }
+  }, [getActiveVisualRoot])
+
+  measurePageZoomRef.current = measurePageZoom
+
+  useLayoutEffect(() => {
+    if (mode !== 'visual') return
+    const surface = getActiveVisualRoot()
+    if (!surface || surface !== document.activeElement) return
+    normalizeCaretInPageShell(surface)
+  }, [mode, pageCanvasSized, activePageIndex, visualPageBodies, getActiveVisualRoot])
 
   useEffect(() => {
     const hrefs = previewFontKey ? previewFontKey.split('\n') : []
@@ -803,8 +876,15 @@ export function Editor({
   }, [])
 
   const persistPageZoom = useCallback((next: PageZoomPreset) => {
+    pageZoomRef.current = next
     setPageZoom(next)
     writePageZoomToStorage(next)
+    const workspace = workspaceRef.current
+    if (workspace) {
+      workspace.scrollTop = 0
+      workspace.scrollLeft = 0
+    }
+    measurePageZoomRef.current()
   }, [])
 
   useEffect(() => {
@@ -830,36 +910,23 @@ export function Editor({
   }, [darkModePersistence, darkMode])
 
   useLayoutEffect(() => {
+    measurePageZoomRef.current()
     if (mode !== 'visual') return
     const workspace = workspaceRef.current
-    if (!workspace) return
+    if (!workspace || typeof ResizeObserver === 'undefined') return
 
-    const measure = () => {
-      const surface = visualRootRef.current
-      const workspaceStyle = getComputedStyle(workspace)
-      const padX =
-        parseFloat(workspaceStyle.paddingLeft) + parseFloat(workspaceStyle.paddingRight)
-      const padY =
-        parseFloat(workspaceStyle.paddingTop) + parseFloat(workspaceStyle.paddingBottom)
-      const availW = Math.max(0, workspace.clientWidth - padX)
-      const availH = Math.max(0, workspace.clientHeight - padY)
-      const pageW = surface?.offsetWidth ?? availW
-      const pageH = surface?.offsetHeight ?? availH
-      setPageZoomScale(
-        resolvePageZoomScale(pageZoomRef.current, availW, availH, pageW, pageH),
-      )
-    }
-
-    measure()
-    if (typeof ResizeObserver === 'undefined') return
-
-    const observer = new ResizeObserver(measure)
+    const observer = new ResizeObserver(() => measurePageZoomRef.current())
     observer.observe(workspace)
-    const surface = visualRootRef.current
-    if (surface) observer.observe(surface)
-    measure()
     return () => observer.disconnect()
-  }, [mode, html, activePageIndex, visualPageBodies, pageZoom, pageCanvasSized])
+  }, [
+    mode,
+    html,
+    activePageIndex,
+    visualPageBodies,
+    pageZoom,
+    pageCanvasSized,
+    enableMultiPages,
+  ])
 
   const persistToolbarPosition = useCallback(async (next: ToolbarPosition) => {
     setToolbarPos(next)
@@ -3024,9 +3091,10 @@ export function Editor({
   })
   const themeAttr = chromeThemeProps(dark)['data-wysiwyg-theme']
   const pageZoomViewportStyle = useMemo((): CSSProperties | undefined => {
-    if (mode !== 'visual' || pageZoomScale === 1) return undefined
+    if (mode !== 'visual') return undefined
+    if (pageZoomScale === 1 && !isPageZoomFitPreset(pageZoom)) return undefined
     return { zoom: pageZoomScale }
-  }, [mode, pageZoomScale])
+  }, [mode, pageZoom, pageZoomScale])
   const visualSurface = mode === 'visual' ? (
     enableMultiPages ? (
       <MultiPageVisualSurface
@@ -3072,7 +3140,13 @@ export function Editor({
         html={extractFontStylesheets(html).body}
         onChange={(next) => recordVisualInputHtml(next, true)}
         onBeforeInput={handleVisualBeforeInput}
-        onPointerDown={handleVisualPointerDown}
+        onPointerDown={(event) => {
+          handleVisualPointerDown(event)
+          if (event.currentTarget instanceof HTMLDivElement) {
+            const surface = event.currentTarget
+            requestAnimationFrame(() => normalizeCaretInPageShell(surface))
+          }
+        }}
         onMouseUp={handleVisualMouseUp}
         onContextMenu={handleVisualContextMenu}
         placeholder={placeholder}
@@ -3143,7 +3217,11 @@ export function Editor({
             onDrop={htmlFileDrop.onDrop}
           >
             {mode === 'visual' ? (
-              <div className={styles.pageCanvasViewport} style={pageZoomViewportStyle}>
+              <div
+                className={styles.pageCanvasViewport}
+                style={pageZoomViewportStyle}
+                data-page-canvas-sized={pageCanvasSized ? '' : undefined}
+              >
                 {visualSurface}
               </div>
             ) : (

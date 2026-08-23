@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { clampPageZoomScale, PAGE_ZOOM_MAX, PAGE_ZOOM_MIN, resolvePageZoomScale } from './pageZoom'
+import {
+  clampPageZoomScale,
+  isPageZoomFitPreset,
+  PAGE_ZOOM_MAX,
+  PAGE_ZOOM_MIN,
+  resolvePageZoomScale,
+} from './pageZoom'
 
 describe('pageZoom', () => {
   it('clamps zoom scale', () => {
@@ -18,5 +24,11 @@ describe('pageZoom', () => {
 
   it('resolves percentage scale', () => {
     expect(resolvePageZoomScale(150, 800, 600, 400, 500)).toBe(1.5)
+  })
+
+  it('detects fit presets', () => {
+    expect(isPageZoomFitPreset('fitWidth')).toBe(true)
+    expect(isPageZoomFitPreset('fitPage')).toBe(true)
+    expect(isPageZoomFitPreset(100)).toBe(false)
   })
 })

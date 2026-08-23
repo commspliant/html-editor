@@ -52,6 +52,37 @@ export function isPageCanvasSized(atRule: PageAtRuleApply): boolean {
   return resolvePageCanvasSize(atRule) !== null
 }
 
+export type PageCanvasDimensions = {
+  width: number
+  height: number
+}
+
+/** Measure @page canvas box size in pixels before the visual surface has laid out. */
+export function probePageCanvasDimensions(atRule: PageAtRuleApply): PageCanvasDimensions | null {
+  const size = resolvePageCanvasSize(atRule)
+  if (!size) return null
+
+  const probe = document.createElement('div')
+  probe.style.position = 'fixed'
+  probe.style.left = '-10000px'
+  probe.style.top = '0'
+  probe.style.visibility = 'hidden'
+  probe.style.boxSizing = 'border-box'
+  probe.style.width = size.width
+  probe.style.minHeight = size.height
+
+  const padding = resolvePageCanvasMarginPadding(atRule)
+  for (const side of BOX_SIDES) {
+    const value = padding[side]
+    if (value) probe.style.setProperty(`padding-${side}`, value)
+  }
+
+  document.body.appendChild(probe)
+  const dimensions = { width: probe.offsetWidth, height: probe.offsetHeight }
+  probe.remove()
+  return dimensions
+}
+
 export type PageCanvasMarginPadding = {
   top: string | null
   right: string | null

@@ -3,6 +3,7 @@ import {
   PAGE_SIZED_ATTR,
   PAGE_SIZE_PRESETS,
   isPageCanvasSized,
+  probePageCanvasDimensions,
   resolvePageCanvasMarginPadding,
   resolvePageCanvasSize,
   syncPageCanvasLayout,
@@ -118,5 +119,15 @@ describe('pageCanvasLayout', () => {
     expect(el.getAttribute(PAGE_SIZED_ATTR)).toBe('')
     expect(el.style.width).toBe('210mm')
     expect(el.querySelector('style[data-page-at-rule]')).toBeNull()
+  })
+
+  it('probePageCanvasDimensions returns null when page is not sized', () => {
+    expect(probePageCanvasDimensions(emptyPageAtRuleApply())).toBeNull()
+  })
+
+  it('probePageCanvasDimensions returns dimensions for sized preset', () => {
+    expect(
+      probePageCanvasDimensions({ ...emptyPageAtRuleApply(), sizePreset: 'A4' }),
+    ).not.toBeNull()
   })
 })

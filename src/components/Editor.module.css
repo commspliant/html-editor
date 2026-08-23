@@ -201,6 +201,14 @@
   min-height: min-content;
 }
 
+.root .pageCanvasViewport[data-page-canvas-sized] {
+  flex: 0 0 auto;
+}
+
+.root .pageCanvasViewport[data-page-canvas-sized] .multiPageContainer {
+  min-height: min-content;
+}
+
 .root .htmlFileDropOverlay {
   position: absolute;
   inset: 0;
