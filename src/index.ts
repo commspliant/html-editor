@@ -7,6 +7,7 @@ export {
   splitPagesFromHtml,
 } from './core/multiPage'
 export type { PageAtRuleApply, PageSizePreset } from './core/pageAtRule'
+export type { DefaultPageProperties } from './core/commandTypes'
 export type {
   AllowedChrome,
   CommentAnchor,

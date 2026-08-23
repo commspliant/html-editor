@@ -6,6 +6,7 @@ import {
   joinPagesToHtml,
   normalizePages,
   queryPageSurface,
+  queryPageSurfaceIndex,
   splitPagesFromHtml,
 } from './multiPage'
 
@@ -42,5 +43,18 @@ describe('multiPage', () => {
     expect(queryPageSurface(container, 1)).toBe(second)
     expect(queryPageSurface(container, 0)).toBe(first)
     expect(queryPageSurface(container, 2)).toBeNull()
+  })
+
+  it('queryPageSurfaceIndex resolves index from data-page-index and sibling order', () => {
+    const container = document.createElement('div')
+    const first = document.createElement('div')
+    first.setAttribute(PAGE_SURFACE_ATTR, '')
+    first.setAttribute('data-page-index', '0')
+    const second = document.createElement('div')
+    second.setAttribute(PAGE_SURFACE_ATTR, '')
+    container.append(first, second)
+
+    expect(queryPageSurfaceIndex(first)).toBe(0)
+    expect(queryPageSurfaceIndex(second)).toBe(1)
   })
 })

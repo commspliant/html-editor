@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { PAGE_SIZED_ATTR } from './pageCanvasLayout'
 import { emptyPageAtRuleApply } from './pageAtRule'
 import {
+  applyDefaultPagePropertiesToPageHtml,
   applyPagePropertiesInDocument,
   emptyPagePropertiesApply,
+  mergePagePropertiesDefaults,
   resetPageAtRuleInDocument,
 } from './pageProperties'
 
@@ -58,6 +60,58 @@ describe('applyPagePropertiesInDocument @page sync', () => {
     expect(el.getAttribute(PAGE_SIZED_ATTR)).toBe('')
     expect(el.style.width).toBe('210mm')
     expect(stored.replace(/<style[\s\S]*?<\/style>/gi, '')).not.toContain('data-page-at-rule')
+  })
+})
+
+describe('mergePagePropertiesDefaults', () => {
+  it('merges only provided atRule fields onto current state', () => {
+    const current = {
+      ...emptyPagePropertiesApply(),
+      atRule: {
+        ...emptyPageAtRuleApply(),
+        sizePreset: 'A4' as const,
+      },
+    }
+    const merged = mergePagePropertiesDefaults(current, {
+      atRule: { orientation: 'landscape' },
+    })
+    expect(merged.atRule.sizePreset).toBe('A4')
+    expect(merged.atRule.orientation).toBe('landscape')
+  })
+
+  it('merges partial font marks without clearing other marks', () => {
+    const current = {
+      ...emptyPagePropertiesApply(),
+      font: {
+        ...emptyPagePropertiesApply().font,
+        marks: { bold: true, italic: false, underline: false, strikethrough: false },
+      },
+    }
+    const merged = mergePagePropertiesDefaults(current, {
+      font: { marks: { italic: true } },
+    })
+    expect(merged.font.marks).toEqual({
+      bold: true,
+      italic: true,
+      underline: false,
+      strikethrough: false,
+    })
+  })
+})
+
+describe('applyDefaultPagePropertiesToPageHtml', () => {
+  it('applies @page defaults to bare page HTML', () => {
+    const html = applyDefaultPagePropertiesToPageHtml('<p>Hello</p>', {
+      atRule: { sizePreset: 'A4' },
+    })
+    expect(html).toContain('data-page-at-rule')
+    expect(html).toContain('size: A4')
+    expect(html).toContain('data-page')
+  })
+
+  it('returns input unchanged when defaults are empty', () => {
+    const input = '<p>Hello</p>'
+    expect(applyDefaultPagePropertiesToPageHtml(input, {})).toBe(input)
   })
 })
 

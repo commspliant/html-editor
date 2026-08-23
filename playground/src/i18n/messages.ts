@@ -41,6 +41,15 @@ export type PlaygroundMessages = {
   multiPagesAria: string
   multiPagesOff: string
   multiPagesOn: string
+  initialContentAria: string
+  initialContentHello: string
+  initialContentEmpty: string
+  pagePropertiesAria: string
+  pagePropertiesOff: string
+  pagePropertiesOn: string
+  defaultPagePropertiesAria: string
+  defaultPagePropertiesOff: string
+  defaultPagePropertiesOn: string
   commentsAria: string
   commentsOff: string
   commentsOn: string
@@ -107,6 +116,7 @@ export type PlaygroundMessages = {
   autoSaveExampleBody: string
   fileCallbacksExampleBody: string
   multiPagesExampleBody: string
+  pagePropertiesExampleBody: string
   commentsExampleBody: string
   customActionsExampleBody: string
   menuExampleBody: string
@@ -192,6 +202,15 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     multiPagesAria: 'Multi-page editing',
     multiPagesOff: 'Single page',
     multiPagesOn: 'Multi-page',
+    initialContentAria: 'Initial content',
+    initialContentHello: 'Hello world',
+    initialContentEmpty: 'Empty',
+    pagePropertiesAria: 'Print tab',
+    pagePropertiesOff: 'Hidden',
+    pagePropertiesOn: 'Shown',
+    defaultPagePropertiesAria: 'Default page properties',
+    defaultPagePropertiesOff: 'None',
+    defaultPagePropertiesOn: 'A4 portrait',
     commentsAria: 'Comments',
     commentsOff: 'Off',
     commentsOn: 'On',
@@ -264,7 +283,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     fileCallbacksExampleBody:
       'By default, File → Save and Open use the built-in local HTML file picker. Pass onSave and/or onOpen to delegate to the host instead. The two props are independent. HTML file drag-drop is unchanged.',
     multiPagesExampleBody:
-      'Set enableMultiPages to edit multiple independent HTML pages in visual mode. Host onSave, onOpen, and onAutoSave receive all pages as a string array. Built-in file save/open still operate on the focused page only. HTML source mode shows all pages separated by <!-- wysiwyg-page-separator -->. Edit → Page → Page properties → Print sets @page size and margins; the visual canvas previews each page. View → Zoom adjusts screen-only fit and percentage zoom.',
+      'Set enableMultiPages to edit multiple independent HTML pages in visual mode. Host onSave, onOpen, and onAutoSave receive all pages as a string array. Built-in file save/open still operate on the focused page only. HTML source mode shows all pages separated by <!-- wysiwyg-page-separator -->. When enablePageProperties is true, Edit → Page → Page properties → Print sets @page size and margins; the visual canvas previews each page. View → Zoom adjusts screen-only fit and percentage zoom.',
+    pagePropertiesExampleBody:
+      'Pass enablePageProperties to add the Print tab to Edit → Page → Page properties. Font and Paragraph tabs are always available. Pass defaultPageProperties to apply partial settings on uncontrolled initial content and on each Insert → Page. Controlled value/pages are not modified on load. In the playground, set Initial content → Empty with Default page properties → A4 portrait to preview a blank sized page.',
     commentsExampleBody:
       'Set enableComments to add comment threads anchored with data-comment-thread markers. Pass commentAuthor for posting identity and onCommentsChange to persist CommentThread[] separately from document HTML. Use stripCommentAnchors(html) for sanitized publish HTML. In readOnly mode, comment operations fire onCommentsChange only.',
     customActionsExampleBody:
@@ -361,6 +382,15 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     multiPagesAria: 'Edición multipágina',
     multiPagesOff: 'Una página',
     multiPagesOn: 'Multipágina',
+    initialContentAria: 'Contenido inicial',
+    initialContentHello: 'Hola mundo',
+    initialContentEmpty: 'Vacío',
+    pagePropertiesAria: 'Pestaña Impresión',
+    pagePropertiesOff: 'Oculta',
+    pagePropertiesOn: 'Visible',
+    defaultPagePropertiesAria: 'Propiedades de página por defecto',
+    defaultPagePropertiesOff: 'Ninguna',
+    defaultPagePropertiesOn: 'A4 vertical',
     commentsAria: 'Comentarios',
     commentsOff: 'Desactivado',
     commentsOn: 'Activado',
@@ -433,7 +463,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     fileCallbacksExampleBody:
       'Por defecto, Archivo → Guardar y Abrir usan el selector de archivo HTML integrado. Pasa onSave y/o onOpen para delegar en el anfitrión. Las dos propiedades son independientes. Soltar un archivo HTML no cambia.',
     multiPagesExampleBody:
-      'Con enableMultiPages puedes editar varias páginas HTML independientes en modo visual. Los callbacks del anfitrión onSave, onOpen y onAutoSave reciben todas las páginas como un array de cadenas. Guardar/abrir integrado sigue operando solo en la página activa. El modo HTML muestra todas las páginas separadas por <!-- wysiwyg-page-separator -->. Editar → Página → Propiedades de página → Impresión define el tamaño y márgenes @page; el lienzo visual los previsualiza. Ver → Zoom ajusta el ajuste y el porcentaje solo en pantalla.',
+      'Con enableMultiPages puedes editar varias páginas HTML independientes en modo visual. Los callbacks del anfitrión onSave, onOpen y onAutoSave reciben todas las páginas como un array de cadenas. Guardar/abrir integrado sigue operando solo en la página activa. El modo HTML muestra todas las páginas separadas por <!-- wysiwyg-page-separator -->. Con enablePageProperties, Editar → Página → Propiedades de página → Impresión define el tamaño y márgenes @page; el lienzo visual los previsualiza. Ver → Zoom ajusta el ajuste y el porcentaje solo en pantalla.',
+    pagePropertiesExampleBody:
+      'Pasa enablePageProperties para añadir la pestaña Impresión en Editar → Página → Propiedades de página. Las pestañas Fuente y Párrafo están siempre disponibles. Pasa defaultPageProperties para aplicar ajustes parciales al contenido inicial no controlado y a cada Insertar → Página. value/pages controlados no se modifican al cargar. En el playground, usa Contenido inicial → Vacío con Propiedades de página por defecto → A4 vertical para previsualizar una página en blanco con tamaño.',
     commentsExampleBody:
       'Con enableComments puedes añadir hilos de comentarios anclados con data-comment-thread. Pasa commentAuthor para la identidad al publicar y onCommentsChange para persistir CommentThread[] aparte del HTML del documento. Usa stripCommentAnchors(html) para HTML publicado sin anclajes. En modo readOnly, las operaciones de comentarios solo disparan onCommentsChange.',
     customActionsExampleBody:

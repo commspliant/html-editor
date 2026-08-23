@@ -18,7 +18,8 @@ export function createInsertCommands(
   | 'applyImageProperties'
   | 'insertHorizontalRule'
   | 'insertPageBreak'
-  | 'insertPage'
+  | 'insertPageBefore'
+  | 'insertPageAfter'
 > {
   return {
     openLinkDialog: (tab?: LinkDialogTab) => {
@@ -63,19 +64,22 @@ export function createInsertCommands(
     insertPageBreak: () => {
       ctx.insertPageBreak()
     },
-    insertPage: () => {
-      ctx.insertPage()
+    insertPageBefore: () => {
+      ctx.insertPageBefore()
+    },
+    insertPageAfter: () => {
+      ctx.insertPageAfter()
     },
   }
 }
 
 export function createInsertQueries(
   ctx: CommandContext,
-): Pick<EditorQueries, 'isLink' | 'isImageSelected' | 'isMultiPagesEnabled' | 'canInsertPage'> {
+): Pick<EditorQueries, 'isLink' | 'isImageSelected' | 'isMultiPagesEnabled' | 'hasSelectedPage'> {
   return {
     isLink: () => ctx.isLink(),
     isImageSelected: () => ctx.isImageSelected(),
     isMultiPagesEnabled: () => ctx.isMultiPagesEnabled(),
-    canInsertPage: () => ctx.isMultiPagesEnabled() && ctx.getMode() === 'visual',
+    hasSelectedPage: () => ctx.hasSelectedPage(),
   }
 }

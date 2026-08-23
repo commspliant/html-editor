@@ -41,6 +41,7 @@ import {
   queryParagraphProperties,
 } from '../core/paragraphProperties'
 import {
+  applyDefaultPagePropertiesToPageHtml,
   applyPagePropertiesInDocument,
   emptyPagePropertiesApply,
   queryPageProperties,
@@ -57,7 +58,9 @@ import { isPageZoomFitPreset, resolvePageZoomScale } from '../core/pageZoom'
 import {
   joinPagesToHtml,
   normalizePages,
+  PAGE_SURFACE_ATTR,
   queryPageSurface,
+  queryPageSurfaceIndex,
   splitPagesFromHtml,
   emptyPageHtml,
 } from '../core/multiPage'
@@ -238,6 +241,7 @@ import {
   mergeCommentsLayout,
   type ChromeLockOptions,
 } from '../toolbar/commentsChrome'
+import { filterInsertPageLayout } from '../toolbar/multiPageChrome'
 import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
 import {
   applyToolbarCustomization,
@@ -314,6 +318,8 @@ export function Editor({
   darkModePersistence,
   toolbarPosition = 'top',
   toolbarPositionPersistence,
+  enablePageProperties = false,
+  defaultPageProperties,
   enableMultiPages = false,
   pages: pagesProp,
   defaultPages,
@@ -327,10 +333,17 @@ export function Editor({
 }: EditorProps) {
   const contentLocked = Boolean(disabled || readOnly)
   const chromeDisabled = Boolean(disabled)
-  const initialPages = normalizePages(
+  const isControlledContent = enableMultiPages ? pagesProp !== undefined : value !== undefined
+  const rawInitialPages = normalizePages(
     defaultPages ?? (defaultValue.trim() ? [defaultValue] : [emptyPageHtml()]),
   )
-  const initialHtmlRaw = enableMultiPages ? joinPagesToHtml(initialPages) : defaultValue
+  const initialPages =
+    !isControlledContent && defaultPageProperties
+      ? rawInitialPages.map((page) =>
+          applyDefaultPagePropertiesToPageHtml(page, defaultPageProperties),
+        )
+      : rawInitialPages
+  const initialHtmlRaw = enableMultiPages ? joinPagesToHtml(initialPages) : (initialPages[0] ?? '')
   const initialHtml = sanitizeHtml ? sanitizeDocumentHtml(initialHtmlRaw) : initialHtmlRaw
   const controlledHtmlRaw =
     enableMultiPages && pagesProp !== undefined ? joinPagesToHtml(normalizePages(pagesProp)) : value
@@ -367,6 +380,8 @@ export function Editor({
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null)
   const enableMultiPagesRef = useRef(enableMultiPages)
   enableMultiPagesRef.current = enableMultiPages
+  const defaultPagePropertiesRef = useRef(defaultPageProperties)
+  defaultPagePropertiesRef.current = defaultPageProperties
   const enableCommentsRef = useRef(enableComments)
   enableCommentsRef.current = enableComments
   const readOnlyRef = useRef(readOnly)
@@ -382,6 +397,9 @@ export function Editor({
   const [activePageIndex, setActivePageIndex] = useState(0)
   const activePageIndexRef = useRef(activePageIndex)
   activePageIndexRef.current = activePageIndex
+  const [hasSelectedPage, setHasSelectedPage] = useState(false)
+  const hasSelectedPageRef = useRef(hasSelectedPage)
+  hasSelectedPageRef.current = hasSelectedPage
   const historyRef = useRef<ReturnType<typeof createDocumentHistory> | null>(null)
   if (historyRef.current === null) {
     historyRef.current = createDocumentHistory(html)
@@ -1122,15 +1140,53 @@ export function Editor({
     return enableMultiPagesRef.current ? flushMultiPageHtml() : [htmlRef.current]
   }, [flushMultiPageHtml])
 
-  const insertPageAfterActive = useCallback(() => {
-    if (!enableMultiPagesRef.current || modeRef.current !== 'visual') return
-    const currentPages = flushMultiPageHtml()
-    const insertAt = activePageIndexRef.current + 1
-    const nextPages = [...currentPages]
-    nextPages.splice(insertAt, 0, emptyPageHtml())
-    recordHtml(joinPagesToHtml(nextPages), false)
-    setActivePageIndex(insertAt)
-  }, [flushMultiPageHtml, recordHtml])
+  const runInsertPageAt = useCallback(
+    (insertAt: number) => {
+      if (!enableMultiPagesRef.current || modeRef.current !== 'visual') return
+      if (!hasSelectedPageRef.current) return
+      const currentPages = flushMultiPageHtml()
+      const clampedInsertAt = Math.max(0, Math.min(insertAt, currentPages.length))
+      const nextPages = [...currentPages]
+      const blank = defaultPagePropertiesRef.current
+        ? applyDefaultPagePropertiesToPageHtml(emptyPageHtml(), defaultPagePropertiesRef.current)
+        : emptyPageHtml()
+      nextPages.splice(clampedInsertAt, 0, blank)
+      recordHtml(joinPagesToHtml(nextPages), false)
+      activePageIndexRef.current = clampedInsertAt
+      setActivePageIndex(clampedInsertAt)
+      setHasSelectedPage(true)
+    },
+    [flushMultiPageHtml, recordHtml],
+  )
+
+  const resolveSelectedPageIndex = useCallback((): number | null => {
+    const surface = visualRootRef.current
+    if (surface?.hasAttribute(PAGE_SURFACE_ATTR)) {
+      const index = queryPageSurfaceIndex(surface)
+      if (index !== null) return index
+    }
+    const fromMulti = multiPageVisualRef.current?.getActivePageIndex()
+    if (typeof fromMulti === 'number') return fromMulti
+    return activePageIndexRef.current
+  }, [])
+
+  const runInsertPageBefore = useCallback(() => {
+    const sourceIndex = resolveSelectedPageIndex()
+    if (sourceIndex === null || !hasSelectedPageRef.current) return
+    runInsertPageAt(sourceIndex)
+  }, [runInsertPageAt, resolveSelectedPageIndex])
+
+  const runInsertPageAfter = useCallback(() => {
+    const sourceIndex = resolveSelectedPageIndex()
+    if (sourceIndex === null || !hasSelectedPageRef.current) return
+    runInsertPageAt(sourceIndex + 1)
+  }, [runInsertPageAt, resolveSelectedPageIndex])
+
+  useEffect(() => {
+    if (!enableMultiPages) {
+      setHasSelectedPage(false)
+    }
+  }, [enableMultiPages])
 
   const undo = useCallback(() => {
     const next = history.undo()
@@ -1403,6 +1459,9 @@ export function Editor({
         }
       }
       setMode(next)
+      if (next !== 'visual') {
+        setHasSelectedPage(false)
+      }
     },
     [recordHtml, setMode, flushMultiPageHtml],
   )
@@ -2434,9 +2493,11 @@ export function Editor({
           ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
           : htmlRef.current
         const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
+        const nextTab =
+          tab === 'print' && !enablePageProperties ? 'font' : (tab ?? 'font')
         setPageDialog({
           open: true,
-          tab: tab ?? 'font',
+          tab: nextTab,
           value: {
             ...fromDom,
             atRule: queryPageAtRule(extractFontStylesheets(pageHtml).body),
@@ -2619,10 +2680,17 @@ export function Editor({
         captureSelection()
         refreshMarkState()
       },
-      insertPage: () => {
-        insertPageAfterActive()
+      insertPageBefore: () => {
+        runInsertPageBefore()
+      },
+      insertPageAfter: () => {
+        runInsertPageAfter()
       },
       isMultiPagesEnabled: () => enableMultiPagesRef.current,
+      hasSelectedPage: () =>
+        enableMultiPagesRef.current &&
+        modeRef.current === 'visual' &&
+        hasSelectedPageRef.current,
       getActivePageHtml: () => getActivePageHtml(),
       getAllPagesHtml: () => getAllPagesHtml(),
       openTableDialog: () => {
@@ -2783,7 +2851,7 @@ export function Editor({
           }
         : {}),
     }),
-    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistPageZoom, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, insertPageAfterActive, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState],
+    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistPageZoom, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, runInsertPageBefore, runInsertPageAfter, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState, enablePageProperties],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2824,13 +2892,18 @@ export function Editor({
     }),
     [allowedLayout, toolbarSettings],
   )
+  const insertPageVisible = enableMultiPages && mode === 'visual'
+  const multiPageLayout = useMemo(
+    () => filterInsertPageLayout(customizedLayout, insertPageVisible),
+    [customizedLayout, insertPageVisible],
+  )
   const displayCatalog = useMemo(
     () => (enableComments ? mergeCommentsCatalog(baseCatalog, commentsVisible) : baseCatalog),
     [baseCatalog, enableComments, commentsVisible],
   )
   const displayLayout = useMemo(
-    () => (enableComments ? mergeCommentsLayout(customizedLayout) : customizedLayout),
-    [customizedLayout, enableComments],
+    () => (enableComments ? mergeCommentsLayout(multiPageLayout) : multiPageLayout),
+    [multiPageLayout, enableComments],
   )
   const chromeLock = useMemo<ChromeLockOptions>(
     () => ({ disabled: chromeDisabled, readOnly, enableComments }),
@@ -2860,7 +2933,7 @@ export function Editor({
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
-    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos, pageZoom],
+    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos, pageZoom, hasSelectedPage],
   )
 
   const handleVisualBeforeInput = useCallback(
@@ -3110,6 +3183,9 @@ export function Editor({
             visualRootRef.current = surface
           }
         }}
+        onPageSelected={() => {
+          setHasSelectedPage(true)
+        }}
         onPageChange={(index, next) => {
           const previous = splitPagesFromHtml(htmlRef.current)[index] ?? ''
           recordPageVisualHtml(
@@ -3307,6 +3383,7 @@ export function Editor({
           value={pageDialog.value}
           fonts={fontFaces}
           disabled={contentLocked}
+          printTabVisible={enablePageProperties}
           customImagePicker={customImagePicker}
           onCustomImagePick={() => {
             customImagePicker?.onPick((image) => {

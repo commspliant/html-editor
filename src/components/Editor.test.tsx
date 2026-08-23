@@ -1380,7 +1380,7 @@ describe('Editor paragraph chrome', () => {
 
   it('sizes the visual canvas from print page properties', async () => {
     const user = userEvent.setup()
-    render(<Editor defaultValue="<p>Hello</p>" />)
+    render(<Editor enablePageProperties defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     await user.click(screen.getByRole('button', { name: 'Edit menu' }))
@@ -1399,7 +1399,7 @@ describe('Editor paragraph chrome', () => {
   it('preserves @page in onChange after applying A4 page size', async () => {
     const onChange = vi.fn()
     const user = userEvent.setup()
-    render(<Editor defaultValue="<p>Hello</p>" onChange={onChange} />)
+    render(<Editor enablePageProperties defaultValue="<p>Hello</p>" onChange={onChange} />)
 
     await user.click(screen.getByRole('button', { name: 'Edit menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
@@ -1415,7 +1415,7 @@ describe('Editor paragraph chrome', () => {
 
   it('keeps @page when switching to HTML mode after applying A4', async () => {
     const user = userEvent.setup()
-    render(<Editor defaultValue="<p>Hello</p>" />)
+    render(<Editor enablePageProperties defaultValue="<p>Hello</p>" />)
 
     await user.click(screen.getByRole('button', { name: 'Edit menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
@@ -1438,7 +1438,7 @@ describe('Editor paragraph chrome', () => {
 
   it('keeps the canvas sized after bold following A4 apply', async () => {
     const user = userEvent.setup()
-    render(<Editor defaultValue="<p>Hello</p>" />)
+    render(<Editor enablePageProperties defaultValue="<p>Hello</p>" />)
 
     const visual = screen.getByRole('textbox', { name: 'Visual editor' })
     await user.click(screen.getByRole('button', { name: 'Edit menu' }))
@@ -1589,6 +1589,28 @@ describe('Editor paragraph chrome', () => {
     return values
   }
 
+  async function insertPageAfterSelected(
+    user: ReturnType<typeof userEvent.setup>,
+    pageIndex = 0,
+  ) {
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[pageIndex])
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page after' }))
+  }
+
+  async function insertPageBeforeSelected(
+    user: ReturnType<typeof userEvent.setup>,
+    pageIndex = 0,
+  ) {
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[pageIndex])
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page before' }))
+  }
+
   it('stabilizes fit-page zoom when focused on an unsized page', async () => {
     localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitPage"')
     const user = userEvent.setup()
@@ -1596,8 +1618,8 @@ describe('Editor paragraph chrome', () => {
       '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
     render(<Editor enableMultiPages defaultPages={[pageOne]} />)
 
-    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Page' }))
+    await user.click(screen.getByRole('textbox', { name: 'Visual editor' }))
+    await insertPageAfterSelected(user)
 
     const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
     expect(surfaces).toHaveLength(2)
@@ -1698,6 +1720,7 @@ describe('Editor paragraph chrome', () => {
     render(
       <Editor
         enableMultiPages
+        enablePageProperties
         defaultPages={['<p>One</p>', '<p>Two</p>']}
         onPagesChange={onPagesChange}
       />,
@@ -1725,11 +1748,11 @@ describe('Editor paragraph chrome', () => {
     const onPagesChange = vi.fn()
     const user = userEvent.setup()
     render(
-      <Editor enableMultiPages defaultPages={['<p>One</p>']} onPagesChange={onPagesChange} />,
+      <Editor enableMultiPages enablePageProperties defaultPages={['<p>One</p>']} onPagesChange={onPagesChange} />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Page' }))
+    await user.click(screen.getByRole('textbox', { name: 'Visual editor' }))
+    await insertPageAfterSelected(user)
 
     expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
 
@@ -1755,6 +1778,7 @@ describe('Editor paragraph chrome', () => {
     render(
       <Editor
         enableMultiPages
+        enablePageProperties
         defaultPages={['<p>One</p>', pageTwo]}
         onPagesChange={onPagesChange}
       />,
@@ -1777,6 +1801,146 @@ describe('Editor paragraph chrome', () => {
     expect(lastPages[0]).toContain('One')
     expect(lastPages[1]).toContain('Two')
     expect(lastPages[1]).not.toContain('data-page-at-rule')
+  })
+
+  it('hides the Print tab when enablePageProperties is false', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+
+    expect(screen.getByRole('dialog', { name: 'Page properties' })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Print' })).not.toBeInTheDocument()
+  })
+
+  it('shows the Print tab when enablePageProperties is true', async () => {
+    const user = userEvent.setup()
+    render(<Editor enablePageProperties defaultValue="<p>Hello</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+
+    expect(screen.getByRole('tab', { name: 'Print' })).toBeInTheDocument()
+  })
+
+  it('does not show Insert Page when enableMultiPages is false', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+
+    expect(screen.queryByRole('menuitem', { name: 'Insert page submenu' })).not.toBeInTheDocument()
+  })
+
+  it('does not show Insert Page in HTML mode when enableMultiPages is true', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultMode="html" defaultPages={['<p>One</p>']} />)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+
+    expect(screen.queryByRole('menuitem', { name: 'Insert page submenu' })).not.toBeInTheDocument()
+  })
+
+  it('disables insert page items until a page is selected', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>', '<p>Three</p>']} />)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
+
+    expect(screen.getByRole('menuitem', { name: 'Page before' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Page after' })).toBeDisabled()
+  })
+
+  it('inserts a page after the selected page, not at the end', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>', '<p>Three</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    await insertPageAfterSelected(user, 0)
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(4)
+    expect(lastPages[0]).toContain('One')
+    expect(lastPages[1]).toBe('<p></p>')
+    expect(lastPages[2]).toContain('Two')
+    expect(lastPages[3]).toContain('Three')
+  })
+
+  it('inserts a page before the selected page', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>', '<p>Three</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    await insertPageBeforeSelected(user, 2)
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(4)
+    expect(lastPages[0]).toContain('One')
+    expect(lastPages[1]).toContain('Two')
+    expect(lastPages[2]).toBe('<p></p>')
+    expect(lastPages[3]).toContain('Three')
+  })
+
+  it('applies defaultPageProperties on uncontrolled initial content', () => {
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        defaultPageProperties={{ atRule: { sizePreset: 'A4' } }}
+      />,
+    )
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual).toHaveAttribute('data-page-sized')
+    expect(visual.style.width).toBe('210mm')
+    expect(visual.innerHTML).toContain('data-page')
+  })
+
+  it('does not apply defaultPageProperties to controlled pages', () => {
+    render(
+      <Editor
+        enableMultiPages
+        pages={['<p>One</p>']}
+        defaultPageProperties={{ atRule: { sizePreset: 'A4' } }}
+      />,
+    )
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual).not.toHaveAttribute('data-page-sized')
+  })
+
+  it('applies defaultPageProperties when inserting a new page', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>']}
+        defaultPageProperties={{ atRule: { sizePreset: 'letter' } }}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    await user.click(screen.getByRole('textbox', { name: 'Visual editor' }))
+    await insertPageAfterSelected(user)
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(2)
+    expect(lastPages[1]).toContain('data-page-at-rule')
+    expect(lastPages[1]).toContain('size: letter')
   })
 })
 

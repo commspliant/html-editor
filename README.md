@@ -85,6 +85,8 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `customVideoPicker` | `CustomVideoPicker` | — | Optional third Insert YouTube video source. See [Custom video picker](#custom-video-picker) |
 | `disableBuiltinVideoInsert` | `boolean` | `false` | Skip the Insert YouTube video dialog and call `customVideoPicker.onPick` from the Insert menu |
 | `disableHtmlFileDrop` | `boolean` | `false` | When true, dropping an HTML file on the editor does not replace the document. File → Open is unchanged |
+| `enablePageProperties` | `boolean` | `false` | When true, the Page properties dialog includes the Print tab. Font and Paragraph tabs are always available. See [Page properties](#page-properties) |
+| `defaultPageProperties` | `DefaultPageProperties` | — | Optional partial page settings applied to uncontrolled initial content and each page inserted with Insert → Page → Page before / Page after. Does not mutate controlled `value` / `pages`. See [Page properties](#page-properties) |
 | `enableMultiPages` | `boolean` | `false` | When true, edit multiple independent HTML pages in visual mode. See [Multi-page editing](#multi-page-editing) |
 | `pages` | `string[]` | — | Controlled page HTML strings when `enableMultiPages` is true |
 | `defaultPages` | `string[]` | — | Initial pages when uncontrolled and `enableMultiPages` is true |
@@ -118,7 +120,22 @@ import { Editor } from 'commspliant-html-editor'
 
 ### Page properties
 
-Edit → Page → **Page properties** opens a dialog with **Font**, **Paragraph**, and **Print** tabs. Paragraph sub-tabs include **Spacing**, **Border**, **Background** (fill color and page opacity), and **Background Image**. The **Print** tab edits `@page` size, orientation, and margins. In visual mode, the white editing surface previews that page size and print margins on screen (display-only; serialized HTML is unchanged). Use **View → Zoom** for screen-only fit and percentage zoom; zoom is not stored in the document.
+**Edit → Page → Page properties** is always available and opens a dialog with **Font** and **Paragraph** tabs. Paragraph sub-tabs include **Spacing**, **Border**, **Background** (fill color and page opacity), and **Background Image**.
+
+Pass `enablePageProperties` to add the **Print** tab for `@page` size, orientation, and margins. In visual mode, the white editing surface previews that page size and print margins on screen (display-only; serialized HTML is unchanged). Use **View → Zoom** for screen-only fit and percentage zoom; zoom is not stored in the document.
+
+Pass `defaultPageProperties` to apply partial page settings automatically on uncontrolled initial content (`defaultValue` / `defaultPages`) and on each page inserted with **Insert → Page → Page before** or **Page after** (visible only when `enableMultiPages` is true and the editor is in visual mode; both items are disabled until you select a page). Controlled `value` / `pages` are not modified on load. All fields are optional; print settings use the `atRule` object (`sizePreset`, `customWidth`, `customHeight`, `orientation`, `margin`). You can set defaults without enabling the Print tab.
+
+```tsx
+import { Editor } from 'commspliant-html-editor'
+
+<Editor
+  enablePageProperties
+  defaultPageProperties={{
+    atRule: { sizePreset: 'A4', orientation: 'portrait' },
+  }}
+/>
+```
 
 The first time page properties are applied, content is wrapped in a single `<div data-page>` shell with `width: 100%` and `height: 100%`. Background **color** is written on that shell. Background **image** uses the same file, URL, or custom picker as Insert → Image, plus independent width and height (default width `100%`, height unset), and opacity, fit, and position controls (the same options as Image properties → Advanced). Rotation is not supported for page backgrounds. Width and height write `background-size`; keyword fit values (`cover`, `contain`) replace those dimensions.
 
@@ -185,7 +202,7 @@ If `toolbar` is set, custom action ids must be listed to appear on the icon bar.
 
 Empty arrays hide that surface (`menus: []` shows no dropdowns; `toolbar: []` shows no icons). The right-click context menu is not filtered. Commands stay registered; this only hides chrome.
 
-Page properties (including the Print / `@page` tab) live under **Edit → Page**. Hosts that allow only `format` in `allowedChrome` will not show Page properties unless `edit` is included too.
+Page properties (Font and Paragraph tabs) live under **Edit → Page**. The Print tab appears when `enablePageProperties` is true. Hosts that allow only `format` in `allowedChrome` will not show Page properties unless `edit` is included too.
 
 View → Toolbar → Customize toolbar and its persistence still work as they do today, on the allowed toolbar subset. The dialog lists only allowed icon-toolbar items.
 
@@ -438,7 +455,7 @@ import { Editor } from 'commspliant-html-editor'
 
 ### Multi-page editing
 
-Set `enableMultiPages` to edit several independent HTML pages in visual mode. Pages appear stacked with toolbar-colored gaps between them. Use Insert → Page to add a page after the focused one. Edit → Page → Page properties includes a Print tab for `@page` size, orientation, and margins; Reset removes the print rule from the active page.
+Set `enableMultiPages` to edit several independent HTML pages in visual mode. Pages appear stacked with toolbar-colored gaps between them. **Insert → Page → Page before** and **Page after** are shown only when `enableMultiPages` is true and the editor is in visual mode; both are disabled until you click a page to select it. When `enablePageProperties` is true, Edit → Page → Page properties includes a Print tab for `@page` size, orientation, and margins; Reset removes the print rule from the active page.
 
 When multi-page mode is off (default), behavior is unchanged.
 
@@ -483,7 +500,7 @@ export function MultiPageEditor() {
 
 In visual mode, use **Insert → Page break** or **Ctrl/Cmd+Enter** to insert a hard print break at the caret. The editor shows a dashed line; serialized HTML is a `<div>` with inline `break-after: page` and `page-break-after: always`. Content after the break starts on a new page when printing.
 
-This is not the same as **Insert → Page** (multi-page mode), which adds a separate editor page surface.
+This is not the same as **Insert → Page → Page before / Page after** (multi-page mode), which adds separate editor page surfaces.
 
 ### Comments
 

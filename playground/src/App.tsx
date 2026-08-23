@@ -13,6 +13,7 @@ import {
   type CustomParagraphStyle,
   type CustomVideoInsert,
   type CustomVideoPicker,
+  type DefaultPageProperties,
   type EditorBorder,
   type Locale,
   type ToolbarCustomization,
@@ -266,6 +267,9 @@ export function App() {
   const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
   const [fileCallbacksMode, setFileCallbacksMode] = useState<FileCallbacksMode>('local')
   const [multiPagesEnabled, setMultiPagesEnabled] = useState(false)
+  const [initialContentEmpty, setInitialContentEmpty] = useState(false)
+  const [pagePropertiesEnabled, setPagePropertiesEnabled] = useState(false)
+  const [defaultPagePropertiesEnabled, setDefaultPagePropertiesEnabled] = useState(false)
   const [commentsEnabled, setCommentsEnabled] = useState(false)
   const [comments, setComments] = useState<CommentThread[]>([])
   const [lastHostSaveAt, setLastHostSaveAt] = useState<number | null>(null)
@@ -294,6 +298,14 @@ export function App() {
   const [pageView, setPageView] = useState<PageView>('playground')
   const workspaceRef = useRef<HTMLDivElement>(null)
   const t = playgroundMessages[locale]
+
+  const defaultPageProperties = useMemo<DefaultPageProperties | undefined>(
+    () =>
+      defaultPagePropertiesEnabled
+        ? { atRule: { sizePreset: 'A4', orientation: 'portrait' } }
+        : undefined,
+    [defaultPagePropertiesEnabled],
+  )
 
   const measuredWidth = workspaceRef.current?.getBoundingClientRect().width
   const sidebarMax = Math.max(
@@ -662,6 +674,85 @@ export function App() {
                       onClick={() => setMultiPagesEnabled(true)}
                     >
                       {t.multiPagesOn}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.initialContentAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('pageProperties')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.initialContentAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!initialContentEmpty}
+                      onClick={() => setInitialContentEmpty(false)}
+                    >
+                      {t.initialContentHello}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={initialContentEmpty}
+                      onClick={() => setInitialContentEmpty(true)}
+                    >
+                      {t.initialContentEmpty}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.pagePropertiesAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('pageProperties')}
+                  />
+                  <div className="locale-toggle" role="group" aria-label={t.pagePropertiesAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!pagePropertiesEnabled}
+                      onClick={() => setPagePropertiesEnabled(false)}
+                    >
+                      {t.pagePropertiesOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={pagePropertiesEnabled}
+                      onClick={() => setPagePropertiesEnabled(true)}
+                    >
+                      {t.pagePropertiesOn}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.defaultPagePropertiesAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('pageProperties')}
+                  />
+                  <div
+                    className="locale-toggle"
+                    role="group"
+                    aria-label={t.defaultPagePropertiesAria}
+                  >
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!defaultPagePropertiesEnabled}
+                      onClick={() => setDefaultPagePropertiesEnabled(false)}
+                    >
+                      {t.defaultPagePropertiesOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={defaultPagePropertiesEnabled}
+                      onClick={() => setDefaultPagePropertiesEnabled(true)}
+                    >
+                      {t.defaultPagePropertiesOn}
                     </button>
                   </div>
                 </div>
@@ -1168,7 +1259,11 @@ export function App() {
         <section className="editor-pane">
           <div className="editor-slot">
             <Editor
-              key={commentsEnabled ? 'comments-demo' : 'default-demo'}
+              key={
+                commentsEnabled
+                  ? 'comments-demo'
+                  : `${initialContentEmpty ? 'empty' : 'hello'}-${defaultPagePropertiesEnabled ? 'a4' : 'no-a4'}`
+              }
               locale={locale}
               menuVisible={menuVisible}
               toolbarVisible={toolbarVisible}
@@ -1178,6 +1273,8 @@ export function App() {
               readOnly={readOnly}
               disableHtmlFileDrop={disableHtmlFileDrop}
               enableMultiPages={multiPagesEnabled}
+              enablePageProperties={pagePropertiesEnabled}
+              defaultPageProperties={defaultPageProperties}
               enableComments={commentsEnabled}
               commentAuthor={
                 commentsEnabled ? { userId: 'playground', userName: 'Playground user' } : undefined
@@ -1195,7 +1292,13 @@ export function App() {
                     ? roundedBorder
                     : undefined
               }
-              defaultValue={commentsEnabled ? COMMENTS_DEMO_HTML : DEFAULT_EDITOR_HTML}
+              defaultValue={
+                commentsEnabled
+                  ? COMMENTS_DEMO_HTML
+                  : initialContentEmpty
+                    ? ''
+                    : DEFAULT_EDITOR_HTML
+              }
               placeholder={t.placeholder}
               customActions={customActionsEnabled ? customActions : undefined}
               customFonts={googleFonts ? playgroundGoogleFonts : undefined}
