@@ -3,7 +3,7 @@ import { MENU_SEPARATOR, type ToolbarLayout } from './types'
 export const defaultToolbarLayout: ToolbarLayout = {
   menus: [
     { id: 'file', items: ['save', 'open', MENU_SEPARATOR, 'print'] },
-    { id: 'edit', items: ['undo', 'redo', MENU_SEPARATOR, { submenu: 'page', items: ['pageProperties'] }] },
+    { id: 'edit', items: ['undo', 'redo', MENU_SEPARATOR, { submenu: 'page', items: ['pageProperties', MENU_SEPARATOR, 'deletePage'] }] },
     {
       id: 'insert',
       items: [

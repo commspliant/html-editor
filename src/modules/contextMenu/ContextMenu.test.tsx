@@ -69,6 +69,9 @@ function stubCommands(overrides: Partial<EditorCommands> = {}): EditorCommands {
     applyImageProperties: noop,
     insertHorizontalRule: noop,
     insertPageBreak: noop,
+    insertPageBefore: noop,
+    insertPageAfter: noop,
+    deletePage: noop,
     openTableDialog: noop,
     applyTable: noop,
     openTableProperties: noop,
@@ -90,6 +93,8 @@ function stubCommands(overrides: Partial<EditorCommands> = {}): EditorCommands {
     deleteSelection: noop,
     clearFormatting: noop,
     toggleFormatBrush: noop,
+    addComment: noop,
+    toggleCommentsVisible: noop,
     ...overrides,
   }
 }
@@ -98,7 +103,7 @@ function renderMenu(
   kind: ContextMenuKind,
   commands: EditorCommands = stubCommands(),
   onClose = vi.fn(),
-  flags: { inTable?: boolean; canMergeCells?: boolean; canUnmergeCells?: boolean } = {},
+  flags: { inTable?: boolean; canMergeCells?: boolean; canUnmergeCells?: boolean; canDeletePage?: boolean } = {},
 ) {
   render(
     <LocaleProvider>
@@ -110,6 +115,7 @@ function renderMenu(
         inTable={flags.inTable}
         canMergeCells={flags.canMergeCells}
         canUnmergeCells={flags.canUnmergeCells}
+        canDeletePage={flags.canDeletePage}
         commands={commands}
         onClose={onClose}
       />
@@ -128,6 +134,8 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Link' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Font properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Paragraph properties' })).toBeEnabled()
+    expect(screen.getByRole('menuitem', { name: 'Page properties' })).toBeEnabled()
+    expect(screen.queryByRole('menuitem', { name: 'Delete page' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Image properties' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Table properties' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Cell properties' })).not.toBeInTheDocument()
@@ -189,6 +197,8 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Link' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Font properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Paragraph properties' })).toBeEnabled()
+    expect(screen.getByRole('menuitem', { name: 'Page properties' })).toBeEnabled()
+    expect(screen.queryByRole('menuitem', { name: 'Delete page' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Image properties' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Table properties' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Cell properties' })).not.toBeInTheDocument()
@@ -205,6 +215,12 @@ describe('ContextMenu', () => {
     renderMenu('text')
 
     expect(screen.getAllByRole('separator')).toHaveLength(2)
+  })
+
+  it('enables delete page when allowed', () => {
+    renderMenu('caret', stubCommands(), vi.fn(), { canDeletePage: true })
+
+    expect(screen.getByRole('menuitem', { name: 'Delete selected page' })).toBeEnabled()
   })
 
   it('runs the command and closes on click', async () => {

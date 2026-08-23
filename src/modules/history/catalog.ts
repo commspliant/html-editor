@@ -47,5 +47,13 @@ export const historyCatalog: ToolbarCatalog = {
       ariaKey: 'commandPagePropertiesAria',
       enabled: 'isVisualMode',
     },
+    deletePage: {
+      id: 'deletePage',
+      command: 'deletePage',
+      icon: PagePropertiesIcon,
+      labelKey: 'commandDeletePage',
+      ariaKey: 'commandDeletePageAria',
+      enabled: 'canDeletePage',
+    },
   },
 }

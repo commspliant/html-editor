@@ -88,8 +88,10 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     insertPageBreak: vi.fn(),
     insertPageBefore: vi.fn(),
     insertPageAfter: vi.fn(),
+    deletePage: vi.fn(),
     isMultiPagesEnabled: () => false,
     hasSelectedPage: () => false,
+    canDeletePage: () => false,
     getActivePageHtml: () => '',
     getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
@@ -245,6 +247,15 @@ describe('createInsertCommands', () => {
 
     expect(insertPageBreak).toHaveBeenCalledTimes(1)
   })
+
+  it('opens delete page confirmation', () => {
+    const deletePage = vi.fn()
+    const commands = createInsertCommands(context({ deletePage }))
+
+    commands.deletePage()
+
+    expect(deletePage).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('createInsertQueries', () => {
@@ -256,5 +267,10 @@ describe('createInsertQueries', () => {
   it('reports whether an image is selected', () => {
     expect(createInsertQueries(context({ isImageSelected: () => true })).isImageSelected()).toBe(true)
     expect(createInsertQueries(context()).isImageSelected()).toBe(false)
+  })
+
+  it('reports whether the selected page can be deleted', () => {
+    expect(createInsertQueries(context({ canDeletePage: () => true })).canDeletePage()).toBe(true)
+    expect(createInsertQueries(context()).canDeletePage()).toBe(false)
   })
 })
