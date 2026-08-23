@@ -20,6 +20,7 @@ export function createInsertCommands(
   | 'insertPageBreak'
   | 'insertPageBefore'
   | 'insertPageAfter'
+  | 'deletePage'
 > {
   return {
     openLinkDialog: (tab?: LinkDialogTab) => {
@@ -70,16 +71,20 @@ export function createInsertCommands(
     insertPageAfter: () => {
       ctx.insertPageAfter()
     },
+    deletePage: () => {
+      ctx.deletePage()
+    },
   }
 }
 
 export function createInsertQueries(
   ctx: CommandContext,
-): Pick<EditorQueries, 'isLink' | 'isImageSelected' | 'isMultiPagesEnabled' | 'hasSelectedPage'> {
+): Pick<EditorQueries, 'isLink' | 'isImageSelected' | 'isMultiPagesEnabled' | 'hasSelectedPage' | 'canDeletePage'> {
   return {
     isLink: () => ctx.isLink(),
     isImageSelected: () => ctx.isImageSelected(),
     isMultiPagesEnabled: () => ctx.isMultiPagesEnabled(),
     hasSelectedPage: () => ctx.hasSelectedPage(),
+    canDeletePage: () => ctx.canDeletePage(),
   }
 }

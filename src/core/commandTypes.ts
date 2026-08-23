@@ -118,6 +118,7 @@ export type CommandName =
   | 'insertPageBreak'
   | 'insertPageBefore'
   | 'insertPageAfter'
+  | 'deletePage'
   | 'openTableDialog'
   | 'openTableProperties'
   | 'openCellProperties'
@@ -187,6 +188,7 @@ export type QueryName =
   | 'isFormatBrushActive'
   | 'isMultiPagesEnabled'
   | 'hasSelectedPage'
+  | 'canDeletePage'
   | 'canAddComment'
   | 'areCommentsVisible'
   | 'isCommentsEnabled'
@@ -274,8 +276,10 @@ export type CommandContext = {
   insertPageBreak: () => void
   insertPageBefore: () => void
   insertPageAfter: () => void
+  deletePage: () => void
   isMultiPagesEnabled: () => boolean
   hasSelectedPage: () => boolean
+  canDeletePage: () => boolean
   getActivePageHtml: () => string
   getAllPagesHtml: () => string[]
   openTableDialog: () => void
@@ -389,6 +393,7 @@ export type EditorCommands = {
   insertPageBreak: () => void
   insertPageBefore: () => void
   insertPageAfter: () => void
+  deletePage: () => void
   openTableDialog: () => void
   applyTable: (draft: TableApply) => void
   openTableProperties: () => void
@@ -476,6 +481,7 @@ export type EditorQueries = {
   isFormatBrushActive: () => boolean
   isMultiPagesEnabled: () => boolean
   hasSelectedPage: () => boolean
+  canDeletePage: () => boolean
   canAddComment: () => boolean
   areCommentsVisible: () => boolean
   isCommentsEnabled: () => boolean

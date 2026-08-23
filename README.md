@@ -1,5 +1,7 @@
 # commspliant-html-editor
 
+> **Beta.** This component is in beta. APIs and behaviour may change.
+
 **Try it out here:** [https://htmleditor.commspliant.com/](https://htmleditor.commspliant.com/)
 
 [![WYSIWYG editor screenshot](screenshot.png)](https://htmleditor.commspliant.com/)
@@ -455,7 +457,7 @@ import { Editor } from 'commspliant-html-editor'
 
 ### Multi-page editing
 
-Set `enableMultiPages` to edit several independent HTML pages in visual mode. Pages appear stacked with toolbar-colored gaps between them. **Insert → Page → Page before** and **Page after** are shown only when `enableMultiPages` is true and the editor is in visual mode; both are disabled until you click a page to select it. When `enablePageProperties` is true, Edit → Page → Page properties includes a Print tab for `@page` size, orientation, and margins; Reset removes the print rule from the active page.
+Set `enableMultiPages` to edit several independent HTML pages in visual mode. Pages appear stacked with toolbar-colored gaps between them. **Insert → Page → Page before** and **Page after** are shown only when `enableMultiPages` is true and the editor is in visual mode; both are disabled until you click a page to select it. **Edit → Page → Delete page** is shown under the same conditions and is disabled when only one page remains; choosing it opens a confirmation dialog before the selected page is removed. The visual context menu also includes **Page properties** and **Delete page** (with the same delete guards). When `enablePageProperties` is true, Edit → Page → Page properties includes a Print tab for `@page` size, orientation, and margins; Reset removes the print rule from the active page.
 
 When multi-page mode is off (default), behavior is unchanged.
 
@@ -815,5 +817,9 @@ The live demo is the playground static build. DigitalOcean App Platform defaults
 ```tsx
 import { Editor } from 'commspliant-html-editor'
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
 
 [Brought to you by CommsPliant Communication](https://commspliant.com/)

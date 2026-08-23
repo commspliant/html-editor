@@ -203,6 +203,7 @@ import { LocaleProvider, useT } from '../i18n/LocaleProvider'
 import { FontPropertiesDialog } from '../modules/format/FontPropertiesDialog'
 import { ParagraphPropertiesDialog } from '../modules/format/ParagraphPropertiesDialog'
 import { PagePropertiesDialog } from '../modules/format/PagePropertiesDialog'
+import { DeletePageConfirmDialog } from '../modules/format/DeletePageConfirmDialog'
 import { CustomParagraphStyleDialog } from '../modules/format/CustomParagraphStyleDialog'
 import { CustomCssDialog } from '../modules/format/CustomCssDialog'
 import { BookmarkDialog } from '../modules/insert/BookmarkDialog'
@@ -241,7 +242,7 @@ import {
   mergeCommentsLayout,
   type ChromeLockOptions,
 } from '../toolbar/commentsChrome'
-import { filterInsertPageLayout } from '../toolbar/multiPageChrome'
+import { filterMultiPageLayout } from '../toolbar/multiPageChrome'
 import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
 import {
   applyToolbarCustomization,
@@ -534,6 +535,7 @@ export function Editor({
     tab: 'font',
     value: emptyPagePropertiesApply(),
   })
+  const [deletePageConfirmOpen, setDeletePageConfirmOpen] = useState(false)
   const [customStyles, setCustomStyles] = useState<CustomParagraphStyle[]>([])
   const [customStylesLoading, setCustomStylesLoading] = useState(false)
   const [customStyleBusy, setCustomStyleBusy] = useState(false)
@@ -618,7 +620,17 @@ export function Editor({
     inTable: boolean
     canMergeCells: boolean
     canUnmergeCells: boolean
-  }>({ open: false, x: 0, y: 0, kind: 'caret', inTable: false, canMergeCells: false, canUnmergeCells: false })
+    canDeletePage: boolean
+  }>({
+    open: false,
+    x: 0,
+    y: 0,
+    kind: 'caret',
+    inTable: false,
+    canMergeCells: false,
+    canUnmergeCells: false,
+    canDeletePage: false,
+  })
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null)
   const selectedImageRef = useRef(selectedImage)
   selectedImageRef.current = selectedImage
@@ -1182,6 +1194,21 @@ export function Editor({
     runInsertPageAt(sourceIndex + 1)
   }, [runInsertPageAt, resolveSelectedPageIndex])
 
+  const runDeleteSelectedPage = useCallback(() => {
+    if (!enableMultiPagesRef.current || modeRef.current !== 'visual') return
+    if (!hasSelectedPageRef.current) return
+    const currentPages = flushMultiPageHtml()
+    if (currentPages.length <= 1) return
+    const index = resolveSelectedPageIndex()
+    if (index === null) return
+    const nextPages = currentPages.filter((_, i) => i !== index)
+    recordHtml(joinPagesToHtml(nextPages), false)
+    const nextIndex = Math.min(index, nextPages.length - 1)
+    activePageIndexRef.current = nextIndex
+    setActivePageIndex(nextIndex)
+    setHasSelectedPage(true)
+  }, [flushMultiPageHtml, recordHtml, resolveSelectedPageIndex])
+
   useEffect(() => {
     if (!enableMultiPages) {
       setHasSelectedPage(false)
@@ -1480,13 +1507,13 @@ export function Editor({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       if (event.defaultPrevented) return
-      if (fontDialog.open || customCssDialog.open || paragraphDialog.open || pageDialog.open || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen || documentPreview.open) return
+      if (fontDialog.open || customCssDialog.open || paragraphDialog.open || pageDialog.open || deletePageConfirmOpen || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen || documentPreview.open) return
       event.preventDefault()
       setFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [fullscreen, setFullscreen, fontDialog.open, customCssDialog.open, paragraphDialog.open, pageDialog.open, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen, documentPreview.open])
+  }, [fullscreen, setFullscreen, fontDialog.open, customCssDialog.open, paragraphDialog.open, pageDialog.open, deletePageConfirmOpen, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen, documentPreview.open])
 
   useEffect(() => {
     const onSelectionChange = () => {
@@ -2686,11 +2713,22 @@ export function Editor({
       insertPageAfter: () => {
         runInsertPageAfter()
       },
+      deletePage: () => {
+        if (!enableMultiPagesRef.current || modeRef.current !== 'visual') return
+        if (!hasSelectedPageRef.current) return
+        if (getAllPagesHtml().length <= 1) return
+        setDeletePageConfirmOpen(true)
+      },
       isMultiPagesEnabled: () => enableMultiPagesRef.current,
       hasSelectedPage: () =>
         enableMultiPagesRef.current &&
         modeRef.current === 'visual' &&
         hasSelectedPageRef.current,
+      canDeletePage: () =>
+        enableMultiPagesRef.current &&
+        modeRef.current === 'visual' &&
+        hasSelectedPageRef.current &&
+        getAllPagesHtml().length > 1,
       getActivePageHtml: () => getActivePageHtml(),
       getAllPagesHtml: () => getAllPagesHtml(),
       openTableDialog: () => {
@@ -2851,7 +2889,7 @@ export function Editor({
           }
         : {}),
     }),
-    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistPageZoom, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, runInsertPageBefore, runInsertPageAfter, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState, enablePageProperties],
+    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistPageZoom, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, runInsertPageBefore, runInsertPageAfter, runDeleteSelectedPage, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState, enablePageProperties],
   )
 
   const createActionApi = useCallback((): CustomActionApi => {
@@ -2894,7 +2932,7 @@ export function Editor({
   )
   const insertPageVisible = enableMultiPages && mode === 'visual'
   const multiPageLayout = useMemo(
-    () => filterInsertPageLayout(customizedLayout, insertPageVisible),
+    () => filterMultiPageLayout(customizedLayout, insertPageVisible),
     [customizedLayout, insertPageVisible],
   )
   const displayCatalog = useMemo(
@@ -3003,6 +3041,12 @@ export function Editor({
         canMergeCells: canMergeCellsInDocument(root),
         canUnmergeCells: canUnmergeCellsInDocument(root),
       }
+      const pageFlags = {
+        canDeletePage:
+          enableMultiPagesRef.current &&
+          hasSelectedPageRef.current &&
+          flushMultiPageHtml().length > 1,
+      }
       if (img) {
         selectImageInDocument(root, img)
         captureSelection()
@@ -3013,6 +3057,7 @@ export function Editor({
           y: event.clientY,
           kind: 'image',
           ...tableFlags,
+          ...pageFlags,
           inTable: closestTable(root, img) !== null,
         })
         return
@@ -3029,9 +3074,10 @@ export function Editor({
         y: event.clientY,
         kind: snapshot.collapsed ? 'caret' : 'text',
         ...tableFlags,
+        ...pageFlags,
       })
     },
-    [contentLocked, captureSelection, restoreVisualRange],
+    [contentLocked, captureSelection, restoreVisualRange, flushMultiPageHtml],
   )
 
   const handleVisualPointerDown = useCallback(
@@ -3421,6 +3467,15 @@ export function Editor({
           }}
           onClose={() => setPageDialog({ ...pageDialog, open: false })}
         />
+        <DeletePageConfirmDialog
+          open={deletePageConfirmOpen}
+          disabled={contentLocked}
+          onClose={() => setDeletePageConfirmOpen(false)}
+          onConfirm={() => {
+            runDeleteSelectedPage()
+            setDeletePageConfirmOpen(false)
+          }}
+        />
         <CustomParagraphStyleDialog
           open={customStyleDialog.open}
           mode={customStyleDialog.open ? customStyleDialog.mode : 'create'}
@@ -3597,6 +3652,7 @@ export function Editor({
           inTable={contextMenu.inTable}
           canMergeCells={contextMenu.canMergeCells}
           canUnmergeCells={contextMenu.canUnmergeCells}
+          canDeletePage={contextMenu.canDeletePage}
           commands={commands}
           onClose={() => setContextMenu((prev) => ({ ...prev, open: false }))}
         />

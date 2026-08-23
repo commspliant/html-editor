@@ -147,6 +147,10 @@ export type Messages = {
   commandParagraphPropertiesAria: string
   commandPageProperties: string
   commandPagePropertiesAria: string
+  commandDeletePage: string
+  commandDeletePageAria: string
+  deletePageDialogTitle: string
+  deletePageConfirmMessage: string
   commandFontColor: string
   commandFontColorAria: string
   commandHighlightColor: string

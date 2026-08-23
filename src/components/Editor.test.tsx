@@ -1897,6 +1897,67 @@ describe('Editor paragraph chrome', () => {
     expect(lastPages[3]).toContain('Three')
   })
 
+  async function selectPageSurface(
+    user: ReturnType<typeof userEvent.setup>,
+    pageIndex = 0,
+  ) {
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[pageIndex])
+  }
+
+  async function openEditPageMenu(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+  }
+
+  it('disables delete page until a page is selected', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+
+    await openEditPageMenu(user)
+
+    expect(screen.getByRole('menuitem', { name: 'Delete page' })).toBeDisabled()
+  })
+
+  it('disables delete page when only one page remains', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>']} />)
+
+    await selectPageSurface(user)
+    await openEditPageMenu(user)
+
+    expect(screen.getByRole('menuitem', { name: 'Delete page' })).toBeDisabled()
+  })
+
+  it('deletes the selected page after confirmation from the Edit menu', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>', '<p>Three</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    await selectPageSurface(user, 1)
+    await openEditPageMenu(user)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete page' }))
+
+    expect(screen.getByRole('dialog', { name: 'Delete page' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Are you sure you want to delete the selected page?'),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Delete page' }))
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(2)
+    expect(lastPages[0]).toContain('One')
+    expect(lastPages[1]).toContain('Three')
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+  })
+
   it('applies defaultPageProperties on uncontrolled initial content', () => {
     render(
       <Editor
@@ -3006,6 +3067,38 @@ describe('Editor context menu', () => {
 
     expect(onPick).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog', { name: 'Insert audio' })).not.toBeInTheDocument()
+  })
+
+  it('opens page properties from the context menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    fireEvent.contextMenu(visual)
+
+    await user.click(screen.getByRole('menuitem', { name: 'Page properties' }))
+    expect(screen.getByRole('dialog', { name: 'Page properties' })).toBeInTheDocument()
+  })
+
+  it('deletes a page from the context menu after confirmation', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+    fireEvent.contextMenu(surfaces[1])
+
+    await user.click(screen.getByRole('menuitem', { name: 'Delete selected page' }))
+    await user.click(screen.getByRole('button', { name: 'Delete page' }))
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(1)
+    expect(lastPages[0]).toContain('One')
   })
 
   it('enables table properties from the context menu inside a table', async () => {

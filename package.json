@@ -2,6 +2,7 @@
   "name": "commspliant-html-editor",
   "version": "0.0.9",
   "description": "Reusable React WYSIWYG editor with visual and HTML modes",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

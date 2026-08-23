@@ -22,6 +22,7 @@ export const BUILTIN_TOOLBAR_ITEM_IDS = new Set([
   'pageBreak',
   'insertPageBefore',
   'insertPageAfter',
+  'deletePage',
   'visual',
   'html',
   'customizeToolbar',
