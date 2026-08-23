@@ -9,7 +9,14 @@ import {
 } from 'react'
 import { extractFontStylesheets } from '../core/fontFamily'
 import { PAGE_SURFACE_ATTR, queryPageSurface } from '../core/multiPage'
-import { syncPageHolderBackground } from '../core/page'
+import {
+  absorbLooseBlocksIntoPageShell,
+  ensurePageShell,
+  ensureSizedPageShellLayout,
+  normalizeCaretInPageShell,
+  queryPageShell,
+  syncPageHolderBackground,
+} from '../core/page'
 import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import { useT } from '../i18n/LocaleProvider'
@@ -79,11 +86,16 @@ export const MultiPageVisualSurface = forwardRef<
 
   const syncSurfaceHtml = useCallback((surface: HTMLElement, html: string) => {
     const body = stripPageAtRuleFromHtml(extractFontStylesheets(html).body)
-    if (surface.innerHTML !== body) {
+    const isFocused = surface === document.activeElement
+    if (!isFocused && surface.innerHTML !== body) {
       surface.innerHTML = body
     }
+    ensurePageShell(surface)
+    absorbLooseBlocksIntoPageShell(surface)
     syncPageHolderBackground(surface)
     syncPageCanvasLayout(surface, html)
+    const shell = queryPageShell(surface)
+    if (shell) ensureSizedPageShellLayout(surface, shell)
   }, [])
 
   useLayoutEffect(() => {
@@ -99,14 +111,30 @@ export const MultiPageVisualSurface = forwardRef<
     const container = containerRef.current
     if (!container) return
     const handler = (event: Event) => {
-      onBeforeInputRef.current?.(event as InputEvent)
+      const inputEvent = event as InputEvent
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        target.hasAttribute(PAGE_SURFACE_ATTR) &&
+        (inputEvent.inputType === 'insertParagraph' || inputEvent.inputType === 'insertLineBreak')
+      ) {
+        normalizeCaretInPageShell(target)
+      }
+      onBeforeInputRef.current?.(inputEvent)
     }
     container.addEventListener('beforeinput', handler)
     return () => container.removeEventListener('beforeinput', handler)
   }, [])
 
   const handleFocus = (index: number) => {
+    activeIndexRef.current = index
     if (index !== activePageIndex) onActivePageIndexChange(index)
+    const container = containerRef.current
+    if (!container) return
+    const surface = queryPageSurface(container, index)
+    if (surface) {
+      requestAnimationFrame(() => normalizeCaretInPageShell(surface))
+    }
   }
 
   return (
@@ -130,7 +158,10 @@ export const MultiPageVisualSurface = forwardRef<
             onMouseUp={onMouseUp}
             onContextMenu={onContextMenu}
             onInput={(event) => {
-              onPageChange(index, event.currentTarget.innerHTML)
+              const surface = event.currentTarget
+              const absorbed = absorbLooseBlocksIntoPageShell(surface)
+              if (absorbed) normalizeCaretInPageShell(surface)
+              onPageChange(index, surface.innerHTML)
             }}
           />
         </div>

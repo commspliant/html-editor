@@ -11,6 +11,7 @@ import { TOOLTIP_HOVER_DELAY_MS } from '../toolbar/Tooltip'
 import type { CustomAction, CustomActionApi, CustomImageInsert, CustomParagraphStyle, EditorMode, ToolbarCustomization } from '../types'
 import { TOOLBAR_CUSTOMIZATION_STORAGE_KEY } from '../toolbar/toolbarCustomization'
 import { DARK_MODE_STORAGE_KEY } from '../modules/view/darkModePersistence'
+import { PAGE_ZOOM_STORAGE_KEY } from '../modules/view/pageZoomPersistence'
 import { TOOLBAR_POSITION_STORAGE_KEY } from '../modules/view/toolbarPositionPersistence'
 import { Editor } from './Editor'
 import styles from './Editor.module.css'
@@ -1523,8 +1524,74 @@ describe('Editor paragraph chrome', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Zoom submenu' }))
     fireEvent.click(screen.getByRole('menuitemradio', { name: '150%' }))
 
-    const viewport = document.querySelector('[class*="pageCanvasViewport"]')
-    expect(viewport).toHaveStyle({ transform: 'scale(1.5)' })
+    const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement | null
+    expect(viewport?.style.zoom).toBe('1.5')
+  })
+
+  it('keeps typed text inside page 2 shell in multi-page A4 mode', async () => {
+    const user = userEvent.setup()
+    const pageOne =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
+    const pageTwo =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p></p></div>'
+    render(<Editor enableMultiPages defaultPages={[pageOne, pageTwo]} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+    await user.type(surfaces[1], 'Hello')
+
+    const shell = surfaces[1].querySelector('[data-page]')
+    expect(shell?.textContent).toContain('Hello')
+    for (const child of surfaces[1].childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        expect(child.textContent?.trim()).toBe('')
+      }
+    }
+  })
+
+  it('keeps Enter-created paragraphs inside page 2 shell in multi-page A4 mode', async () => {
+    const user = userEvent.setup()
+    const pageOne =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
+    const pageTwo =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p></p></div>'
+    render(<Editor enableMultiPages defaultPages={[pageOne, pageTwo]} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+    await user.type(surfaces[1], 'Hello{Enter}World')
+
+    const shell = surfaces[1].querySelector('[data-page]')
+    expect(shell?.textContent).toContain('Hello')
+    expect(shell?.textContent).toContain('World')
+    expect(surfaces[1].children).toHaveLength(1)
+    expect(surfaces[1].firstElementChild).toBe(shell)
+  })
+
+  it('keeps typed text inside page 2 shell with fit-width zoom', () => {
+    localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitWidth"')
+    const pageOne =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
+    const pageTwo =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p></p></div>'
+    render(<Editor enableMultiPages defaultPages={[pageOne, pageTwo]} />)
+
+    const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement | null
+    expect(viewport?.style.zoom).not.toBe('')
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    const shellParagraph = surfaces[1].querySelector('[data-page] p') as HTMLElement
+    surfaces[1].focus()
+    shellParagraph.textContent = 'Zoomed'
+    fireEvent.input(surfaces[1])
+
+    expect(shellParagraph.textContent).toBe('Zoomed')
+    for (const child of surfaces[1].childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        expect(child.textContent?.trim()).toBe('')
+      }
+    }
+    localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
   })
 
   it('renders multiple visual surfaces when enableMultiPages is true', () => {

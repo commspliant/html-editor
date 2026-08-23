@@ -3,7 +3,16 @@ import { setBlockFormatInDocument } from './blockFormat'
 import type { PagePropertiesApply } from './commandTypes'
 import type { ParagraphBoxApply } from './paragraphBox'
 import { emptyFontMarkState } from './marks'
-import { ensurePageShell, PAGE_SHELL_ATTR, queryPageShell, syncPageHolderBackground } from './page'
+import {
+  absorbLooseBlocksIntoPageShell,
+  ensurePageShell,
+  ensureSizedPageShellLayout,
+  normalizeCaretInPageShell,
+  PAGE_SHELL_ATTR,
+  queryPageShell,
+  syncPageHolderBackground,
+} from './page'
+import { PAGE_SIZED_ATTR } from './pageCanvasLayout'
 import {
   applyPagePropertiesInDocument,
   emptyPagePropertiesApply,
@@ -324,6 +333,92 @@ describe('queryPageProperties', () => {
       '<div data-page style="font-family: Georgia, serif"><p>Hello</p></div>',
     )
     expect(queryPageProperties(el).font.fontFamily).toMatch(/Georgia/)
+  })
+})
+
+describe('ensureSizedPageShellLayout', () => {
+  it('uses auto height and min-height on sized holders', () => {
+    const el = mountVisual('<div data-page><p>Hello</p></div>')
+    el.setAttribute(PAGE_SIZED_ATTR, '')
+    const shell = queryPageShell(el) as HTMLElement
+
+    ensureSizedPageShellLayout(el, shell)
+
+    expect(shell.style.width).toBe('100%')
+    expect(shell.style.height).toBe('auto')
+    expect(shell.style.minHeight).toBe('100%')
+  })
+
+  it('keeps full-height layout on unsized holders', () => {
+    const el = mountVisual('<div data-page><p>Hello</p></div>')
+    const shell = queryPageShell(el) as HTMLElement
+
+    ensureSizedPageShellLayout(el, shell)
+
+    expect(shell.style.height).toBe('100%')
+    expect(shell.style.minHeight).toBe('')
+  })
+})
+
+describe('absorbLooseBlocksIntoPageShell', () => {
+  it('moves sibling blocks after the shell into the shell', () => {
+    const el = mountVisual(
+      '<div data-page style="height:100%"><p>One</p></div><p>Two</p>',
+    )
+    const shell = queryPageShell(el)
+
+    expect(absorbLooseBlocksIntoPageShell(el)).toBe(true)
+    expect(el.children).toHaveLength(1)
+    expect(shell?.children).toHaveLength(2)
+    expect(shell?.querySelectorAll('p')).toHaveLength(2)
+    expect(shell?.lastElementChild?.textContent).toBe('Two')
+  })
+
+  it('merges loose text nodes into the last block', () => {
+    const el = mountVisual('<div data-page><p>ello</p></div>H')
+    const shell = queryPageShell(el)
+
+    expect(absorbLooseBlocksIntoPageShell(el)).toBe(true)
+    expect(el.childNodes).toHaveLength(1)
+    expect(shell?.textContent).toBe('elloH')
+    expect(shell?.querySelector('p')?.textContent).toBe('elloH')
+  })
+
+  it('returns false when there is no shell', () => {
+    const el = mountVisual('<p>Hello</p>')
+    expect(absorbLooseBlocksIntoPageShell(el)).toBe(false)
+  })
+})
+
+describe('normalizeCaretInPageShell', () => {
+  it('moves the caret from the holder into the page shell', () => {
+    const el = mountVisual('<div data-page><p></p></div>')
+    const range = document.createRange()
+    range.setStart(el, 0)
+    range.collapse(true)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+
+    normalizeCaretInPageShell(el)
+
+    const shell = queryPageShell(el)
+    expect(shell).not.toBeNull()
+    expect(sel?.rangeCount).toBe(1)
+    const anchor = sel?.getRangeAt(0).startContainer
+    expect(shell?.contains(anchor ?? null) || anchor === shell).toBe(true)
+  })
+
+  it('leaves the caret unchanged when it is already inside the shell', () => {
+    const el = mountVisual('<div data-page><p>Hello</p></div>')
+    selectOffsets(el, 2, 2)
+
+    const before = window.getSelection()?.getRangeAt(0).cloneRange()
+    normalizeCaretInPageShell(el)
+
+    const after = window.getSelection()?.getRangeAt(0)
+    expect(after?.startContainer).toBe(before?.startContainer)
+    expect(after?.startOffset).toBe(before?.startOffset)
   })
 })
 

@@ -199,7 +199,6 @@
   align-items: center;
   width: 100%;
   min-height: min-content;
-  transform-origin: top center;
 }
 
 .root .htmlFileDropOverlay {
