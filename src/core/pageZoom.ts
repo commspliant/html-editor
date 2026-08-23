@@ -35,3 +35,7 @@ export function resolvePageZoomScale(
 export function isPageZoomPercent(value: PageZoomPreset): value is PageZoomPercent {
   return typeof value === 'number'
 }
+
+export function isPageZoomFitPreset(preset: PageZoomPreset): preset is 'fitWidth' | 'fitPage' {
+  return preset === 'fitWidth' || preset === 'fitPage'
+}
