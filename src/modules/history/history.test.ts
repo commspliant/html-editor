@@ -140,4 +140,13 @@ describe('createDocumentHistory', () => {
     expect(undoCount).toBe(HISTORY_MAX_PAST_ENTRIES)
     expect(history.undo()).toBeNull()
   })
+
+  it('drops past entries when total characters exceed budget', () => {
+    const history = createDocumentHistory('0')
+    const largePayload = 'x'.repeat(12_000_000)
+    history.record(largePayload)
+    history.record('1')
+    history.record('2')
+    expect(history.canUndo()).toBe(true)
+  })
 })

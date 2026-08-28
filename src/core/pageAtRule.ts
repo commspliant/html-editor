@@ -36,7 +36,7 @@ function parsePageHtml(html: string): Document {
 }
 
 function serializePageBody(doc: Document): string {
-  return doc.body.innerHTML
+  return doc.body.innerHTML.replace(/\s*data-page=""/g, ' data-page')
 }
 
 export function extractPageAtRuleCss(html: string): string | null {
