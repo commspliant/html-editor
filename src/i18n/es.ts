@@ -481,7 +481,6 @@ export const es: Messages = {
   rulerFirstLineIndent: 'Sangría de primera línea',
   rulerLeftIndent: 'Sangría izquierda',
   rulerRightIndent: 'Sangría derecha',
-  rulerMixedIndents: 'Sangrías mixtas en la selección',
   commentPanelTitle: 'Comentario',
   commentPlaceholder: 'Escribe un comentario…',
   commentReplyPlaceholder: 'Escribe una respuesta…',

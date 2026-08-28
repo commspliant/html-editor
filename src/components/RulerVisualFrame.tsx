@@ -1,36 +1,33 @@
 import type { CSSProperties, ReactNode } from 'react'
+import type { PageMarginSidesPx } from '../core/pageCanvasLayout'
 import type { ParagraphIndentState } from '../core/paragraphIndent'
 import {
   HorizontalRuler,
   VerticalRuler,
   RULER_GUTTER_WIDTH_PX,
-  type PageGeometry,
 } from '../modules/ruler'
+import type { PageGeometry } from '../core/pageGeometry'
 import type { RulerUnit } from '../core/rulerUnits'
+import type { RulerIndentSides } from './rulerDocumentHandlers'
 import styles from './Editor.module.css'
 
-type RulerMarginSides = {
-  top?: number
-  right?: number
-  bottom?: number
-  left?: number
-}
-
-type RulerIndentSides = {
-  firstLineIndentPx?: number
-  leftIndentPx?: number
-  rightIndentPx?: number
-}
-
-type RulerChromeProps = {
+type RulerHorizontalChromeProps = {
   showRulers: boolean
   geometry: PageGeometry | null
   indentState: ParagraphIndentState
   rulerUnit: RulerUnit
   zoomScale: number
-  onMarginChange?: (sides: RulerMarginSides) => void
-  onMarginPreview?: (sides: RulerMarginSides) => void
+  onMarginChange?: (sides: PageMarginSidesPx) => void
+  onMarginPreview?: (sides: PageMarginSidesPx) => void
   onIndentChange?: (indents: RulerIndentSides) => void
+}
+
+type RulerVerticalChromeProps = {
+  geometry: PageGeometry | null
+  rulerUnit: RulerUnit
+  zoomScale: number
+  onMarginChange?: (sides: PageMarginSidesPx) => void
+  onMarginPreview?: (sides: PageMarginSidesPx) => void
 }
 
 export function buildPageZoomContentStyle(zoomScale: number): CSSProperties | undefined {
@@ -50,7 +47,7 @@ export function RulerHorizontalHeader({
   onMarginChange,
   onMarginPreview,
   onIndentChange,
-}: RulerChromeProps) {
+}: RulerHorizontalChromeProps) {
   if (!showRulers) return null
 
   const gutterWidth = RULER_GUTTER_WIDTH_PX
@@ -77,7 +74,7 @@ export function RulerHorizontalHeader({
   )
 }
 
-type RulerPageRowProps = Omit<RulerChromeProps, 'showRulers'> & {
+type RulerPageRowProps = RulerVerticalChromeProps & {
   children: ReactNode
   pageBlockStyle?: CSSProperties
   /** When true, show the vertical ruler gutter and ruler for this page row. */
@@ -124,7 +121,7 @@ export function RulerPageRow({
   )
 }
 
-type RulerVisualFrameProps = RulerChromeProps & {
+type RulerVisualFrameProps = RulerHorizontalChromeProps & {
   children: ReactNode
 }
 
@@ -170,12 +167,10 @@ export function RulerVisualFrame({
           showVerticalRuler={showRulers}
           pageSized={showRulers}
           geometry={geometry}
-          indentState={indentState}
           rulerUnit={rulerUnit}
           zoomScale={zoomScale}
           onMarginChange={onMarginChange}
           onMarginPreview={onMarginPreview}
-          onIndentChange={onIndentChange}
         >
           {children}
         </RulerPageRow>

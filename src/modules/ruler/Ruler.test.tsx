@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import { LocaleProvider } from '../../i18n/LocaleProvider'
 import { HorizontalRuler } from './HorizontalRuler'
 import { VerticalRuler } from './VerticalRuler'
-import type { PageGeometry } from './rulerTypes'
+import type { PageGeometry } from '../../core/pageGeometry'
 import { emptyParagraphIndentState } from '../../core/paragraphIndent'
 
 const mockGeometry: PageGeometry = {
@@ -209,6 +209,84 @@ describe('HorizontalRuler', () => {
       expect.objectContaining({ firstLineIndentPx: expect.any(Number) }),
     )
   })
+
+  it('triggers onIndentChange when dragging first-line indent marker', () => {
+    const onIndentChange = vi.fn()
+
+    renderWithLocale(
+      <HorizontalRuler
+        geometry={mockGeometry}
+        indentState={{ ...emptyParagraphIndentState(), leftIndentPx: 48, firstLineIndentPx: 24 }}
+        onIndentChange={onIndentChange}
+      />,
+    )
+
+    const marker = screen.getByTestId('ruler-first-line-indent')
+    fireEvent(marker, new MouseEvent('pointerdown', { clientX: 168, bubbles: true }))
+    fireEvent(window, new MouseEvent('pointermove', { clientX: 192 }))
+    fireEvent(window, new MouseEvent('pointerup', { clientX: 192 }))
+
+    expect(onIndentChange).toHaveBeenCalledWith({ firstLineIndentPx: 48 })
+  })
+
+  it('triggers onIndentChange when dragging right indent marker', () => {
+    const onIndentChange = vi.fn()
+
+    renderWithLocale(
+      <HorizontalRuler
+        geometry={mockGeometry}
+        indentState={{ ...emptyParagraphIndentState(), rightIndentPx: 48 }}
+        onIndentChange={onIndentChange}
+      />,
+    )
+
+    const marker = screen.getByTestId('ruler-right-indent')
+    fireEvent(marker, new MouseEvent('pointerdown', { clientX: 672, bubbles: true }))
+    fireEvent(window, new MouseEvent('pointermove', { clientX: 648 }))
+    fireEvent(window, new MouseEvent('pointerup', { clientX: 648 }))
+
+    expect(onIndentChange).toHaveBeenCalledWith({ rightIndentPx: 72 })
+  })
+
+  it('bypasses snap when alt key is held during margin drag', () => {
+    const onMarginChange = vi.fn()
+
+    renderWithLocale(
+      <HorizontalRuler
+        geometry={mockGeometry}
+        indentState={emptyParagraphIndentState()}
+        onMarginChange={onMarginChange}
+      />,
+    )
+
+    const splitter = screen.getByTestId('ruler-margin-splitter-left')
+    fireEvent(splitter, new MouseEvent('pointerdown', { clientX: 96, altKey: true, bubbles: true }))
+    fireEvent(window, new MouseEvent('pointermove', { clientX: 103, altKey: true }))
+    fireEvent(window, new MouseEvent('pointerup', { clientX: 103, altKey: true }))
+
+    expect(onMarginChange).toHaveBeenCalledWith({ left: 103 })
+  })
+
+  it('formats cm unit ticks and drag measurements', () => {
+    renderWithLocale(
+      <HorizontalRuler
+        geometry={mockGeometry}
+        indentState={emptyParagraphIndentState()}
+        unit="cm"
+      />,
+    )
+
+    expect(screen.getByTestId('horizontal-ruler')).toBeInTheDocument()
+    expect(screen.getByText('0')).toBeInTheDocument()
+  })
+
+  it('uses default letter geometry when geometry is null', () => {
+    renderWithLocale(
+      <HorizontalRuler geometry={null} indentState={emptyParagraphIndentState()} />,
+    )
+
+    expect(screen.getByTestId('horizontal-ruler')).toHaveStyle({ width: '816px' })
+  })
 })
 
 describe('VerticalRuler', () => {
@@ -310,5 +388,22 @@ describe('VerticalRuler', () => {
     fireEvent(window, new MouseEvent('pointerup', { clientY: 120 }))
 
     expect(onMarginChange).toHaveBeenCalledWith({ top: 108 })
+  })
+
+  it('uses default letter page height when geometry is null', () => {
+    renderWithLocale(<VerticalRuler geometry={null} />)
+
+    expect(screen.getByTestId('vertical-ruler')).toHaveStyle({ height: '1056px' })
+  })
+
+  it('cleans up drag state on pointercancel', () => {
+    renderWithLocale(<VerticalRuler geometry={mockGeometry} />)
+
+    const splitter = screen.getByTestId('ruler-margin-splitter-top')
+    fireEvent(splitter, new MouseEvent('pointerdown', { clientY: 96, bubbles: true }))
+    fireEvent(window, new MouseEvent('pointermove', { clientY: 120 }))
+    fireEvent(window, new MouseEvent('pointercancel', { clientY: 120 }))
+
+    expect(screen.queryByTestId('ruler-drag-tooltip')).not.toBeInTheDocument()
   })
 })

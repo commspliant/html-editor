@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import {
   formatMeasurement,
   generateRulerTicks,
@@ -10,6 +10,7 @@ import { useT } from '../../i18n/LocaleProvider'
 import type { PageGeometry, RulerDragTarget } from './rulerTypes'
 import { MIN_PRINTABLE_PX } from './rulerTypes'
 import { IndentArrowIcon } from './IndentArrowIcon'
+import { useRulerPointerDrag } from './useRulerPointerDrag'
 import styles from './Ruler.module.css'
 
 export type HorizontalRulerProps = {
@@ -50,15 +51,12 @@ export const HorizontalRuler: React.FC<HorizontalRulerProps> = ({
   onIndentChange,
 }) => {
   const t = useT()
-  const [activeTarget, setActiveTarget] = useState<RulerDragTarget['type'] | null>(null)
-  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
-  const outerRef = useRef<HTMLDivElement>(null)
+  const { activeTarget, dragPreview, startPointerDrag } = useRulerPointerDrag<DragPreview>()
 
   const pageWidth = geometry?.pageWidthPx ?? 816
   const baseMarginLeft = geometry?.marginsPx.left ?? 96
   const baseMarginRight = geometry?.marginsPx.right ?? 96
   const layoutScale = zoomScale > 0 ? zoomScale : 1
-  const dragScale = layoutScale
 
   const marginLeft = dragPreview?.marginLeft ?? baseMarginLeft
   const marginRight = dragPreview?.marginRight ?? baseMarginRight
@@ -75,132 +73,101 @@ export const HorizontalRuler: React.FC<HorizontalRulerProps> = ({
 
   const startDrag = useCallback(
     (target: RulerDragTarget, startEvent: React.PointerEvent) => {
-      startEvent.preventDefault()
-      startEvent.stopPropagation()
-
-      setActiveTarget(target.type)
-
       const startX = Number.isFinite(startEvent.clientX) ? startEvent.clientX : 0
       const startY = Number.isFinite(startEvent.clientY) ? startEvent.clientY : 0
-      const isAlt = startEvent.altKey
 
-      const updateDragState = (
-        clientX: number,
-        clientY: number,
-        alt: boolean,
-      ): DragPreview => {
-        const deltaX = (clientX - startX) / dragScale
-        let measurementPx = 0
-        const preview: DragPreview = {
-          target: target.type,
-          marginLeft: baseMarginLeft,
-          marginRight: baseMarginRight,
-          firstLineIndentPx: indentState.firstLineIndentPx,
-          leftIndentPx: indentState.leftIndentPx,
-          rightIndentPx: indentState.rightIndentPx,
-          measurementPx: 0,
-          clientX,
-          clientY,
-        }
+      startPointerDrag(target.type, startEvent, {
+        updateDragState: (clientX, clientY, alt) => {
+          const deltaX = (clientX - startX) / layoutScale
+          let measurementPx = 0
+          const preview: DragPreview = {
+            target: target.type,
+            marginLeft: baseMarginLeft,
+            marginRight: baseMarginRight,
+            firstLineIndentPx: indentState.firstLineIndentPx,
+            leftIndentPx: indentState.leftIndentPx,
+            rightIndentPx: indentState.rightIndentPx,
+            measurementPx: 0,
+            clientX,
+            clientY,
+          }
 
-        if (target.type === 'margin-left') {
-          const raw = Math.max(
-            0,
-            Math.min(pageWidth - baseMarginRight - MIN_PRINTABLE_PX, target.startMarginPx + deltaX),
-          )
-          const snapped = snapRulerPosition(raw, unit, alt, 0)
-          preview.marginLeft = snapped
-          measurementPx = snapped
-        } else if (target.type === 'margin-right') {
-          const raw = Math.max(
-            0,
-            Math.min(pageWidth - baseMarginLeft - MIN_PRINTABLE_PX, target.startMarginPx - deltaX),
-          )
-          const snapped = snapRulerPosition(raw, unit, alt, 0)
-          preview.marginRight = snapped
-          measurementPx = snapped
-        } else if (target.type === 'first-line-indent') {
-          const minFirstLine = -target.startLeftIndentPx
-          const maxFirstLine =
-            pageWidth - baseMarginLeft - baseMarginRight - target.startLeftIndentPx - MIN_PRINTABLE_PX
-          const raw = Math.max(
-            minFirstLine,
-            Math.min(maxFirstLine, target.startFirstLinePx + deltaX),
-          )
-          const snapped = snapRulerPosition(raw, unit, alt, 0)
-          preview.firstLineIndentPx = snapped
-          measurementPx = snapped
-        } else if (target.type === 'left-indent') {
-          const raw = Math.max(0, target.startLeftIndentPx + deltaX)
-          const snapped = snapRulerPosition(raw, unit, alt, 0)
-          preview.leftIndentPx = snapped
-          preview.firstLineIndentPx = target.startFirstLinePx
-          measurementPx = snapped
-        } else if (target.type === 'right-indent') {
-          const raw = Math.max(0, target.startRightIndentPx - deltaX)
-          const snapped = snapRulerPosition(raw, unit, alt, 0)
-          preview.rightIndentPx = snapped
-          measurementPx = snapped
-        }
+          if (target.type === 'margin-left') {
+            const raw = Math.max(
+              0,
+              Math.min(pageWidth - baseMarginRight - MIN_PRINTABLE_PX, target.startMarginPx + deltaX),
+            )
+            const snapped = snapRulerPosition(raw, unit, alt, 0)
+            preview.marginLeft = snapped
+            measurementPx = snapped
+          } else if (target.type === 'margin-right') {
+            const raw = Math.max(
+              0,
+              Math.min(pageWidth - baseMarginLeft - MIN_PRINTABLE_PX, target.startMarginPx - deltaX),
+            )
+            const snapped = snapRulerPosition(raw, unit, alt, 0)
+            preview.marginRight = snapped
+            measurementPx = snapped
+          } else if (target.type === 'first-line-indent') {
+            const minFirstLine = -target.startLeftIndentPx
+            const maxFirstLine =
+              pageWidth - baseMarginLeft - baseMarginRight - target.startLeftIndentPx - MIN_PRINTABLE_PX
+            const raw = Math.max(
+              minFirstLine,
+              Math.min(maxFirstLine, target.startFirstLinePx + deltaX),
+            )
+            const snapped = snapRulerPosition(raw, unit, alt, 0)
+            preview.firstLineIndentPx = snapped
+            measurementPx = snapped
+          } else if (target.type === 'left-indent') {
+            const raw = Math.max(0, target.startLeftIndentPx + deltaX)
+            const snapped = snapRulerPosition(raw, unit, alt, 0)
+            preview.leftIndentPx = snapped
+            preview.firstLineIndentPx = target.startFirstLinePx
+            measurementPx = snapped
+          } else if (target.type === 'right-indent') {
+            const raw = Math.max(0, target.startRightIndentPx - deltaX)
+            const snapped = snapRulerPosition(raw, unit, alt, 0)
+            preview.rightIndentPx = snapped
+            measurementPx = snapped
+          }
 
-        preview.measurementPx = measurementPx
-        return preview
-      }
-
-      const emitMarginPreview = (preview: DragPreview) => {
-        if (target.type === 'margin-left') {
-          onMarginPreview?.({ left: preview.marginLeft })
-        } else if (target.type === 'margin-right') {
-          onMarginPreview?.({ right: preview.marginRight })
-        }
-      }
-
-      const handlePointerMove = (e: PointerEvent) => {
-        const cx = Number.isFinite(e.clientX) ? e.clientX : startX
-        const cy = Number.isFinite(e.clientY) ? e.clientY : startY
-        const preview = updateDragState(cx, cy, e.altKey)
-        setDragPreview(preview)
-        emitMarginPreview(preview)
-      }
-
-      const handlePointerUp = (e: PointerEvent) => {
-        const cx = Number.isFinite(e.clientX) ? e.clientX : startX
-        const cy = Number.isFinite(e.clientY) ? e.clientY : startY
-        const finalPreview = updateDragState(cx, cy, e.altKey)
-        window.removeEventListener('pointermove', handlePointerMove)
-        window.removeEventListener('pointerup', handlePointerUp)
-        window.removeEventListener('pointercancel', handlePointerUp)
-        setActiveTarget(null)
-        setDragPreview(null)
-
-        if (target.type === 'margin-left') {
-          onMarginChange?.({ left: finalPreview.marginLeft })
-        } else if (target.type === 'margin-right') {
-          onMarginChange?.({ right: finalPreview.marginRight })
-        } else if (target.type === 'first-line-indent') {
-          onIndentChange?.({ firstLineIndentPx: finalPreview.firstLineIndentPx })
-        } else if (target.type === 'left-indent') {
-          onIndentChange?.({ leftIndentPx: finalPreview.leftIndentPx })
-        } else if (target.type === 'right-indent') {
-          onIndentChange?.({ rightIndentPx: finalPreview.rightIndentPx })
-        }
-      }
-
-      setDragPreview(updateDragState(startX, startY, isAlt))
-      window.addEventListener('pointermove', handlePointerMove)
-      window.addEventListener('pointerup', handlePointerUp)
-      window.addEventListener('pointercancel', handlePointerUp)
+          preview.measurementPx = measurementPx
+          return preview
+        },
+        onPreview: (preview) => {
+          if (target.type === 'margin-left') {
+            onMarginPreview?.({ left: preview.marginLeft })
+          } else if (target.type === 'margin-right') {
+            onMarginPreview?.({ right: preview.marginRight })
+          }
+        },
+        onCommit: (finalPreview) => {
+          if (target.type === 'margin-left') {
+            onMarginChange?.({ left: finalPreview.marginLeft })
+          } else if (target.type === 'margin-right') {
+            onMarginChange?.({ right: finalPreview.marginRight })
+          } else if (target.type === 'first-line-indent') {
+            onIndentChange?.({ firstLineIndentPx: finalPreview.firstLineIndentPx })
+          } else if (target.type === 'left-indent') {
+            onIndentChange?.({ leftIndentPx: finalPreview.leftIndentPx })
+          } else if (target.type === 'right-indent') {
+            onIndentChange?.({ rightIndentPx: finalPreview.rightIndentPx })
+          }
+        },
+      })
     },
     [
       baseMarginLeft,
       baseMarginRight,
       pageWidth,
       unit,
-      dragScale,
+      layoutScale,
       indentState,
       onMarginChange,
       onMarginPreview,
       onIndentChange,
+      startPointerDrag,
     ],
   )
 
@@ -211,7 +178,6 @@ export const HorizontalRuler: React.FC<HorizontalRulerProps> = ({
 
   return (
     <div
-      ref={outerRef}
       className={`${styles.rulerRoot} ${styles.horizontalRulerGroup}`}
       style={{ width: `${displayWidth}px` }}
       data-testid="horizontal-ruler"

@@ -42,9 +42,6 @@ import {
   queryParagraphProperties,
 } from '../core/paragraphProperties'
 import {
-  applyParagraphIndentInDocument,
-} from '../core/paragraphIndent'
-import {
   applyParagraphBackgroundImageInDocument,
   queryParagraphBackgroundImage,
 } from '../core/paragraphBackgroundImage'
@@ -282,6 +279,13 @@ import {
   MultiPageVisualSurface,
   type MultiPageVisualSurfaceHandle,
 } from './MultiPageVisualSurface'
+import {
+  createMultiPageRulerMarginChangeHandler,
+  createMultiPageRulerMarginPreviewHandler,
+  createRulerIndentChangeHandler,
+  createRulerMarginChangeHandler,
+  createRulerMarginPreviewHandler,
+} from './rulerDocumentHandlers'
 import styles from './Editor.module.css'
 
 const PAGE_ZOOM_MEASURE_EPSILON = 0.005
@@ -1193,6 +1197,80 @@ export function Editor({
       recordVisualHtmlFromRoot(root, coalesce)
     },
     [recordVisualHtmlFromRoot],
+  )
+
+  const singlePageRulerMarginPreview = useMemo(
+    () =>
+      createRulerMarginPreviewHandler(
+        () => visualRootRef.current,
+        () => htmlRef.current,
+        previewPageMarginDrag,
+      ),
+    [previewPageMarginDrag],
+  )
+
+  const singlePageRulerMarginChange = useMemo(
+    () =>
+      createRulerMarginChangeHandler(
+        () => visualRootRef.current,
+        () => htmlRef.current,
+        commitPageMarginDrag,
+        (pageHtml) => recordVisualHtml(extractFontStylesheets(pageHtml).body, false),
+      ),
+    [commitPageMarginDrag, recordVisualHtml],
+  )
+
+  const singlePageRulerIndentChange = useMemo(
+    () =>
+      createRulerIndentChangeHandler(
+        () => visualRootRef.current,
+        rulerUnit ?? 'in',
+        (surface) => recordVisualHtmlFromRoot(surface, false),
+      ),
+    [rulerUnit, recordVisualHtmlFromRoot],
+  )
+
+  const multiPageRulerMarginPreview = useMemo(
+    () =>
+      createMultiPageRulerMarginPreviewHandler(
+        (pageIndex) => {
+          const container = multiPageVisualRef.current?.getContainer()
+          return container ? queryPageSurface(container, pageIndex) : null
+        },
+        (pageIndex) => splitPagesFromHtml(htmlRef.current)[pageIndex] ?? '',
+        previewPageMarginDrag,
+      ),
+    [previewPageMarginDrag],
+  )
+
+  const multiPageRulerMarginChange = useMemo(
+    () =>
+      createMultiPageRulerMarginChangeHandler(
+        (pageIndex) => {
+          const container = multiPageVisualRef.current?.getContainer()
+          return container ? queryPageSurface(container, pageIndex) : null
+        },
+        (pageIndex) => splitPagesFromHtml(htmlRef.current)[pageIndex] ?? '',
+        commitPageMarginDrag,
+        (pageIndex, pageHtml) =>
+          recordPageVisualHtml(pageIndex, extractFontStylesheets(pageHtml).body, false),
+      ),
+    [commitPageMarginDrag, recordPageVisualHtml],
+  )
+
+  const multiPageRulerIndentChange = useMemo(
+    () =>
+      createRulerIndentChangeHandler(
+        () => {
+          const container = multiPageVisualRef.current?.getContainer()
+          return container
+            ? queryPageSurface(container, activePageIndexRef.current)
+            : null
+        },
+        rulerUnit ?? 'in',
+        (surface) => recordVisualHtmlFromRoot(surface, false),
+      ),
+    [rulerUnit, recordVisualHtmlFromRoot],
   )
 
   const getActivePageHtml = useCallback(() => {
@@ -3369,34 +3447,9 @@ export function Editor({
         rulerVisible={rulerVisible}
         rulerUnit={rulerUnit}
         zoomScale={pageZoomScale}
-        onMarginPreview={(pageIndex, sides) => {
-          const container = multiPageVisualRef.current?.getContainer()
-          const surface = container ? queryPageSurface(container, pageIndex) : null
-          if (!surface) return
-          const currentPageHtml = splitPagesFromHtml(htmlRef.current)[pageIndex] ?? ''
-          previewPageMarginDrag(surface, currentPageHtml, sides)
-        }}
-        onMarginChange={(pageIndex, sides) => {
-          const container = multiPageVisualRef.current?.getContainer()
-          const surface = container ? queryPageSurface(container, pageIndex) : null
-          if (!surface) return
-          const currentPageHtml = splitPagesFromHtml(htmlRef.current)[pageIndex] ?? ''
-          const result = commitPageMarginDrag(surface, currentPageHtml, sides)
-          recordPageVisualHtml(pageIndex, extractFontStylesheets(result.pageHtml).body, false)
-        }}
-        onIndentChange={(indents) => {
-          const container = multiPageVisualRef.current?.getContainer()
-          const surface = container ? queryPageSurface(container, activePageIndexRef.current) : null
-          if (!surface) return
-          if (
-            applyParagraphIndentInDocument(surface, {
-              ...indents,
-              unit: rulerUnit ?? 'in',
-            })
-          ) {
-            recordVisualHtmlFromRoot(surface, false)
-          }
-        }}
+        onMarginPreview={multiPageRulerMarginPreview}
+        onMarginChange={multiPageRulerMarginChange}
+        onIndentChange={multiPageRulerIndentChange}
       />
     ) : (
       <VisualSurface
@@ -3406,29 +3459,9 @@ export function Editor({
         rulerVisible={rulerVisible}
         rulerUnit={rulerUnit}
         zoomScale={pageZoomScale}
-        onMarginPreview={(sides) => {
-          const surface = visualRootRef.current
-          if (!surface) return
-          previewPageMarginDrag(surface, htmlRef.current, sides)
-        }}
-        onMarginChange={(sides) => {
-          const surface = visualRootRef.current
-          if (!surface) return
-          const result = commitPageMarginDrag(surface, htmlRef.current, sides)
-          recordVisualHtml(extractFontStylesheets(result.pageHtml).body, false)
-        }}
-        onIndentChange={(indents) => {
-          const surface = visualRootRef.current
-          if (!surface) return
-          if (
-            applyParagraphIndentInDocument(surface, {
-              ...indents,
-              unit: rulerUnit ?? 'in',
-            })
-          ) {
-            recordVisualHtmlFromRoot(surface, false)
-          }
-        }}
+        onMarginPreview={singlePageRulerMarginPreview}
+        onMarginChange={singlePageRulerMarginChange}
+        onIndentChange={singlePageRulerIndentChange}
         onChange={(next) => recordVisualInputHtml(next, true)}
         onBeforeInput={handleVisualBeforeInput}
         onPointerDown={(event) => {

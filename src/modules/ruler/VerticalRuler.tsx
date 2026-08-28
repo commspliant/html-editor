@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import {
   formatMeasurement,
   generateRulerTicks,
@@ -8,6 +8,7 @@ import {
 import { useT } from '../../i18n/LocaleProvider'
 import type { PageGeometry, RulerDragTarget } from './rulerTypes'
 import { MIN_PRINTABLE_PX } from './rulerTypes'
+import { useRulerPointerDrag } from './useRulerPointerDrag'
 import styles from './Ruler.module.css'
 
 export type VerticalRulerProps = {
@@ -37,9 +38,7 @@ export const VerticalRuler: React.FC<VerticalRulerProps> = ({
   onMarginPreview,
 }) => {
   const t = useT()
-  const [activeTarget, setActiveTarget] = useState<RulerDragTarget['type'] | null>(null)
-  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
-  const outerRef = useRef<HTMLDivElement>(null)
+  const { activeTarget, dragPreview, startPointerDrag } = useRulerPointerDrag<DragPreview>()
 
   const pageHeight = geometry?.pageHeightPx ?? 1056
   const baseMarginTop = geometry?.marginsPx.top ?? 96
@@ -56,95 +55,62 @@ export const VerticalRuler: React.FC<VerticalRulerProps> = ({
 
   const startDrag = useCallback(
     (target: RulerDragTarget, startEvent: React.PointerEvent) => {
-      startEvent.preventDefault()
-      startEvent.stopPropagation()
-
-      setActiveTarget(target.type)
-
       const startX = Number.isFinite(startEvent.clientX) ? startEvent.clientX : 0
       const startY = Number.isFinite(startEvent.clientY) ? startEvent.clientY : 0
-      const isAlt = startEvent.altKey
 
-      const updateDragState = (
-        clientX: number,
-        clientY: number,
-        alt: boolean,
-      ): DragPreview => {
-        const deltaY = (clientY - startY) / dragScale
-        const preview: DragPreview = {
-          target: target.type,
-          marginTop: baseMarginTop,
-          marginBottom: baseMarginBottom,
-          measurementPx: 0,
-          clientX,
-          clientY,
-        }
+      startPointerDrag(target.type, startEvent, {
+        updateDragState: (clientX, clientY, alt) => {
+          const deltaY = (clientY - startY) / dragScale
+          const preview: DragPreview = {
+            target: target.type,
+            marginTop: baseMarginTop,
+            marginBottom: baseMarginBottom,
+            measurementPx: 0,
+            clientX,
+            clientY,
+          }
 
-        if (target.type === 'margin-top') {
-          const raw = Math.max(
-            0,
-            Math.min(pageHeight - baseMarginBottom - MIN_PRINTABLE_PX, target.startMarginPx + deltaY),
-          )
-          const snapped = snapRulerPosition(raw, unit, alt, 0)
-          preview.marginTop = snapped
-          preview.measurementPx = snapped
-        } else if (target.type === 'margin-bottom') {
-          const raw = Math.max(
-            0,
-            Math.min(pageHeight - baseMarginTop - MIN_PRINTABLE_PX, target.startMarginPx - deltaY),
-          )
-          const snapped = snapRulerPosition(raw, unit, alt, 0)
-          preview.marginBottom = snapped
-          preview.measurementPx = snapped
-        }
+          if (target.type === 'margin-top') {
+            const raw = Math.max(
+              0,
+              Math.min(pageHeight - baseMarginBottom - MIN_PRINTABLE_PX, target.startMarginPx + deltaY),
+            )
+            const snapped = snapRulerPosition(raw, unit, alt, 0)
+            preview.marginTop = snapped
+            preview.measurementPx = snapped
+          } else if (target.type === 'margin-bottom') {
+            const raw = Math.max(
+              0,
+              Math.min(pageHeight - baseMarginTop - MIN_PRINTABLE_PX, target.startMarginPx - deltaY),
+            )
+            const snapped = snapRulerPosition(raw, unit, alt, 0)
+            preview.marginBottom = snapped
+            preview.measurementPx = snapped
+          }
 
-        return preview
-      }
-
-      const emitMarginPreview = (preview: DragPreview) => {
-        if (target.type === 'margin-top') {
-          onMarginPreview?.({ top: preview.marginTop })
-        } else if (target.type === 'margin-bottom') {
-          onMarginPreview?.({ bottom: preview.marginBottom })
-        }
-      }
-
-      const handlePointerMove = (e: PointerEvent) => {
-        const cx = Number.isFinite(e.clientX) ? e.clientX : startX
-        const cy = Number.isFinite(e.clientY) ? e.clientY : startY
-        const preview = updateDragState(cx, cy, e.altKey)
-        setDragPreview(preview)
-        emitMarginPreview(preview)
-      }
-
-      const handlePointerUp = (e: PointerEvent) => {
-        const cx = Number.isFinite(e.clientX) ? e.clientX : startX
-        const cy = Number.isFinite(e.clientY) ? e.clientY : startY
-        const finalPreview = updateDragState(cx, cy, e.altKey)
-        window.removeEventListener('pointermove', handlePointerMove)
-        window.removeEventListener('pointerup', handlePointerUp)
-        window.removeEventListener('pointercancel', handlePointerUp)
-        setActiveTarget(null)
-        setDragPreview(null)
-
-        if (target.type === 'margin-top') {
-          onMarginChange?.({ top: finalPreview.marginTop })
-        } else if (target.type === 'margin-bottom') {
-          onMarginChange?.({ bottom: finalPreview.marginBottom })
-        }
-      }
-
-      setDragPreview(updateDragState(startX, startY, isAlt))
-      window.addEventListener('pointermove', handlePointerMove)
-      window.addEventListener('pointerup', handlePointerUp)
-      window.addEventListener('pointercancel', handlePointerUp)
+          return preview
+        },
+        onPreview: (preview) => {
+          if (target.type === 'margin-top') {
+            onMarginPreview?.({ top: preview.marginTop })
+          } else if (target.type === 'margin-bottom') {
+            onMarginPreview?.({ bottom: preview.marginBottom })
+          }
+        },
+        onCommit: (finalPreview) => {
+          if (target.type === 'margin-top') {
+            onMarginChange?.({ top: finalPreview.marginTop })
+          } else if (target.type === 'margin-bottom') {
+            onMarginChange?.({ bottom: finalPreview.marginBottom })
+          }
+        },
+      })
     },
-    [baseMarginTop, baseMarginBottom, pageHeight, unit, dragScale, onMarginChange, onMarginPreview],
+    [baseMarginTop, baseMarginBottom, pageHeight, unit, dragScale, onMarginChange, onMarginPreview, startPointerDrag],
   )
 
   return (
     <div
-      ref={outerRef}
       className={`${styles.rulerRoot} ${styles.verticalRuler}`}
       style={{ height: `${pageHeight}px` }}
       data-testid="vertical-ruler"

@@ -7,7 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { syncPageHolderBackground } from '../core/page'
-import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
+import { syncPageCanvasLayout, type PageMarginSidesPx } from '../core/pageCanvasLayout'
 import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import type { RulerUnit } from '../core/rulerUnits'
@@ -27,8 +27,8 @@ type VisualSurfaceProps = {
   rulerUnit?: RulerUnit
   /** Viewport zoom factor for converting screen pointer deltas to document px during ruler drag. */
   zoomScale?: number
-  onMarginChange?: (sides: { top?: number; right?: number; bottom?: number; left?: number }) => void
-  onMarginPreview?: (sides: { top?: number; right?: number; bottom?: number; left?: number }) => void
+  onMarginChange?: (sides: PageMarginSidesPx) => void
+  onMarginPreview?: (sides: PageMarginSidesPx) => void
   onIndentChange?: (indent: {
     firstLineIndentPx?: number
     leftIndentPx?: number

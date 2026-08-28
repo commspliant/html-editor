@@ -80,7 +80,7 @@ export function parseLengthToPx(length: CssLength | string | null | undefined, f
 export function pxToCssLength(px: number, unit: RulerUnit = 'in'): CssLength {
   const val = pxToUnit(px, unit)
   const rounded = Math.round(val * 1000) / 1000
-  return { value: rounded, unit: unit as any }
+  return { value: rounded, unit: unit as CssLength['unit'] }
 }
 
 /** Convert document px to pt for @page margin storage (round-trips parseCssLength). */
