@@ -1,7 +1,7 @@
 import React from 'react'
 import styles from './Ruler.module.css'
 
-export type IndentArrowType = 'down' | 'up' | 'box'
+export type IndentArrowType = 'down' | 'up'
 
 export type IndentArrowIconProps = {
   type: IndentArrowType
@@ -24,12 +24,7 @@ export const IndentArrowIcon: React.FC<IndentArrowIconProps> = ({
   onPointerDown,
   'data-testid': testId,
 }) => {
-  const typeClass =
-    type === 'down'
-      ? styles.arrowDown
-      : type === 'up'
-        ? styles.arrowUp
-        : styles.arrowBox
+  const typeClass = type === 'down' ? styles.arrowDown : styles.arrowUp
 
   return (
     <div

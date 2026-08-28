@@ -53,14 +53,6 @@ export const UpArrow: Story = {
   },
 }
 
-export const Box: Story = {
-  args: {
-    type: 'box',
-    title: 'Left Indent Base (■)',
-    style: { left: '100px' },
-  },
-}
-
 export const AllSliders: Story = {
   render: () => (
     <div style={{ padding: '3rem', background: '#f0f0f0' }}>

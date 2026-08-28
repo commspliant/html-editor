@@ -479,7 +479,6 @@ export type Messages = {
   rulerFirstLineIndent: string
   rulerLeftIndent: string
   rulerRightIndent: string
-  rulerMixedIndents: string
   commentPanelTitle: string
   commentPlaceholder: string
   commentReplyPlaceholder: string

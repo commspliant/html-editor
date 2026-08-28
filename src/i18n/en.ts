@@ -481,7 +481,6 @@ export const en: Messages = {
   rulerFirstLineIndent: 'First line indent',
   rulerLeftIndent: 'Left indent',
   rulerRightIndent: 'Right indent',
-  rulerMixedIndents: 'Mixed indents in selection',
   commentPanelTitle: 'Comment',
   commentPlaceholder: 'Write a comment…',
   commentReplyPlaceholder: 'Write a reply…',

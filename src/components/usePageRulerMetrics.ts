@@ -4,8 +4,8 @@ import {
   queryParagraphIndent,
   type ParagraphIndentState,
 } from '../core/paragraphIndent'
-import type { PageGeometry } from '../modules/ruler'
-import { measurePageGeometry } from './measurePageGeometry'
+import type { PageGeometry } from '../core/pageGeometry'
+import { measurePageGeometry } from '../core/pageGeometry'
 
 export function usePageRulerMetrics(
   surface: HTMLElement | null,
