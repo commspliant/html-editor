@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { printHtml } from './printHtml'
+import { printHtml, printPagesHtml } from './printHtml'
 
 type PrintWindow = {
   print: ReturnType<typeof vi.fn>
@@ -113,5 +113,21 @@ describe('printHtml', () => {
 
     expect(document.body.contains(iframe)).toBe(false)
     expect(print).not.toHaveBeenCalled()
+  })
+
+  it('prints multiple pages with per-page fragmentation wrappers and break-after rules', () => {
+    const { fakeDoc, print } = mockPrintIframe()
+
+    printPagesHtml(['<p>Page 1</p>', '<p>Page 2</p>', '<p>Page 3</p>'])
+
+    expect(print).toHaveBeenCalledTimes(1)
+    const pages = fakeDoc?.querySelectorAll('[data-wysiwyg-print-page]')
+    expect(pages).toHaveLength(3)
+    expect(pages?.[0]?.getAttribute('style')).toContain('break-after: page')
+    expect(pages?.[0]?.getAttribute('style')).toContain('page-break-after: always')
+    expect(pages?.[1]?.getAttribute('style')).toContain('break-after: page')
+    expect(pages?.[1]?.getAttribute('style')).toContain('page-break-after: always')
+    expect(pages?.[2]?.getAttribute('style')).not.toContain('break-after: page')
+    expect(pages?.[2]?.getAttribute('style')).toContain('break-inside: avoid')
   })
 })

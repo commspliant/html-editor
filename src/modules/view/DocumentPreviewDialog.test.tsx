@@ -50,4 +50,21 @@ describe('DocumentPreviewDialog', () => {
 
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('renders multi-page content as separated visual pages in the preview iframe', async () => {
+    const multiPageHtml = '<p>Page 1</p>\n<!-- wysiwyg-page-separator -->\n<p>Page 2</p>'
+    render(
+      <LocaleProvider>
+        <DocumentPreviewDialog open html={multiPageHtml} onClose={() => undefined} />
+      </LocaleProvider>,
+    )
+
+    const frame = screen.getByTitle('Document preview') as HTMLIFrameElement
+    await waitFor(() => {
+      const pages = frame.contentDocument?.querySelectorAll('.wysiwyg-preview-page')
+      expect(pages).toHaveLength(2)
+      expect(pages?.[0]?.innerHTML).toContain('Page 1')
+      expect(pages?.[1]?.innerHTML).toContain('Page 2')
+    })
+  })
 })
