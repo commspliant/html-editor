@@ -1,9 +1,18 @@
 import { formatCssLength } from './cssLength'
 import { BOX_SIDES, type BoxSides } from './paragraphBox'
 import {
+  applyPageAtRule,
   queryPageAtRule,
   type PageAtRuleApply,
 } from './pageAtRule'
+import { pxToMarginCssLength } from './rulerUnits'
+
+export type PageMarginSidesPx = {
+  top?: number
+  right?: number
+  bottom?: number
+  left?: number
+}
 
 export const PAGE_SIZED_ATTR = 'data-page-sized'
 
@@ -21,7 +30,10 @@ export const PAGE_SIZE_PRESETS: Record<
   legal: { width: '8.5in', height: '14in' },
 }
 
-export function resolvePageCanvasSize(atRule: PageAtRuleApply): PageCanvasSize | null {
+export function resolvePageCanvasSize(
+  atRule: PageAtRuleApply,
+  fallbackToDefault = false,
+): PageCanvasSize | null {
   let size: PageCanvasSize | null = null
 
   if (atRule.sizePreset === 'A4' || atRule.sizePreset === 'letter' || atRule.sizePreset === 'legal') {
@@ -36,10 +48,12 @@ export function resolvePageCanvasSize(atRule: PageAtRuleApply): PageCanvasSize |
       height: formatCssLength(atRule.customHeight),
     }
   } else if (atRule.orientation) {
-    return null
+    size = fallbackToDefault ? { ...PAGE_SIZE_PRESETS.letter } : null
   } else {
-    return null
+    size = fallbackToDefault ? { ...PAGE_SIZE_PRESETS.letter } : null
   }
+
+  if (!size) return null
 
   if (atRule.orientation === 'landscape') {
     return { width: size.height, height: size.width }
@@ -49,7 +63,7 @@ export function resolvePageCanvasSize(atRule: PageAtRuleApply): PageCanvasSize |
 }
 
 export function isPageCanvasSized(atRule: PageAtRuleApply): boolean {
-  return resolvePageCanvasSize(atRule) !== null
+  return resolvePageCanvasSize(atRule, false) !== null
 }
 
 export type PageCanvasDimensions = {
@@ -117,6 +131,31 @@ function clearPageCanvasLayout(visualRoot: HTMLElement): void {
   for (const prop of PAGE_CANVAS_STYLE_PROPS) {
     visualRoot.style.removeProperty(prop)
   }
+}
+
+/** Merge dragged margin sides (document px) into page HTML @page rule. */
+export function buildPageHtmlWithMarginPx(
+  pageHtml: string,
+  sidesPx: PageMarginSidesPx,
+): string {
+  const currentAtRule = queryPageAtRule(pageHtml)
+  const nextMargin = { ...currentAtRule.margin }
+
+  if (sidesPx.left !== undefined) nextMargin.left = pxToMarginCssLength(sidesPx.left)
+  if (sidesPx.right !== undefined) nextMargin.right = pxToMarginCssLength(sidesPx.right)
+  if (sidesPx.top !== undefined) nextMargin.top = pxToMarginCssLength(sidesPx.top)
+  if (sidesPx.bottom !== undefined) nextMargin.bottom = pxToMarginCssLength(sidesPx.bottom)
+
+  return applyPageAtRule(pageHtml, { ...currentAtRule, margin: nextMargin })
+}
+
+/** Live preview: apply print margins to the visual holder without mutating document HTML. */
+export function previewPageCanvasMargins(
+  visualRoot: HTMLElement,
+  pageHtml: string,
+  sidesPx: PageMarginSidesPx,
+): void {
+  syncPageCanvasLayout(visualRoot, buildPageHtmlWithMarginPx(pageHtml, sidesPx))
 }
 
 /** Apply page size and print-margin preview to the visual holder. Does not change document HTML. */

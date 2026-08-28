@@ -1,0 +1,304 @@
+/* ==========================================================================
+   Word-Style Two-Div Ruler Design
+   ========================================================================== */
+
+.rulerRoot,
+.rulerRoot * {
+  box-sizing: border-box;
+}
+
+.rulerRoot {
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  color: #333333 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Horizontal Ruler: 24px tick track + 8px handle shelf
+   -------------------------------------------------------------------------- */
+.horizontalRulerGroup {
+  position: relative !important;
+  overflow: visible !important;
+  display: block !important;
+}
+
+.horizontalRulerTrack {
+  --ruler-track-height: 24px;
+  --ruler-handle-size: 12px;
+  --ruler-handle-half: calc(var(--ruler-handle-size) / 2);
+  --ruler-handle-width: 18px;
+  --ruler-handle-border: calc(var(--ruler-handle-width) / 2);
+  height: var(--ruler-track-height) !important;
+  position: relative !important;
+  background-color: #e4e4e4 !important;
+  border: 1px solid #b8b8b8 !important;
+  overflow: visible !important;
+  display: block !important;
+}
+
+.horizontalRulerShelf {
+  height: 8px !important;
+  background-color: #e4e4e4 !important;
+  border-left: 1px solid #b8b8b8 !important;
+  border-right: 1px solid #b8b8b8 !important;
+  border-bottom: 1px solid #b8b8b8 !important;
+}
+
+/* Inner Printable Div: White background, left/right margins define position */
+.horizontalInner {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  background-color: #ffffff !important;
+  border-left: 1px solid #b8b8b8 !important;
+  border-right: 1px solid #b8b8b8 !important;
+  z-index: 2 !important;
+  overflow: visible !important;
+}
+
+/* Draggable Edges for Page Margins */
+.dragEdgeLeft {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: -4px !important;
+  width: 8px !important;
+  cursor: ew-resize !important;
+  z-index: 10 !important;
+}
+
+.dragEdgeRight {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  right: -4px !important;
+  width: 8px !important;
+  cursor: ew-resize !important;
+  z-index: 10 !important;
+}
+
+.dragEdgeLeft:hover,
+.dragEdgeRight:hover,
+.dragEdgeActive {
+  background-color: rgba(0, 120, 212, 0.4) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Vertical Ruler: Fixed 24px width, exact page height
+   -------------------------------------------------------------------------- */
+.verticalRuler {
+  width: 24px !important;
+  position: relative !important;
+  background-color: #e4e4e4 !important;
+  border: 1px solid #b8b8b8 !important;
+  overflow: visible !important;
+  display: block !important;
+}
+
+/* Inner Printable Div: White background, top/bottom margins define position */
+.verticalInner {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  background-color: #ffffff !important;
+  border-top: 1px solid #b8b8b8 !important;
+  border-bottom: 1px solid #b8b8b8 !important;
+  z-index: 2 !important;
+  overflow: visible !important;
+}
+
+/* Draggable Top/Bottom Edges */
+.dragEdgeTop {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: -4px !important;
+  height: 8px !important;
+  cursor: ns-resize !important;
+  z-index: 10 !important;
+}
+
+.dragEdgeBottom {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: -4px !important;
+  height: 8px !important;
+  cursor: ns-resize !important;
+  z-index: 10 !important;
+}
+
+.dragEdgeTop:hover,
+.dragEdgeBottom:hover,
+.dragEdgeActiveV {
+  background-color: rgba(0, 120, 212, 0.4) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Ticks & Number Labels (Directly in Ruler Bar)
+   -------------------------------------------------------------------------- */
+.tickH {
+  position: absolute !important;
+  bottom: 0 !important;
+  width: 1px !important;
+  background-color: #666666 !important;
+  pointer-events: none !important;
+  z-index: 3 !important;
+}
+
+.tickV {
+  position: absolute !important;
+  right: 0 !important;
+  height: 1px !important;
+  background-color: #666666 !important;
+  pointer-events: none !important;
+  z-index: 3 !important;
+}
+
+.tickLabelH {
+  position: absolute !important;
+  top: 3px !important;
+  transform: translateX(-50%) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  color: #333333 !important;
+  pointer-events: none !important;
+  z-index: 4 !important;
+  white-space: nowrap !important;
+  display: inline-block !important;
+}
+
+.tickLabelV {
+  position: absolute !important;
+  left: 3px !important;
+  transform: translateY(-50%) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  color: #333333 !important;
+  pointer-events: none !important;
+  z-index: 4 !important;
+  white-space: nowrap !important;
+  display: inline-block !important;
+}
+
+/* --------------------------------------------------------------------------
+   CSS-Drawn Arrow Icons (First Line ▼, Left Indent ▲, Box ■, Right Indent ▲)
+   -------------------------------------------------------------------------- */
+.arrowIconWrapper {
+  position: absolute !important;
+  z-index: 20 !important;
+  cursor: pointer !important;
+  touch-action: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Down Arrow (First Line Indent ▼) — half above, half inside tick track */
+.arrowDown {
+  top: calc(-1 * var(--ruler-handle-half, 6px)) !important;
+  width: var(--ruler-handle-width, 18px) !important;
+  height: var(--ruler-handle-size, 12px) !important;
+  margin-left: calc(-1 * var(--ruler-handle-border, 9px)) !important;
+  align-items: flex-start !important;
+}
+
+.arrowDown .arrowGlyph {
+  width: 0 !important;
+  height: 0 !important;
+  border-left: var(--ruler-handle-border, 9px) solid transparent !important;
+  border-right: var(--ruler-handle-border, 9px) solid transparent !important;
+  border-top: var(--ruler-handle-size, 12px) solid #6e6e6e !important;
+}
+
+.arrowDown:hover .arrowGlyph,
+.arrowDown.arrowActive .arrowGlyph {
+  border-top-color: #0078d4 !important;
+}
+
+/* Up Arrow (Left / Right Indent ▲) — half inside tick track, half in shelf */
+.arrowUp {
+  top: calc(var(--ruler-track-height, 24px) - var(--ruler-handle-half, 6px)) !important;
+  width: var(--ruler-handle-width, 18px) !important;
+  height: var(--ruler-handle-size, 12px) !important;
+  margin-left: calc(-1 * var(--ruler-handle-border, 9px)) !important;
+  align-items: flex-end !important;
+}
+
+.arrowUp .arrowGlyph {
+  width: 0 !important;
+  height: 0 !important;
+  border-left: var(--ruler-handle-border, 9px) solid transparent !important;
+  border-right: var(--ruler-handle-border, 9px) solid transparent !important;
+  border-bottom: var(--ruler-handle-size, 12px) solid #6e6e6e !important;
+}
+
+.arrowUp:hover .arrowGlyph,
+.arrowUp.arrowActive .arrowGlyph {
+  border-bottom-color: #0078d4 !important;
+}
+
+/* Box (Left Indent Base Box ■) */
+.arrowBox {
+  top: calc(var(--ruler-track-height, 24px) - var(--ruler-handle-half, 4.5px) + 2px) !important;
+  width: 12px !important;
+  height: 7px !important;
+  margin-left: -6px !important;
+}
+
+.arrowBox .arrowGlyph {
+  width: 100% !important;
+  height: 100% !important;
+  background-color: #6e6e6e !important;
+  border: 1px solid #5a5a5a !important;
+}
+
+.arrowBox:hover .arrowGlyph,
+.arrowBox.arrowActive .arrowGlyph {
+  background-color: #0078d4 !important;
+  border-color: #005a9e !important;
+}
+
+/* --------------------------------------------------------------------------
+   Drag Guidelines & Tooltips
+   -------------------------------------------------------------------------- */
+.guideLineVertical {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  border-left: 1.5px dashed #0078d4;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.guideLineHorizontal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  border-top: 1.5px dashed #0078d4;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.rulerTooltip {
+  position: fixed;
+  background: #242424;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  transform: translate(-50%, -100%);
+  margin-top: -10px;
+}

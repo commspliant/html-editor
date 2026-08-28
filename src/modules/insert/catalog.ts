@@ -1,4 +1,4 @@
-import { PagePropertiesIcon } from '../../icons'
+import { PagePropertiesIcon, ParagraphPropertiesIcon } from '../../icons'
 import type { ToolbarCatalog } from '../../toolbar/types'
 import { AudioIcon, BookmarkIcon, HorizontalRuleIcon, ImageIcon, LinkIcon, PageBreakIcon, YoutubeIcon } from '../../icons'
 
@@ -50,6 +50,22 @@ export const insertCatalog: ToolbarCatalog = {
       labelKey: 'commandImage',
       ariaKey: 'commandImageAria',
       enabled: 'isVisualMode',
+    },
+    pageBackgroundImage: {
+      id: 'pageBackgroundImage',
+      command: 'openPageBackgroundImage',
+      icon: PagePropertiesIcon,
+      labelKey: 'commandPageBackgroundImage',
+      ariaKey: 'commandPageBackgroundImageAria',
+      enabled: 'canInsertPageBackgroundImage',
+    },
+    paragraphBackgroundImage: {
+      id: 'paragraphBackgroundImage',
+      command: 'openParagraphBackgroundImage',
+      icon: ParagraphPropertiesIcon,
+      labelKey: 'commandParagraphBackgroundImage',
+      ariaKey: 'commandParagraphBackgroundImageAria',
+      enabled: 'canInsertParagraphBackgroundImage',
     },
     audio: {
       id: 'audio',

@@ -2,6 +2,13 @@ import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.toDataURL = function (type?: string) {
+    if (type === 'image/webp') return 'data:,'
+    return 'data:image/png;base64,'
+  }
+}
+
 const storage = new Map<string, string>()
 
 beforeEach(() => {

@@ -269,18 +269,59 @@ function syncShellPosition(shell: HTMLElement): boolean {
   return changed
 }
 
-export function readPageBackgroundImage(shell: HTMLElement): PageBackgroundImageApply {
-  const layer = queryPageBackgroundLayer(shell)
-  if (!layer) return emptyPageBackgroundImageApply()
-  const size = readBackgroundSize(layer)
+export function readBackgroundImageStyles(el: HTMLElement): PageBackgroundImageApply {
+  const size = readBackgroundSize(el)
   return {
-    src: readBackgroundImageUrl(layer),
-    opacity: readOpacity(layer),
+    src: readBackgroundImageUrl(el),
+    opacity: readOpacity(el),
     fit: size.fit,
-    position: readBackgroundPosition(layer),
+    position: readBackgroundPosition(el),
     width: size.width,
     height: size.height,
   }
+}
+
+export function writeBackgroundImageStyles(
+  el: HTMLElement,
+  draft: PageBackgroundImageApply,
+): boolean {
+  const src = draft.src?.trim() ?? ''
+  const hasSrc = src.length > 0 && validateImageSrc(src) === null
+
+  let changed = false
+  if (!hasSrc) {
+    if (writeBackgroundImage(el, null)) changed = true
+    const currentSize = normalizeBackgroundSize(el.style.backgroundSize)
+    if (currentSize) {
+      el.style.removeProperty('background-size')
+      changed = true
+    }
+    if (writeBackgroundPosition(el, null)) changed = true
+    if (writeOpacity(el, null)) changed = true
+    if (el.style.backgroundRepeat) {
+      el.style.removeProperty('background-repeat')
+      changed = true
+    }
+    if (changed) clearEmptyStyle(el)
+    return changed
+  }
+
+  if (writeBackgroundImage(el, src)) changed = true
+  if (writeBackgroundSize(el, draft)) changed = true
+  if (writeBackgroundPosition(el, draft.position)) changed = true
+  if (writeOpacity(el, draft.opacity)) changed = true
+  if (el.style.backgroundRepeat !== 'no-repeat') {
+    el.style.backgroundRepeat = 'no-repeat'
+    changed = true
+  }
+  if (changed) clearEmptyStyle(el)
+  return changed
+}
+
+export function readPageBackgroundImage(shell: HTMLElement): PageBackgroundImageApply {
+  const layer = queryPageBackgroundLayer(shell)
+  if (!layer) return emptyPageBackgroundImageApply()
+  return readBackgroundImageStyles(layer)
 }
 
 export function writePageBackgroundImage(
@@ -304,10 +345,7 @@ export function writePageBackgroundImage(
   if (ensureBackgroundLayerStyles(layer)) changed = true
   if (syncShellPosition(shell)) changed = true
 
-  if (writeBackgroundImage(layer, src)) changed = true
-  if (writeBackgroundSize(layer, draft)) changed = true
-  if (writeBackgroundPosition(layer, draft.position)) changed = true
-  if (writeOpacity(layer, draft.opacity)) changed = true
+  if (writeBackgroundImageStyles(layer, draft)) changed = true
 
   if (changed) {
     clearEmptyStyle(layer)

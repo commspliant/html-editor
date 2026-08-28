@@ -38,6 +38,15 @@ type DarkModePersistMode = 'browser' | 'api'
 type ToolbarPositionPersistMode = 'browser' | 'api'
 type AllowedChromePreset = 'all' | 'fileEdit' | 'format'
 type FileCallbacksMode = 'local' | 'host'
+type DefaultPagePropertiesMode = 'none' | 'a4' | 'a4-margins'
+
+const ONE_INCH_MARGIN = { value: 1, unit: 'in' } as const
+const DEFAULT_PAGE_MARGINS = {
+  top: ONE_INCH_MARGIN,
+  right: ONE_INCH_MARGIN,
+  bottom: ONE_INCH_MARGIN,
+  left: ONE_INCH_MARGIN,
+}
 
 const PLAYGROUND_HOST_OPEN_SAMPLE = '<p>Sample document from mock host storage</p>'
 
@@ -269,7 +278,9 @@ export function App() {
   const [multiPagesEnabled, setMultiPagesEnabled] = useState(false)
   const [initialContentEmpty, setInitialContentEmpty] = useState(false)
   const [pagePropertiesEnabled, setPagePropertiesEnabled] = useState(false)
-  const [defaultPagePropertiesEnabled, setDefaultPagePropertiesEnabled] = useState(false)
+  const [rulerVisible, setRulerVisible] = useState(true)
+  const [defaultPagePropertiesMode, setDefaultPagePropertiesMode] =
+    useState<DefaultPagePropertiesMode>('none')
   const [commentsEnabled, setCommentsEnabled] = useState(false)
   const [comments, setComments] = useState<CommentThread[]>([])
   const [lastHostSaveAt, setLastHostSaveAt] = useState<number | null>(null)
@@ -299,13 +310,19 @@ export function App() {
   const workspaceRef = useRef<HTMLDivElement>(null)
   const t = playgroundMessages[locale]
 
-  const defaultPageProperties = useMemo<DefaultPageProperties | undefined>(
-    () =>
-      defaultPagePropertiesEnabled
-        ? { atRule: { sizePreset: 'A4', orientation: 'portrait' } }
-        : undefined,
-    [defaultPagePropertiesEnabled],
-  )
+  const defaultPageProperties = useMemo<DefaultPageProperties | undefined>(() => {
+    if (defaultPagePropertiesMode === 'none') return undefined
+    if (defaultPagePropertiesMode === 'a4') {
+      return { atRule: { sizePreset: 'A4', orientation: 'portrait' } }
+    }
+    return {
+      atRule: {
+        sizePreset: 'A4',
+        orientation: 'portrait',
+        margin: DEFAULT_PAGE_MARGINS,
+      },
+    }
+  }, [defaultPagePropertiesMode])
 
   const measuredWidth = workspaceRef.current?.getBoundingClientRect().width
   const sidebarMax = Math.max(
@@ -728,6 +745,27 @@ export function App() {
                   </div>
                 </div>
                 <div className="control-group">
+                  <ControlGroupHeading label={t.rulerAria} />
+                  <div className="locale-toggle" role="group" aria-label={t.rulerAria}>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!rulerVisible}
+                      onClick={() => setRulerVisible(false)}
+                    >
+                      {t.rulerOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={rulerVisible}
+                      onClick={() => setRulerVisible(true)}
+                    >
+                      {t.rulerOn}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
                   <ControlGroupHeading
                     label={t.defaultPagePropertiesAria}
                     examplesLabel={t.codeExamplesLink}
@@ -741,18 +779,26 @@ export function App() {
                     <button
                       type="button"
                       className="locale-toggle-button"
-                      aria-pressed={!defaultPagePropertiesEnabled}
-                      onClick={() => setDefaultPagePropertiesEnabled(false)}
+                      aria-pressed={defaultPagePropertiesMode === 'none'}
+                      onClick={() => setDefaultPagePropertiesMode('none')}
                     >
                       {t.defaultPagePropertiesOff}
                     </button>
                     <button
                       type="button"
                       className="locale-toggle-button"
-                      aria-pressed={defaultPagePropertiesEnabled}
-                      onClick={() => setDefaultPagePropertiesEnabled(true)}
+                      aria-pressed={defaultPagePropertiesMode === 'a4'}
+                      onClick={() => setDefaultPagePropertiesMode('a4')}
                     >
                       {t.defaultPagePropertiesOn}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={defaultPagePropertiesMode === 'a4-margins'}
+                      onClick={() => setDefaultPagePropertiesMode('a4-margins')}
+                    >
+                      {t.defaultPagePropertiesOnWithMargins}
                     </button>
                   </div>
                 </div>
@@ -1262,7 +1308,7 @@ export function App() {
               key={
                 commentsEnabled
                   ? 'comments-demo'
-                  : `${initialContentEmpty ? 'empty' : 'hello'}-${defaultPagePropertiesEnabled ? 'a4' : 'no-a4'}`
+                  : `${initialContentEmpty ? 'empty' : 'hello'}-${defaultPagePropertiesMode}`
               }
               locale={locale}
               menuVisible={menuVisible}
@@ -1274,6 +1320,7 @@ export function App() {
               disableHtmlFileDrop={disableHtmlFileDrop}
               enableMultiPages={multiPagesEnabled}
               enablePageProperties={pagePropertiesEnabled}
+              defaultRulerVisible={rulerVisible}
               defaultPageProperties={defaultPageProperties}
               enableComments={commentsEnabled}
               commentAuthor={

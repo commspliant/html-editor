@@ -1,20 +1,33 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
 import type { ParagraphDialogTab, ParagraphPropertiesApply } from '../../core/commandTypes'
+import {
+  emptyPageBackgroundImageApply,
+  type PageBackgroundImageApply,
+} from '../../core/pageBackgroundImage'
 import { useT } from '../../i18n/LocaleProvider'
+import type { CustomImagePicker } from '../../types'
 import { ParagraphPropertiesFields } from './ParagraphPropertiesFields'
 import styles from './FontPropertiesDialog.module.css'
 
 const FOCUSABLE =
   'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), select:not([disabled])'
 
+export type ParagraphPropertiesApplyResult = {
+  value: ParagraphPropertiesApply
+  backgroundImage: PageBackgroundImageApply
+}
+
 export type ParagraphPropertiesDialogProps = {
   open: boolean
   tab: ParagraphDialogTab
   value: ParagraphPropertiesApply
+  backgroundImage: PageBackgroundImageApply
   disabled?: boolean
+  customImagePicker?: CustomImagePicker
+  onCustomImagePick?: () => void
   onTabChange: (tab: ParagraphDialogTab) => void
-  onApply: (draft: ParagraphPropertiesApply) => void
+  onApply: (draft: ParagraphPropertiesApplyResult) => void
   onClose: () => void
 }
 
@@ -22,7 +35,10 @@ export function ParagraphPropertiesDialog({
   open,
   tab,
   value,
+  backgroundImage,
   disabled,
+  customImagePicker,
+  onCustomImagePick,
   onTabChange,
   onApply,
   onClose,
@@ -31,11 +47,13 @@ export function ParagraphPropertiesDialog({
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState(value)
+  const [backgroundImageDraft, setBackgroundImageDraft] = useState(backgroundImage)
 
   useEffect(() => {
     if (!open) return
     setDraft(value)
-  }, [open, value])
+    setBackgroundImageDraft(backgroundImage ?? emptyPageBackgroundImageApply())
+  }, [open, value, backgroundImage])
 
   useEffect(() => {
     if (!open) return
@@ -90,6 +108,10 @@ export function ParagraphPropertiesDialog({
           tab={tab}
           value={draft}
           disabled={disabled}
+          backgroundImage={backgroundImageDraft}
+          customImagePicker={customImagePicker}
+          onCustomImagePick={onCustomImagePick}
+          onBackgroundImageChange={setBackgroundImageDraft}
           onTabChange={onTabChange}
           onChange={setDraft}
         />
@@ -101,7 +123,12 @@ export function ParagraphPropertiesDialog({
             type="button"
             className={`${styles.action} ${styles.actionPrimary}`}
             disabled={disabled}
-            onClick={() => onApply(draft)}
+            onClick={() =>
+              onApply({
+                value: draft,
+                backgroundImage: backgroundImageDraft,
+              })
+            }
           >
             {t('fontDialogOk')}
           </button>

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   closestImage,
   defaultImageAttrs,
@@ -9,6 +9,7 @@ import {
   validateImageFile,
   validateImageSrc,
 } from './image'
+import * as imageWebp from './imageWebp'
 
 function mountVisual(html: string) {
   const el = document.createElement('div')
@@ -99,10 +100,48 @@ describe('validateImageFile', () => {
 })
 
 describe('readImageFileAsDataUrl', () => {
+  afterEach(() => {
+    imageWebp.resetWebPEncodingSupportCache()
+    vi.restoreAllMocks()
+  })
+
   it('reads a png as a data URL', async () => {
     const file = new File(['png-bytes'], 'photo.png', { type: 'image/png' })
     const src = await readImageFileAsDataUrl(file)
     expect(src.startsWith('data:image/png;base64,')).toBe(true)
+  })
+
+  it('embeds webp when conversion succeeds', async () => {
+    vi.spyOn(imageWebp, 'supportsWebPEncoding').mockReturnValue(true)
+    vi.spyOn(imageWebp, 'shouldConvertImageFileToWebP').mockReturnValue(true)
+    vi.spyOn(imageWebp, 'convertImageFileToWebPDataUrl').mockResolvedValue(
+      'data:image/webp;base64,QUJD',
+    )
+
+    const file = new File(['png-bytes'], 'photo.png', { type: 'image/png' })
+    const src = await readImageFileAsDataUrl(file)
+    expect(src).toBe('data:image/webp;base64,QUJD')
+  })
+
+  it('falls back to the original file when conversion fails', async () => {
+    vi.spyOn(imageWebp, 'supportsWebPEncoding').mockReturnValue(true)
+    vi.spyOn(imageWebp, 'shouldConvertImageFileToWebP').mockReturnValue(true)
+    vi.spyOn(imageWebp, 'convertImageFileToWebPDataUrl').mockResolvedValue(null)
+
+    const file = new File(['png-bytes'], 'photo.png', { type: 'image/png' })
+    const src = await readImageFileAsDataUrl(file)
+    expect(src.startsWith('data:image/png;base64,')).toBe(true)
+  })
+
+  it('keeps gif uploads as gif without attempting conversion', async () => {
+    const shouldConvert = vi.spyOn(imageWebp, 'shouldConvertImageFileToWebP')
+    const convert = vi.spyOn(imageWebp, 'convertImageFileToWebPDataUrl')
+
+    const file = new File(['gif-bytes'], 'anim.gif', { type: 'image/gif' })
+    const src = await readImageFileAsDataUrl(file)
+    expect(src.startsWith('data:image/gif;base64,')).toBe(true)
+    expect(shouldConvert).toHaveBeenCalled()
+    expect(convert).not.toHaveBeenCalled()
   })
 })
 

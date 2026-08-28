@@ -69,6 +69,28 @@ describe('PagePropertiesDialog', () => {
     expect(screen.getByRole('tab', { name: 'Background Image' })).toBeInTheDocument()
   })
 
+  it('opens on the Background Image nested tab when initialParagraphTab is set', () => {
+    render(
+      <LocaleProvider>
+        <PagePropertiesDialog
+          open
+          tab="paragraph"
+          initialParagraphTab="backgroundImage"
+          value={emptyPagePropertiesApply()}
+          onTabChange={() => undefined}
+          onApply={() => undefined}
+          onClose={() => undefined}
+        />
+      </LocaleProvider>,
+    )
+
+    expect(screen.getByRole('tab', { name: 'Background Image' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('radio', { name: 'Image URL' })).toBeInTheDocument()
+  })
+
   it('applies a background image from the Background Image tab', async () => {
     const user = userEvent.setup()
     const onApply = vi.fn()

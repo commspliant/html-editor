@@ -10,6 +10,7 @@ import {
   serializePageAtRuleCss,
   stripPageAtRuleFromHtml,
 } from './pageAtRule'
+import type { CssLength } from './cssLength'
 
 describe('pageAtRule', () => {
   it('round-trips A4 with portrait orientation', () => {
@@ -123,5 +124,37 @@ describe('pageAtRule', () => {
     const preserved = preservePageAtRuleInBody(body, previous)
     expect(preserved).toContain('data-page-at-rule')
     expect(queryPageAtRule(preserved).sizePreset).toBe('A4')
+  })
+
+  it('parses physical-unit margin shorthand as pt', () => {
+    const css = '@page { size: A4; margin: 1in; }'
+    expect(parsePageAtRuleCss(css).margin).toEqual({
+      top: { value: 72, unit: 'pt' },
+      right: { value: 72, unit: 'pt' },
+      bottom: { value: 72, unit: 'pt' },
+      left: { value: 72, unit: 'pt' },
+    })
+  })
+
+  it('round-trips inch margins applied via applyPageAtRule', () => {
+    const html = '<div data-page><p>Hello</p></div>'
+    const withRule = applyPageAtRule(html, {
+      ...emptyPageAtRuleApply(),
+      sizePreset: 'A4',
+      orientation: 'portrait',
+      margin: {
+        top: { value: 1, unit: 'in' } as CssLength,
+        right: { value: 1, unit: 'in' } as CssLength,
+        bottom: { value: 1, unit: 'in' } as CssLength,
+        left: { value: 1, unit: 'in' } as CssLength,
+      },
+    })
+    expect(withRule).toContain('margin: 1in')
+    expect(queryPageAtRule(withRule).margin).toEqual({
+      top: { value: 72, unit: 'pt' },
+      right: { value: 72, unit: 'pt' },
+      bottom: { value: 72, unit: 'pt' },
+      left: { value: 72, unit: 'pt' },
+    })
   })
 })

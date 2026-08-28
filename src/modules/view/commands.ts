@@ -22,6 +22,7 @@ export function createViewCommands(
   | 'openCustomizeToolbar'
   | 'openDocumentPreview'
   | 'toggleReadAloud'
+  | 'toggleRuler'
   | 'setLightMode'
   | 'setDarkMode'
   | 'setPageZoomFitWidth'
@@ -55,6 +56,9 @@ export function createViewCommands(
     },
     toggleReadAloud: () => {
       ctx.toggleReadAloud()
+    },
+    toggleRuler: () => {
+      ctx.toggleRuler()
     },
     setLightMode: () => {
       ctx.setDarkMode(false)
@@ -107,6 +111,7 @@ export function createViewQueries(
   | 'isToolbarPositionRight'
   | 'isToolbarPositionBottom'
   | 'isReadingAloud'
+  | 'isRulerVisible'
   | 'canReadAloud'
 > {
   return {
@@ -128,6 +133,7 @@ export function createViewQueries(
     isToolbarPositionRight: () => ctx.getToolbarPosition() === 'right',
     isToolbarPositionBottom: () => ctx.getToolbarPosition() === 'bottom',
     isReadingAloud: () => ctx.isReadingAloud(),
+    isRulerVisible: () => ctx.isRulerVisible(),
     canReadAloud: () => ctx.canReadAloud(),
   }
 }

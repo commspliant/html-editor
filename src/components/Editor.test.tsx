@@ -1516,24 +1516,78 @@ describe('Editor paragraph chrome', () => {
     expect(surfaces[1].style.width).toBe('8.5in')
   })
 
-  it('applies screen zoom from the View menu', async () => {
+  it('shows rulers only on sized pages and follows selection in multi-page mode', async () => {
     const user = userEvent.setup()
-    render(<Editor defaultValue="<p>Hello</p>" />)
+    const pageA4 =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
+    const pagePlain = '<div data-page><p>Two</p></div>'
+    render(<Editor enableMultiPages defaultPages={[pageA4, pagePlain]} />)
+
+    expect(screen.getByTestId('horizontal-ruler')).toBeInTheDocument()
+    expect(screen.getAllByTestId('vertical-ruler')).toHaveLength(1)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+    expect(screen.queryByTestId('horizontal-ruler')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('vertical-ruler')).not.toBeInTheDocument()
+
+    await user.click(surfaces[0])
+    expect(screen.getByTestId('horizontal-ruler')).toBeInTheDocument()
+    expect(screen.getAllByTestId('vertical-ruler')).toHaveLength(1)
+  })
+
+  it('previews and commits @page margins when dragging ruler margin splitters', async () => {
+    const onChange = vi.fn()
+    render(<Editor defaultValue={preloadedPageHtml} onChange={onChange} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' }) as HTMLDivElement
+    Object.defineProperty(visual, 'offsetWidth', { configurable: true, value: 816 })
+    Object.defineProperty(visual, 'offsetHeight', { configurable: true, value: 1056 })
+    fireEvent.input(visual)
+    expectPreloadedPageCanvas(visual)
+    expect(visual.style.paddingLeft).toBe('20pt')
+
+    await waitFor(() => {
+      const left = Number.parseFloat(screen.getByTestId('ruler-printable-area').style.left)
+      expect(left).toBeGreaterThan(20)
+      expect(left).toBeLessThan(35)
+    })
+
+    const splitter = screen.getByTestId('ruler-margin-splitter-left')
+    fireEvent(splitter, new MouseEvent('pointerdown', { clientX: 96, bubbles: true }))
+    fireEvent(window, new MouseEvent('pointermove', { clientX: 120 }))
+
+    expect(visual.style.paddingLeft).toBe('36pt')
+
+    fireEvent(window, new MouseEvent('pointerup', { clientX: 120 }))
+
+    const lastHtml = onChange.mock.calls.at(-1)?.[0] as string | undefined
+    expect(lastHtml).toContain('data-page-at-rule')
+    expect(lastHtml).toContain('margin-left: 36pt')
+  })
+
+  it('applies screen zoom from the View menu when print layout exists', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue={preloadedPageHtml} />)
 
     await user.click(screen.getByRole('button', { name: 'View menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Zoom submenu' }))
     fireEvent.click(screen.getByRole('menuitemradio', { name: '150%' }))
 
+    const zoomLayer = document.querySelector('[class*="pageZoomContent"]') as HTMLElement | null
     const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement | null
-    expect(viewport?.style.zoom).toBe('1.5')
+    expect(zoomLayer?.style.zoom).toBe('1.5')
+    expect(viewport?.style.zoom).toBeFalsy()
   })
 
   it('applies fit-width zoom on load without clicking the canvas', () => {
     localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitWidth"')
     render(<Editor defaultValue={preloadedPageHtml} />)
 
+    const zoomLayer = document.querySelector('[class*="pageZoomContent"]') as HTMLElement | null
     const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement | null
-    expect(viewport?.style.zoom).not.toBe('')
+    expect(zoomLayer?.style.zoom).not.toBe('')
+    expect(viewport?.style.zoom).toBeFalsy()
     expect(viewport).toHaveAttribute('data-page-canvas-sized')
 
     localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
@@ -1544,18 +1598,20 @@ describe('Editor paragraph chrome', () => {
     const user = userEvent.setup()
     render(<Editor defaultValue={preloadedPageHtml} />)
 
+    const zoomLayer = document.querySelector('[class*="pageZoomContent"]') as HTMLElement
     const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement
-    expect(viewport.style.zoom).not.toBe('')
+    expect(zoomLayer.style.zoom).not.toBe('')
+    expect(viewport.style.zoom).toBeFalsy()
 
     await user.click(screen.getByRole('button', { name: 'View menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Zoom submenu' }))
     fireEvent.click(screen.getByRole('menuitemradio', { name: '100%' }))
-    expect(viewport.style.zoom).toBe('')
+    expect(zoomLayer.style.zoom).toBeFalsy()
 
     await user.click(screen.getByRole('button', { name: 'View menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Zoom submenu' }))
     fireEvent.click(screen.getByRole('menuitemradio', { name: '150%' }))
-    expect(viewport.style.zoom).toBe('1.5')
+    expect(zoomLayer.style.zoom).toBe('1.5')
 
     localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
   })
@@ -1579,11 +1635,11 @@ describe('Editor paragraph chrome', () => {
     localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
   })
 
-  async function sampleViewportZoom(samples: number): Promise<string[]> {
+  async function samplePageZoomContent(samples: number): Promise<string[]> {
     const values: string[] = []
     for (let i = 0; i < samples; i++) {
-      const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement | null
-      values.push(viewport?.style.zoom ?? '')
+      const zoomLayer = document.querySelector('[class*="pageZoomContent"]') as HTMLElement | null
+      values.push(zoomLayer?.style.zoom ?? '')
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
     }
     return values
@@ -1625,7 +1681,7 @@ describe('Editor paragraph chrome', () => {
     expect(surfaces).toHaveLength(2)
     await user.click(surfaces[1])
 
-    const zoomOnUnsizedPage = await sampleViewportZoom(12)
+    const zoomOnUnsizedPage = await samplePageZoomContent(12)
     const settledOnUnsizedPage = zoomOnUnsizedPage.slice(6)
     expect(new Set(settledOnUnsizedPage).size).toBe(1)
     for (let i = 1; i < zoomOnUnsizedPage.length; i++) {
@@ -1636,7 +1692,7 @@ describe('Editor paragraph chrome', () => {
 
     await user.click(surfaces[0])
 
-    const zoomOnSizedPage = await sampleViewportZoom(12)
+    const zoomOnSizedPage = await samplePageZoomContent(12)
     const settledOnSizedPage = zoomOnSizedPage.slice(6)
     expect(new Set(settledOnSizedPage).size).toBe(1)
 
@@ -1691,8 +1747,10 @@ describe('Editor paragraph chrome', () => {
       '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p></p></div>'
     render(<Editor enableMultiPages defaultPages={[pageOne, pageTwo]} />)
 
+    const zoomLayer = document.querySelector('[class*="pageZoomContent"]') as HTMLElement | null
     const viewport = document.querySelector('[class*="pageCanvasViewport"]') as HTMLElement | null
-    expect(viewport?.style.zoom).not.toBe('')
+    expect(zoomLayer?.style.zoom).not.toBe('')
+    expect(viewport?.style.zoom).toBeFalsy()
 
     const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
     const shellParagraph = surfaces[1].querySelector('[data-page] p') as HTMLElement
@@ -1969,6 +2027,30 @@ describe('Editor paragraph chrome', () => {
     expect(visual).toHaveAttribute('data-page-sized')
     expect(visual.style.width).toBe('210mm')
     expect(visual.innerHTML).toContain('data-page')
+  })
+
+  it('applies defaultPageProperties inch margins to the visual canvas', () => {
+    render(
+      <Editor
+        defaultValue=""
+        defaultPageProperties={{
+          atRule: {
+            sizePreset: 'A4',
+            orientation: 'portrait',
+            margin: {
+              top: { value: 1, unit: 'in' } as const,
+              right: { value: 1, unit: 'in' } as const,
+              bottom: { value: 1, unit: 'in' } as const,
+              left: { value: 1, unit: 'in' } as const,
+            },
+          },
+        }}
+      />,
+    )
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual).toHaveAttribute('data-page-sized')
+    expect(visual.style.paddingLeft).toBe('72pt')
+    expect(visual.style.paddingTop).toBe('72pt')
   })
 
   it('does not apply defaultPageProperties to controlled pages', () => {

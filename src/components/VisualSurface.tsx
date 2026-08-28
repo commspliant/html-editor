@@ -2,20 +2,38 @@ import {
   forwardRef,
   useLayoutEffect,
   useRef,
+  useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { syncPageHolderBackground } from '../core/page'
 import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
+import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
+import type { RulerUnit } from '../core/rulerUnits'
 import { useT } from '../i18n/LocaleProvider'
+import { RulerVisualFrame } from './RulerVisualFrame'
+import { usePageRulerMetrics } from './usePageRulerMetrics'
 import styles from './Editor.module.css'
 
 type VisualSurfaceProps = {
   html: string
+  /** Full page HTML including @page rule; used for print layout and ruler metrics. */
+  pageHtml?: string
   onChange: (html: string) => void
   placeholder?: string
   disabled?: boolean
+  rulerVisible?: boolean
+  rulerUnit?: RulerUnit
+  /** Viewport zoom factor for converting screen pointer deltas to document px during ruler drag. */
+  zoomScale?: number
+  onMarginChange?: (sides: { top?: number; right?: number; bottom?: number; left?: number }) => void
+  onMarginPreview?: (sides: { top?: number; right?: number; bottom?: number; left?: number }) => void
+  onIndentChange?: (indent: {
+    firstLineIndentPx?: number
+    leftIndentPx?: number
+    rightIndentPx?: number
+  }) => void
   onBeforeInput?: (event: InputEvent) => void
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onMouseUp?: (event: ReactMouseEvent<HTMLDivElement>) => void
@@ -24,16 +42,39 @@ type VisualSurfaceProps = {
 
 export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
   function VisualSurface(
-    { html, onChange, placeholder, disabled, onBeforeInput, onPointerDown, onMouseUp, onContextMenu },
+    {
+      html,
+      pageHtml,
+      onChange,
+      placeholder,
+      disabled,
+      rulerVisible = true,
+      rulerUnit = 'in',
+      zoomScale = 1,
+      onMarginChange,
+      onMarginPreview,
+      onIndentChange,
+      onBeforeInput,
+      onPointerDown,
+      onMouseUp,
+      onContextMenu,
+    },
     ref,
   ) {
     const t = useT()
     const innerRef = useRef<HTMLDivElement | null>(null)
+    const [surfaceEl, setSurfaceEl] = useState<HTMLDivElement | null>(null)
     const onBeforeInputRef = useRef(onBeforeInput)
     onBeforeInputRef.current = onBeforeInput
 
+    const layoutHtml = pageHtml ?? html
+    const showRulers = rulerVisible && hasPrintLayout(layoutHtml)
+
+    const { geometry, indentState, refresh } = usePageRulerMetrics(surfaceEl, layoutHtml, showRulers)
+
     const setRefs = (node: HTMLDivElement | null) => {
       innerRef.current = node
+      setSurfaceEl(node)
       if (typeof ref === 'function') {
         ref(node)
       } else if (ref) {
@@ -49,8 +90,8 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
         el.innerHTML = editableHtml
       }
       syncPageHolderBackground(el)
-      syncPageCanvasLayout(el, html)
-    }, [html])
+      syncPageCanvasLayout(el, layoutHtml)
+    }, [html, layoutHtml])
 
     useLayoutEffect(() => {
       const el = innerRef.current
@@ -62,10 +103,10 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
       return () => el.removeEventListener('beforeinput', handler)
     }, [])
 
-    return (
+    const surface = (
       <div
         ref={setRefs}
-        className={`${styles.surface} ${styles.visual}`}
+        className={`${styles.surface} ${styles.visual} ${showRulers ? styles.pageSurface : ''}`}
         contentEditable={!disabled}
         suppressContentEditableWarning
         role="textbox"
@@ -78,8 +119,24 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
         onContextMenu={onContextMenu}
         onInput={(event) => {
           onChange(event.currentTarget.innerHTML)
+          if (showRulers) refresh()
         }}
       />
+    )
+
+    return (
+      <RulerVisualFrame
+        showRulers={showRulers}
+        geometry={geometry}
+        indentState={indentState}
+        rulerUnit={rulerUnit}
+        zoomScale={zoomScale}
+        onMarginChange={onMarginChange}
+        onMarginPreview={onMarginPreview}
+        onIndentChange={onIndentChange}
+      >
+        {surface}
+      </RulerVisualFrame>
     )
   },
 )

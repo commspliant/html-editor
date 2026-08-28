@@ -81,6 +81,10 @@ export type Messages = {
   commandBookmarkAria: string
   commandImage: string
   commandImageAria: string
+  commandPageBackgroundImage: string
+  commandPageBackgroundImageAria: string
+  commandParagraphBackgroundImage: string
+  commandParagraphBackgroundImageAria: string
   commandAudio: string
   commandAudioAria: string
   commandYoutube: string
@@ -466,6 +470,16 @@ export type Messages = {
   showComments: string
   hideComments: string
   toggleCommentsVisibleAria: string
+  commandRuler: string
+  commandRulerAria: string
+  rulerMarginLeft: string
+  rulerMarginRight: string
+  rulerMarginTop: string
+  rulerMarginBottom: string
+  rulerFirstLineIndent: string
+  rulerLeftIndent: string
+  rulerRightIndent: string
+  rulerMixedIndents: string
   commentPanelTitle: string
   commentPlaceholder: string
   commentReplyPlaceholder: string

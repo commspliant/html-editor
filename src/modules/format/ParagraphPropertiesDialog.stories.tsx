@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { emptyParagraphPropertiesApply } from '../../core/paragraphProperties'
+import { emptyPageBackgroundImageApply } from '../../core/pageBackgroundImage'
 import { LocaleProvider } from '../../i18n/LocaleProvider'
 import { ParagraphPropertiesDialog } from './ParagraphPropertiesDialog'
 
 const value = emptyParagraphPropertiesApply()
+const backgroundImage = emptyPageBackgroundImageApply()
 
 const meta = {
   title: 'Format/ParagraphPropertiesDialog',
@@ -12,6 +14,7 @@ const meta = {
     open: true,
     tab: 'general',
     value,
+    backgroundImage,
     onTabChange: () => undefined,
     onApply: () => undefined,
     onClose: () => undefined,
@@ -72,6 +75,18 @@ export const Background: Story = {
       ...value,
       backgroundColor: '#ccffff',
       opacity: 0.8,
+    },
+  },
+}
+
+export const BackgroundImage: Story = {
+  args: {
+    tab: 'backgroundImage',
+    backgroundImage: {
+      ...backgroundImage,
+      src: 'https://example.com/bg.png',
+      fit: 'cover',
+      position: 'center',
     },
   },
 }
