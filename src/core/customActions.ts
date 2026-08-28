@@ -73,7 +73,7 @@ export const BUILTIN_TOOLBAR_ITEM_IDS = new Set([
   'rowProperties',
 ])
 
-const BUILTIN_MENU_IDS = new Set(['file', 'edit', 'insert', 'table', 'view', 'format'])
+const BUILTIN_MENU_IDS = new Set(['file', 'edit', 'view', 'insert', 'format', 'table'])
 
 export const DEFAULT_CUSTOM_MENU_ID = 'custom'
 export const DEFAULT_CUSTOM_GROUP_ID = 'custom'
