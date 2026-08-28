@@ -62,8 +62,11 @@ export function printPagesHtml(pages: readonly string[]): void {
 
   const bodyHtml = bodies
     .map((body, index) => {
-      const breakStyle = index < bodies.length - 1 ? 'page-break-after: always;' : ''
-      return `<div style="${breakStyle}">${body}</div>`
+      const isLast = index === bodies.length - 1
+      const breakStyle = isLast
+        ? 'display: block; break-inside: avoid; page-break-inside: avoid;'
+        : 'display: block; break-after: page; page-break-after: always; break-inside: avoid; page-break-inside: avoid;'
+      return `<div data-wysiwyg-print-page="" style="${breakStyle}">${body}</div>`
     })
     .join('')
 

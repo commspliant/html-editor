@@ -89,6 +89,38 @@ img {
   height: auto;
   vertical-align: middle;
 }
+[data-wysiwyg-page-break] {
+  display: block;
+  clear: both;
+  break-after: page;
+  page-break-after: always;
+  height: 0;
+  margin: 1.5em 0;
+  border: 0;
+  border-top: 2px dashed #bbb;
+}
+.wysiwyg-preview-page + .wysiwyg-preview-page {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px dashed #ccc;
+}
+@media print {
+  [data-wysiwyg-page-break] {
+    display: block !important;
+    clear: both !important;
+    break-after: page !important;
+    page-break-after: always !important;
+    height: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    visibility: hidden !important;
+  }
+  .wysiwyg-preview-page + .wysiwyg-preview-page {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border-top: 0 !important;
+  }
+}
 `.trim()
 
 /** Writes document HTML into an iframe document. Empty title is a zero-width space so Chromium print headers do not fall back to the host page title. */

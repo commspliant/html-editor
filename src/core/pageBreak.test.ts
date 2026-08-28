@@ -74,6 +74,9 @@ describe('insertPageBreakInDocument', () => {
 
     const pageBreak = el.querySelector('div')
     expect(pageBreak).not.toBeNull()
+    expect(pageBreak?.hasAttribute('data-wysiwyg-page-break')).toBe(true)
+    expect(pageBreak?.style.display).toBe('block')
+    expect(pageBreak?.style.clear).toBe('both')
     expect(pageBreak?.style.breakAfter).toBe('page')
     expect(pageBreak?.style.pageBreakAfter).toBe('always')
     expect(pageBreak?.style.margin).toMatch(/^1\.5em 0/)
