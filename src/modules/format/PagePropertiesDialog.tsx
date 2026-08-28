@@ -13,6 +13,7 @@ import {
 } from '../../core/pageBackgroundImage'
 import { emptyPageAtRuleApply, type PageAtRuleApply } from '../../core/pageAtRule'
 import type { FontFace } from '../../core/fontFamily'
+import type { ParagraphBoxApply } from '../../core/paragraphBox'
 import {
   emptyParagraphPropertiesApply,
   type ParagraphPropertiesApply,
@@ -56,6 +57,8 @@ export type PagePropertiesDialogProps = {
   disabled?: boolean
   /** When false (default), the Print tab is hidden. */
   printTabVisible?: boolean
+  /** Nested Paragraph tab to show when the dialog opens on the Paragraph top tab. */
+  initialParagraphTab?: ParagraphDialogTab
   customImagePicker?: CustomImagePicker
   onCustomImagePick?: () => void
   onTabChange: (tab: PageDialogTab) => void
@@ -71,6 +74,7 @@ export function PagePropertiesDialog({
   fonts,
   disabled,
   printTabVisible = false,
+  initialParagraphTab = 'spacing',
   customImagePicker,
   onCustomImagePick,
   onTabChange,
@@ -95,7 +99,7 @@ export function PagePropertiesDialog({
   useEffect(() => {
     if (!open) return
     setFontTab('general')
-    setParagraphTab('spacing')
+    setParagraphTab(initialParagraphTab === 'general' ? 'spacing' : initialParagraphTab)
     setFontDraft(value.font)
     setBoxDraft(value.box)
     setBackgroundImageDraft(value.backgroundImage ?? emptyPageBackgroundImageApply())
@@ -103,7 +107,7 @@ export function PagePropertiesDialog({
     if (tab === 'print' && !printTabVisible) {
       onTabChange('font')
     }
-  }, [open, value, tab, printTabVisible, onTabChange])
+  }, [open, value, tab, printTabVisible, initialParagraphTab, onTabChange])
 
   useEffect(() => {
     if (!open) return

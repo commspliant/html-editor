@@ -446,6 +446,14 @@ export type EditorProps = {
   /** Fires when any page changes while `enableMultiPages` is true. */
   onPagesChange?: (pages: string[], activePageIndex: number) => void
   /**
+   * When true, rulers are shown in multi-page mode. Default `true`.
+   */
+  defaultRulerVisible?: boolean
+  /**
+   * Measurement unit for rulers and live drag guides ('in' | 'cm' | 'mm' | 'pt'). Default 'in'.
+   */
+  rulerUnit?: 'in' | 'cm' | 'mm' | 'pt'
+  /**
    * When true, comment chrome and thread state are enabled. Default `false`.
    */
   enableComments?: boolean

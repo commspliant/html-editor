@@ -5,6 +5,22 @@ import {
   type BoxSide,
   type BoxSides,
 } from './paragraphBox'
+import { parseFlexibleCssLength, pxToMarginCssLength, unitToPx } from './rulerUnits'
+
+/** Parse @page margin lengths, including physical units (in/cm/mm) normalized to pt. */
+function parsePageMarginCssLength(raw: string): CssLength | null {
+  const parsed = parseCssLength(raw)
+  if (parsed) return parsed
+
+  const flex = parseFlexibleCssLength(raw)
+  if (!flex) return null
+
+  if (flex.unit === 'in' || flex.unit === 'cm' || flex.unit === 'mm') {
+    return pxToMarginCssLength(unitToPx(flex.value, flex.unit))
+  }
+
+  return null
+}
 
 export const PAGE_AT_RULE_ATTR = 'data-page-at-rule'
 
@@ -49,13 +65,13 @@ function readMarginSide(block: string, side: BoxSide): CssLength | null {
   const re = new RegExp(`margin-${side}\\s*:\\s*([^;]+)`, 'i')
   const match = block.match(re)
   if (!match) return null
-  return parseCssLength(match[1].trim())
+  return parsePageMarginCssLength(match[1].trim())
 }
 
 function readShorthandMargin(block: string): BoxSides {
   const match = block.match(/(?:^|[\s{;])margin\s*:\s*([^;]+)/i)
   if (!match) return { ...EMPTY_BOX_SIDES }
-  const parts = match[1].trim().split(/\s+/).map((part) => parseCssLength(part))
+  const parts = match[1].trim().split(/\s+/).map((part) => parsePageMarginCssLength(part))
   const [top, right = top, bottom = top, left = right] = parts
   return {
     top: top ?? null,

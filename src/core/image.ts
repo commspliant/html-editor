@@ -1,4 +1,9 @@
 import { isInside } from './inlineRange'
+import {
+  convertImageFileToWebPDataUrl,
+  shouldConvertImageFileToWebP,
+  supportsWebPEncoding,
+} from './imageWebp'
 
 export type ImageAttrs = {
   src: string
@@ -69,6 +74,25 @@ export function readImageFileAsDataUrl(file: File): Promise<string> {
     return Promise.reject(new Error(error))
   }
 
+  return readImageFileAsDataUrlInner(file)
+}
+
+async function readImageFileAsDataUrlInner(file: File): Promise<string> {
+  if (shouldConvertImageFileToWebP(file) && supportsWebPEncoding()) {
+    const webp = await convertImageFileToWebPDataUrl(file)
+    if (
+      webp &&
+      validateImageSrc(webp) === null &&
+      dataUrlBinarySize(webp) <= IMAGE_MAX_FILE_BYTES
+    ) {
+      return webp
+    }
+  }
+
+  return readFileAsDataUrl(file)
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
@@ -82,6 +106,14 @@ export function readImageFileAsDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'))
     reader.readAsDataURL(file)
   })
+}
+
+function dataUrlBinarySize(dataUrl: string): number {
+  const comma = dataUrl.indexOf(',')
+  if (comma < 0) return dataUrl.length
+  const base64 = dataUrl.slice(comma + 1)
+  const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0
+  return Math.floor((base64.length * 3) / 4) - padding
 }
 
 export function applyImageAttrs(img: HTMLImageElement, attrs: ImageAttrs): void {

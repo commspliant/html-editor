@@ -33,6 +33,12 @@ describe('filterMultiPageLayout', () => {
     expect(hasDeletePageItem(filtered)).toBe(false)
   })
 
+  it('keeps ruler in the View menu when multi-page is not visible', () => {
+    const filtered = filterMultiPageLayout(defaultToolbarLayout, false)
+    const viewMenu = filtered.menus.find((menu) => menu.id === 'view')
+    expect(viewMenu?.items.includes('ruler')).toBe(true)
+  })
+
   it('keeps multi-page items when visible', () => {
     const filtered = filterMultiPageLayout(defaultToolbarLayout, true)
     expect(hasInsertPageSubmenu(filtered)).toBe(true)

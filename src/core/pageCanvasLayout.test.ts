@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   PAGE_SIZED_ATTR,
   PAGE_SIZE_PRESETS,
+  buildPageHtmlWithMarginPx,
   isPageCanvasSized,
+  previewPageCanvasMargins,
   probePageCanvasDimensions,
   resolvePageCanvasMarginPadding,
   resolvePageCanvasSize,
@@ -73,6 +75,32 @@ describe('pageCanvasLayout', () => {
       bottom: '20pt',
       left: '10pt',
     })
+  })
+
+  it('buildPageHtmlWithMarginPx merges dragged sides into @page rule', () => {
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
+
+    const nextHtml = buildPageHtmlWithMarginPx(pageHtml, { left: 96 })
+
+    expect(nextHtml).toContain('data-page-at-rule')
+    expect(nextHtml).toContain('margin-left: 72pt')
+    expect(nextHtml).toContain('margin-top: 20pt')
+  })
+
+  it('previewPageCanvasMargins updates holder padding without mutating innerHTML', () => {
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
+    const el = document.createElement('div')
+    el.innerHTML = '<div data-page><p>Hello</p></div>'
+    syncPageCanvasLayout(el, pageHtml)
+    expect(el.style.paddingLeft).toBe('20pt')
+
+    previewPageCanvasMargins(el, pageHtml, { left: 96 })
+
+    expect(el.style.paddingLeft).toBe('72pt')
+    expect(el.querySelector('[data-page] p')?.textContent).toBe('Hello')
+    expect(el.querySelector('style[data-page-at-rule]')).toBeNull()
   })
 
   it('syncPageCanvasLayout applies display-only styles without mutating innerHTML', () => {

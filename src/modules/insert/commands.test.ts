@@ -21,7 +21,9 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
     toggleReadAloud: vi.fn(),
+    toggleRuler: vi.fn(),
     isReadingAloud: () => false,
+    isRulerVisible: () => false,
     canReadAloud: () => true,
     getSelection: () => ({ text: '', collapsed: true, start: 0, end: 0 }),
     insertText: vi.fn(),
@@ -67,6 +69,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     applyParagraphProperties: vi.fn(),
     openPageProperties: vi.fn(),
     applyPageProperties: vi.fn(),
+    openPageBackgroundImage: vi.fn(),
+    openParagraphBackgroundImage: vi.fn(),
     openCustomParagraphStyleDialog: vi.fn(),
     applyCustomParagraphStyle: vi.fn(),
     customParagraphStylesEnabled: () => false,
@@ -77,6 +81,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     openBookmarkDialog: vi.fn(),
     applyBookmark: vi.fn(),
     openImageDialog: vi.fn(),
+    openPageBackgroundImage: vi.fn(),
+    openParagraphBackgroundImage: vi.fn(),
     applyImage: vi.fn(),
     openAudioDialog: vi.fn(),
     applyAudio: vi.fn(),
@@ -92,6 +98,8 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     isMultiPagesEnabled: () => false,
     hasSelectedPage: () => false,
     canDeletePage: () => false,
+    canInsertPageBackgroundImage: () => false,
+    canInsertParagraphBackgroundImage: () => false,
     getActivePageHtml: () => '',
     getAllPagesHtml: () => [''],
     openTableDialog: vi.fn(),
@@ -171,6 +179,20 @@ describe('createInsertCommands', () => {
       alt: 'Chart',
       title: 'Q1',
     })
+  })
+
+  it('opens page and paragraph background image dialogs', () => {
+    const openPageBackgroundImage = vi.fn()
+    const openParagraphBackgroundImage = vi.fn()
+    const commands = createInsertCommands(
+      context({ openPageBackgroundImage, openParagraphBackgroundImage }),
+    )
+
+    commands.openPageBackgroundImage()
+    commands.openParagraphBackgroundImage()
+
+    expect(openPageBackgroundImage).toHaveBeenCalledTimes(1)
+    expect(openParagraphBackgroundImage).toHaveBeenCalledTimes(1)
   })
 
   it('opens and applies the audio dialog', () => {
@@ -271,5 +293,18 @@ describe('createInsertQueries', () => {
   it('reports whether the selected page can be deleted', () => {
     expect(createInsertQueries(context({ canDeletePage: () => true })).canDeletePage()).toBe(true)
     expect(createInsertQueries(context()).canDeletePage()).toBe(false)
+  })
+
+  it('reports whether page and paragraph background images can be inserted', () => {
+    expect(
+      createInsertQueries(context({ canInsertPageBackgroundImage: () => true }))
+        .canInsertPageBackgroundImage(),
+    ).toBe(true)
+    expect(createInsertQueries(context()).canInsertPageBackgroundImage()).toBe(false)
+    expect(
+      createInsertQueries(context({ canInsertParagraphBackgroundImage: () => true }))
+        .canInsertParagraphBackgroundImage(),
+    ).toBe(true)
+    expect(createInsertQueries(context()).canInsertParagraphBackgroundImage()).toBe(false)
   })
 })

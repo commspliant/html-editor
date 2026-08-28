@@ -82,6 +82,7 @@ export type CommandName =
   | 'openCustomizeToolbar'
   | 'openDocumentPreview'
   | 'toggleReadAloud'
+  | 'toggleRuler'
   | 'setLightMode'
   | 'setDarkMode'
   | 'setPageZoomFitWidth'
@@ -111,6 +112,8 @@ export type CommandName =
   | 'openLinkDialog'
   | 'openBookmarkDialog'
   | 'openImageDialog'
+  | 'openPageBackgroundImage'
+  | 'openParagraphBackgroundImage'
   | 'openAudioDialog'
   | 'openYoutubeDialog'
   | 'openImageProperties'
@@ -184,11 +187,14 @@ export type QueryName =
   | 'canUnmergeCells'
   | 'hasTextSelection'
   | 'isReadingAloud'
+  | 'isRulerVisible'
   | 'canReadAloud'
   | 'isFormatBrushActive'
   | 'isMultiPagesEnabled'
   | 'hasSelectedPage'
   | 'canDeletePage'
+  | 'canInsertPageBackgroundImage'
+  | 'canInsertParagraphBackgroundImage'
   | 'canAddComment'
   | 'areCommentsVisible'
   | 'isCommentsEnabled'
@@ -209,7 +215,9 @@ export type CommandContext = {
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
   toggleReadAloud: () => void
+  toggleRuler: () => void
   isReadingAloud: () => boolean
+  isRulerVisible: () => boolean
   canReadAloud: () => boolean
   getSelection: () => CustomActionSelection
   insertText: (text: string) => void
@@ -252,8 +260,11 @@ export type CommandContext = {
   openCustomCss: () => void
   applyCustomCss: (css: string) => void
   openParagraphProperties: (tab?: ParagraphDialogTab) => void
-  applyParagraphProperties: (draft: ParagraphPropertiesApply) => void
-  openPageProperties: (tab?: PageDialogTab) => void
+  applyParagraphProperties: (
+    draft: ParagraphPropertiesApply,
+    backgroundImage?: PageBackgroundImageApply,
+  ) => void
+  openPageProperties: (tab?: PageDialogTab, paragraphTab?: ParagraphDialogTab) => void
   applyPageProperties: (draft: PagePropertiesApply) => void
   openCustomParagraphStyleDialog: (id?: string) => void
   applyCustomParagraphStyle: (id: string) => void
@@ -265,6 +276,8 @@ export type CommandContext = {
   openBookmarkDialog: () => void
   applyBookmark: (name: string) => void
   openImageDialog: () => void
+  openPageBackgroundImage: () => void
+  openParagraphBackgroundImage: () => void
   applyImage: (draft: ImageApply) => void
   openAudioDialog: () => void
   applyAudio: (draft: AudioApply) => void
@@ -280,6 +293,8 @@ export type CommandContext = {
   isMultiPagesEnabled: () => boolean
   hasSelectedPage: () => boolean
   canDeletePage: () => boolean
+  canInsertPageBackgroundImage: () => boolean
+  canInsertParagraphBackgroundImage: () => boolean
   getActivePageHtml: () => string
   getAllPagesHtml: () => string[]
   openTableDialog: () => void
@@ -337,6 +352,7 @@ export type EditorCommands = {
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
   toggleReadAloud: () => void
+  toggleRuler: () => void
   setLightMode: () => void
   setDarkMode: () => void
   setPageZoomFitWidth: () => void
@@ -372,8 +388,11 @@ export type EditorCommands = {
   openFontProperties: (tab?: FontDialogTab) => void
   applyFontProperties: (draft: FontPropertiesApply) => void
   openParagraphProperties: (tab?: ParagraphDialogTab) => void
-  applyParagraphProperties: (draft: ParagraphPropertiesApply) => void
-  openPageProperties: (tab?: PageDialogTab) => void
+  applyParagraphProperties: (
+    draft: ParagraphPropertiesApply,
+    backgroundImage?: PageBackgroundImageApply,
+  ) => void
+  openPageProperties: (tab?: PageDialogTab, paragraphTab?: ParagraphDialogTab) => void
   applyPageProperties: (draft: PagePropertiesApply) => void
   openCustomParagraphStyleDialog: (id?: string) => void
   applyCustomParagraphStyle: (id: string) => void
@@ -382,6 +401,8 @@ export type EditorCommands = {
   openBookmarkDialog: () => void
   applyBookmark: (name: string) => void
   openImageDialog: () => void
+  openPageBackgroundImage: () => void
+  openParagraphBackgroundImage: () => void
   applyImage: (draft: ImageApply) => void
   openAudioDialog: () => void
   applyAudio: (draft: AudioApply) => void
@@ -477,11 +498,14 @@ export type EditorQueries = {
   canUnmergeCells: () => boolean
   hasTextSelection: () => boolean
   isReadingAloud: () => boolean
+  isRulerVisible: () => boolean
   canReadAloud: () => boolean
   isFormatBrushActive: () => boolean
   isMultiPagesEnabled: () => boolean
   hasSelectedPage: () => boolean
   canDeletePage: () => boolean
+  canInsertPageBackgroundImage: () => boolean
+  canInsertParagraphBackgroundImage: () => boolean
   canAddComment: () => boolean
   areCommentsVisible: () => boolean
   isCommentsEnabled: () => boolean

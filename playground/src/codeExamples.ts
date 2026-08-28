@@ -114,6 +114,9 @@ export function MultiPageEditor() {
   return (
     <Editor
       enableMultiPages
+      enablePageProperties
+      defaultRulerVisible
+      rulerUnit="in"
       pages={pages}
       onPagesChange={(nextPages) => setPages(nextPages)}
       onSave={async (payload) => {
@@ -147,6 +150,23 @@ export function MultiPageEditor() {
 />
 // Omit defaultValue for a blank document; defaultPageProperties sizes the canvas on mount.
 // Pass enablePageProperties to add the Print tab to Edit → Page → Page properties.`,
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor
+  defaultPageProperties={{
+    atRule: {
+      sizePreset: 'A4',
+      orientation: 'portrait',
+      margin: {
+        top: { value: 1, unit: 'in' },
+        right: { value: 1, unit: 'in' },
+        bottom: { value: 1, unit: 'in' },
+        left: { value: 1, unit: 'in' },
+      },
+    },
+  }}
+/>
+// 1 in @page margins on all sides (pt also works); rulers and the visual canvas read them from the document.`,
     ],
   },
   comments: {

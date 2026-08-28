@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { createCustomActionCommands, mergeCustomActions } from '../core/customActions'
 import { createEditorCommands, createEditorQueries } from '../core/commands'
 import type { CommandContext, AudioApply, FontDialogTab, FontPropertiesApply, ImageApply, ImageDialogTab, ImagePropertiesApply, LinkApply, LinkDialogTab, PageDialogTab, PagePropertiesApply, ParagraphDialogTab, ParagraphPropertiesApply, TableApply, TablePropertiesApply, CellPropertiesApply, RowPropertiesApply, YoutubeApply } from '../core/commandTypes'
+import type { PageBackgroundImageApply } from '../core/pageBackgroundImage'
 import {
   applyPendingFontMarksOnInsert,
   emptyFontMarkState,
@@ -41,6 +42,15 @@ import {
   queryParagraphProperties,
 } from '../core/paragraphProperties'
 import {
+  applyParagraphIndentInDocument,
+} from '../core/paragraphIndent'
+import {
+  applyParagraphBackgroundImageInDocument,
+  queryParagraphBackgroundImage,
+} from '../core/paragraphBackgroundImage'
+import { collectSelectedBlocks } from '../core/blocks'
+import { emptyPageBackgroundImageApply } from '../core/pageBackgroundImage'
+import {
   applyDefaultPagePropertiesToPageHtml,
   applyPagePropertiesInDocument,
   emptyPagePropertiesApply,
@@ -49,12 +59,15 @@ import {
 } from '../core/pageProperties'
 import { emptyPageAtRuleApply, preservePageAtRuleInBody, queryPageAtRule } from '../core/pageAtRule'
 import {
+  buildPageHtmlWithMarginPx,
   isPageCanvasSized,
+  previewPageCanvasMargins,
   probePageCanvasDimensions,
   syncPageCanvasLayout,
+  type PageMarginSidesPx,
 } from '../core/pageCanvasLayout'
 import { normalizeCaretInPageShell } from '../core/page'
-import { isPageZoomFitPreset, resolvePageZoomScale } from '../core/pageZoom'
+import { resolvePageZoomScale } from '../core/pageZoom'
 import {
   joinPagesToHtml,
   normalizePages,
@@ -325,6 +338,8 @@ export function Editor({
   pages: pagesProp,
   defaultPages,
   onPagesChange,
+  defaultRulerVisible = true,
+  rulerUnit = 'in',
   enableComments = false,
   defaultCommentsVisible = true,
   commentAuthor,
@@ -368,6 +383,9 @@ export function Editor({
     onChange: onFullscreenChange,
   })
   const [commentsVisible, setCommentsVisible] = useState(defaultCommentsVisible)
+  const [rulerVisible, setRulerVisible] = useState(defaultRulerVisible)
+  const rulerVisibleRef = useRef(rulerVisible)
+  rulerVisibleRef.current = rulerVisible
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [commentThreads, setCommentThreadsState] = useControllableState({
     value: commentsProp,
@@ -517,10 +535,12 @@ export function Editor({
     open: boolean
     tab: ParagraphDialogTab
     value: ParagraphPropertiesApply
+    backgroundImage: PageBackgroundImageApply
   }>({
     open: false,
     tab: 'general',
     value: emptyParagraphPropertiesApply(),
+    backgroundImage: emptyPageBackgroundImageApply(),
   })
   const [customCssDialog, setCustomCssDialog] = useState<{ open: boolean; value: string }>({
     open: false,
@@ -529,10 +549,12 @@ export function Editor({
   const [pageDialog, setPageDialog] = useState<{
     open: boolean
     tab: PageDialogTab
+    paragraphTab: ParagraphDialogTab
     value: PagePropertiesApply
   }>({
     open: false,
     tab: 'font',
+    paragraphTab: 'spacing',
     value: emptyPagePropertiesApply(),
   })
   const [deletePageConfirmOpen, setDeletePageConfirmOpen] = useState(false)
@@ -723,10 +745,11 @@ export function Editor({
   }, [enableMultiPages, activePageIndex, visualPageBodies.length])
   const activePageHtml = useMemo(() => {
     if (enableMultiPages) {
-      return visualPageBodies[activePageIndex] ?? ''
+      const rulerContextIndex = hasSelectedPage ? activePageIndex : 0
+      return visualPageBodies[rulerContextIndex] ?? ''
     }
     return extractFontStylesheets(html).body
-  }, [enableMultiPages, visualPageBodies, activePageIndex, html])
+  }, [enableMultiPages, visualPageBodies, activePageIndex, hasSelectedPage, html])
   const pageCanvasSized = useMemo(
     () => isPageCanvasSized(queryPageAtRule(activePageHtml)),
     [activePageHtml],
@@ -1075,6 +1098,24 @@ export function Editor({
       return recordVisualHtml(preservePageAtRuleInBody(body, htmlRef.current), coalesce)
     },
     [recordVisualHtml],
+  )
+
+  const previewPageMarginDrag = useCallback(
+    (surface: HTMLElement, pageHtml: string, sides: PageMarginSidesPx) => {
+      previewPageCanvasMargins(surface, pageHtml, sides)
+    },
+    [],
+  )
+
+  const commitPageMarginDrag = useCallback(
+    (surface: HTMLElement, pageHtml: string, sides: PageMarginSidesPx) => {
+      const draft: PagePropertiesApply = {
+        ...queryPageProperties(surface),
+        atRule: queryPageAtRule(buildPageHtmlWithMarginPx(pageHtml, sides)),
+      }
+      return applyPagePropertiesInDocument(surface, draft)
+    },
+    [],
   )
 
   const serializePageBody = useCallback((body: string, previousPageHtml: string) => {
@@ -1849,13 +1890,17 @@ export function Editor({
   )
 
   const applyParagraphProperties = useCallback(
-    (draft: ParagraphPropertiesApply) => {
+    (draft: ParagraphPropertiesApply, backgroundImage?: PageBackgroundImageApply) => {
       if (modeRef.current !== 'visual') return
       const root = visualRootRef.current
       if (!root) return
       restoreVisualRange(root)
       setParagraphDialog((prev) => ({ ...prev, open: false }))
-      if (!applyParagraphPropertiesInDocument(root, draft)) {
+      let changed = applyParagraphPropertiesInDocument(root, draft)
+      if (backgroundImage) {
+        if (applyParagraphBackgroundImageInDocument(root, backgroundImage)) changed = true
+      }
+      if (!changed) {
         captureSelection()
         refreshMarkState()
         return
@@ -2308,7 +2353,11 @@ export function Editor({
         if (!text) return
         session.toggle(text)
       },
+      toggleRuler: () => {
+        setRulerVisible((prev) => !prev)
+      },
       isReadingAloud: () => readAloudSessionRef.current?.isSpeaking() ?? false,
+      isRulerVisible: () => rulerVisibleRef.current,
       canReadAloud: () => {
         if (!isSpeechSynthesisSupported()) return false
         const snapshot =
@@ -2523,12 +2572,18 @@ export function Editor({
           open: true,
           tab: tab ?? 'general',
           value: root ? queryParagraphProperties(root) : emptyParagraphPropertiesApply(),
+          backgroundImage: root
+            ? queryParagraphBackgroundImage(root)
+            : emptyPageBackgroundImageApply(),
         })
       },
-      applyParagraphProperties: (draft: ParagraphPropertiesApply) => {
-        applyParagraphProperties(draft)
+      applyParagraphProperties: (
+        draft: ParagraphPropertiesApply,
+        backgroundImage?: PageBackgroundImageApply,
+      ) => {
+        applyParagraphProperties(draft, backgroundImage)
       },
-      openPageProperties: (tab?: PageDialogTab) => {
+      openPageProperties: (tab?: PageDialogTab, paragraphTab?: ParagraphDialogTab) => {
         if (modeRef.current !== 'visual') return
         const root = visualRootRef.current
         if (root) restoreVisualRange(root)
@@ -2541,6 +2596,7 @@ export function Editor({
         setPageDialog({
           open: true,
           tab: nextTab,
+          paragraphTab: paragraphTab ?? 'spacing',
           value: {
             ...fromDom,
             atRule: queryPageAtRule(extractFontStylesheets(pageHtml).body),
@@ -2549,6 +2605,37 @@ export function Editor({
       },
       applyPageProperties: (draft: PagePropertiesApply) => {
         applyPageProperties(draft)
+      },
+      openPageBackgroundImage: () => {
+        if (modeRef.current !== 'visual') return
+        const root = visualRootRef.current
+        if (root) restoreVisualRange(root)
+        const pageHtml = enableMultiPagesRef.current
+          ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+          : htmlRef.current
+        const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
+        setPageDialog({
+          open: true,
+          tab: 'paragraph',
+          paragraphTab: 'backgroundImage',
+          value: {
+            ...fromDom,
+            atRule: queryPageAtRule(extractFontStylesheets(pageHtml).body),
+          },
+        })
+      },
+      openParagraphBackgroundImage: () => {
+        if (modeRef.current !== 'visual') return
+        const root = visualRootRef.current
+        if (root) restoreVisualRange(root)
+        setParagraphDialog({
+          open: true,
+          tab: 'backgroundImage',
+          value: root ? queryParagraphProperties(root) : emptyParagraphPropertiesApply(),
+          backgroundImage: root
+            ? queryParagraphBackgroundImage(root)
+            : emptyPageBackgroundImageApply(),
+        })
       },
       openCustomParagraphStyleDialog: (id?: string) => {
         if (modeRef.current !== 'visual') return
@@ -2745,6 +2832,17 @@ export function Editor({
         modeRef.current === 'visual' &&
         hasSelectedPageRef.current &&
         getAllPagesHtml().length > 1,
+      canInsertPageBackgroundImage: () => {
+        if (modeRef.current !== 'visual') return false
+        if (enableMultiPagesRef.current && !hasSelectedPageRef.current) return false
+        return true
+      },
+      canInsertParagraphBackgroundImage: () => {
+        if (modeRef.current !== 'visual') return false
+        const root = visualRootRef.current
+        if (!root) return false
+        return collectSelectedBlocks(root).length > 0
+      },
       getActivePageHtml: () => getActivePageHtml(),
       getAllPagesHtml: () => getAllPagesHtml(),
       openTableDialog: () => {
@@ -3225,17 +3323,14 @@ export function Editor({
     border,
   })
   const themeAttr = chromeThemeProps(dark)['data-wysiwyg-theme']
-  const pageZoomViewportStyle = useMemo((): CSSProperties | undefined => {
-    if (mode !== 'visual') return undefined
-    if (pageZoomScale === 1 && !isPageZoomFitPreset(pageZoom)) return undefined
-    return { zoom: pageZoomScale }
-  }, [mode, pageZoom, pageZoomScale])
+  const showRulerChrome = mode === 'visual' && rulerVisible && pageCanvasSized
   const visualSurface = mode === 'visual' ? (
     enableMultiPages ? (
       <MultiPageVisualSurface
         ref={multiPageVisualRef}
         pages={visualPageBodies}
         activePageIndex={activePageIndex}
+        hasSelectedPage={hasSelectedPage}
         onActivePageIndexChange={(index) => {
           activePageIndexRef.current = index
           setActivePageIndex(index)
@@ -3271,11 +3366,69 @@ export function Editor({
         onContextMenu={handleVisualContextMenu}
         placeholder={placeholder}
         disabled={contentLocked}
+        rulerVisible={rulerVisible}
+        rulerUnit={rulerUnit}
+        zoomScale={pageZoomScale}
+        onMarginPreview={(pageIndex, sides) => {
+          const container = multiPageVisualRef.current?.getContainer()
+          const surface = container ? queryPageSurface(container, pageIndex) : null
+          if (!surface) return
+          const currentPageHtml = splitPagesFromHtml(htmlRef.current)[pageIndex] ?? ''
+          previewPageMarginDrag(surface, currentPageHtml, sides)
+        }}
+        onMarginChange={(pageIndex, sides) => {
+          const container = multiPageVisualRef.current?.getContainer()
+          const surface = container ? queryPageSurface(container, pageIndex) : null
+          if (!surface) return
+          const currentPageHtml = splitPagesFromHtml(htmlRef.current)[pageIndex] ?? ''
+          const result = commitPageMarginDrag(surface, currentPageHtml, sides)
+          recordPageVisualHtml(pageIndex, extractFontStylesheets(result.pageHtml).body, false)
+        }}
+        onIndentChange={(indents) => {
+          const container = multiPageVisualRef.current?.getContainer()
+          const surface = container ? queryPageSurface(container, activePageIndexRef.current) : null
+          if (!surface) return
+          if (
+            applyParagraphIndentInDocument(surface, {
+              ...indents,
+              unit: rulerUnit ?? 'in',
+            })
+          ) {
+            recordVisualHtmlFromRoot(surface, false)
+          }
+        }}
       />
     ) : (
       <VisualSurface
         ref={visualRootRef}
         html={extractFontStylesheets(html).body}
+        pageHtml={html}
+        rulerVisible={rulerVisible}
+        rulerUnit={rulerUnit}
+        zoomScale={pageZoomScale}
+        onMarginPreview={(sides) => {
+          const surface = visualRootRef.current
+          if (!surface) return
+          previewPageMarginDrag(surface, htmlRef.current, sides)
+        }}
+        onMarginChange={(sides) => {
+          const surface = visualRootRef.current
+          if (!surface) return
+          const result = commitPageMarginDrag(surface, htmlRef.current, sides)
+          recordVisualHtml(extractFontStylesheets(result.pageHtml).body, false)
+        }}
+        onIndentChange={(indents) => {
+          const surface = visualRootRef.current
+          if (!surface) return
+          if (
+            applyParagraphIndentInDocument(surface, {
+              ...indents,
+              unit: rulerUnit ?? 'in',
+            })
+          ) {
+            recordVisualHtmlFromRoot(surface, false)
+          }
+        }}
         onChange={(next) => recordVisualInputHtml(next, true)}
         onBeforeInput={handleVisualBeforeInput}
         onPointerDown={(event) => {
@@ -3348,7 +3501,7 @@ export function Editor({
           ) : null}
           <div
             ref={workspaceRef}
-            className={`${styles.workspace} ${pageCanvasSized ? styles.workspacePageSized : ''}`}
+            className={`${styles.workspace} ${pageCanvasSized ? styles.workspacePageSized : ''} ${showRulerChrome ? styles.workspaceWithRuler : ''}`}
             onDragEnter={htmlFileDrop.onDragEnter}
             onDragOver={htmlFileDrop.onDragOver}
             onDragLeave={htmlFileDrop.onDragLeave}
@@ -3357,7 +3510,6 @@ export function Editor({
             {mode === 'visual' ? (
               <div
                 className={styles.pageCanvasViewport}
-                style={pageZoomViewportStyle}
                 data-page-canvas-sized={pageCanvasSized ? '' : undefined}
               >
                 {visualSurface}
@@ -3427,9 +3579,25 @@ export function Editor({
           open={paragraphDialog.open}
           tab={paragraphDialog.tab}
           value={paragraphDialog.value}
+          backgroundImage={paragraphDialog.backgroundImage}
           disabled={contentLocked}
+          customImagePicker={customImagePicker}
+          onCustomImagePick={() => {
+            customImagePicker?.onPick((image) => {
+              setParagraphDialog((prev) => ({
+                ...prev,
+                tab: 'backgroundImage',
+                backgroundImage: {
+                  ...prev.backgroundImage,
+                  src: image.src,
+                },
+              }))
+            })
+          }}
           onTabChange={(tab) => setParagraphDialog({ ...paragraphDialog, open: true, tab })}
-          onApply={(draft) => commandContext.applyParagraphProperties(draft)}
+          onApply={({ value, backgroundImage }) =>
+            commandContext.applyParagraphProperties(value, backgroundImage)
+          }
           onClose={() => setParagraphDialog({ ...paragraphDialog, open: false })}
         />
         <CustomCssDialog
@@ -3442,6 +3610,7 @@ export function Editor({
         <PagePropertiesDialog
           open={pageDialog.open}
           tab={pageDialog.tab}
+          initialParagraphTab={pageDialog.paragraphTab}
           value={pageDialog.value}
           fonts={fontFaces}
           disabled={contentLocked}
@@ -3452,6 +3621,7 @@ export function Editor({
               setPageDialog((prev) => ({
                 ...prev,
                 tab: 'paragraph',
+                paragraphTab: 'backgroundImage',
                 value: {
                   ...prev.value,
                   backgroundImage: {

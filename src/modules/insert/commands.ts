@@ -9,6 +9,8 @@ export function createInsertCommands(
   | 'openBookmarkDialog'
   | 'applyBookmark'
   | 'openImageDialog'
+  | 'openPageBackgroundImage'
+  | 'openParagraphBackgroundImage'
   | 'applyImage'
   | 'openAudioDialog'
   | 'applyAudio'
@@ -37,6 +39,12 @@ export function createInsertCommands(
     },
     openImageDialog: () => {
       ctx.openImageDialog()
+    },
+    openPageBackgroundImage: () => {
+      ctx.openPageBackgroundImage()
+    },
+    openParagraphBackgroundImage: () => {
+      ctx.openParagraphBackgroundImage()
     },
     applyImage: (draft) => {
       ctx.applyImage(draft)
@@ -79,12 +87,23 @@ export function createInsertCommands(
 
 export function createInsertQueries(
   ctx: CommandContext,
-): Pick<EditorQueries, 'isLink' | 'isImageSelected' | 'isMultiPagesEnabled' | 'hasSelectedPage' | 'canDeletePage'> {
+): Pick<
+  EditorQueries,
+  | 'isLink'
+  | 'isImageSelected'
+  | 'isMultiPagesEnabled'
+  | 'hasSelectedPage'
+  | 'canDeletePage'
+  | 'canInsertPageBackgroundImage'
+  | 'canInsertParagraphBackgroundImage'
+> {
   return {
     isLink: () => ctx.isLink(),
     isImageSelected: () => ctx.isImageSelected(),
     isMultiPagesEnabled: () => ctx.isMultiPagesEnabled(),
     hasSelectedPage: () => ctx.hasSelectedPage(),
     canDeletePage: () => ctx.canDeletePage(),
+    canInsertPageBackgroundImage: () => ctx.canInsertPageBackgroundImage(),
+    canInsertParagraphBackgroundImage: () => ctx.canInsertParagraphBackgroundImage(),
   }
 }

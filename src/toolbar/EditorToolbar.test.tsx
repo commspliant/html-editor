@@ -36,6 +36,7 @@ function renderToolbar(
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
     toggleReadAloud: vi.fn(),
+    toggleRuler: vi.fn(),
     setLightMode: vi.fn(),
     setDarkMode: vi.fn(),
     setToolbarPositionTop: vi.fn(),
@@ -75,6 +76,8 @@ function renderToolbar(
     openBookmarkDialog: vi.fn(),
     applyBookmark: vi.fn(),
     openImageDialog: vi.fn(),
+    openPageBackgroundImage: vi.fn(),
+    openParagraphBackgroundImage: vi.fn(),
     applyImage: vi.fn(),
     openAudioDialog: vi.fn(),
     applyAudio: vi.fn(),
@@ -168,11 +171,14 @@ function renderToolbar(
     canUnmergeCells: () => false,
     hasTextSelection: () => true,
     isReadingAloud: () => false,
+    isRulerVisible: () => false,
     canReadAloud: () => true,
     isFormatBrushActive: () => false,
     isMultiPagesEnabled: () => false,
     hasSelectedPage: () => false,
     canDeletePage: () => false,
+    canInsertPageBackgroundImage: () => true,
+    canInsertParagraphBackgroundImage: () => true,
     canAddComment: () => true,
     areCommentsVisible: () => true,
     isCommentsEnabled: () => true,
@@ -407,12 +413,34 @@ describe('EditorToolbar', () => {
     expect(commands.openImageDialog).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page background image' }))
+    expect(commands.openPageBackgroundImage).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Paragraph background image' }))
+    expect(commands.openParagraphBackgroundImage).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Table' }))
     expect(commands.openTableDialog).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'Insert menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Horizontal line' }))
     expect(commands.insertHorizontalRule).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables background image insert items when unavailable', async () => {
+    const user = userEvent.setup()
+    renderToolbar({
+      queries: {
+        canInsertPageBackgroundImage: () => false,
+        canInsertParagraphBackgroundImage: () => false,
+      },
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    expect(screen.getByRole('menuitem', { name: 'Page background image' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Paragraph background image' })).toBeDisabled()
   })
 
   it('runs link, bookmark, image, table, and horizontal rule from matching toolbar icons', async () => {
@@ -653,6 +681,7 @@ describe('EditorToolbar', () => {
       'menuitemradio',
       'menuitemradio',
       'separator',
+      'menuitemcheckbox',
       'menuitem',
       'menuitemcheckbox',
       'menuitemcheckbox',

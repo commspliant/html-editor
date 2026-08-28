@@ -7,6 +7,7 @@ import {
   LightModeIcon,
   PreviewIcon,
   ReadAloudIcon,
+  RulerIcon,
   VisualIcon,
 } from '../../icons'
 
@@ -175,6 +176,15 @@ export const viewCatalog: ToolbarCatalog = {
       icon: PreviewIcon,
       labelKey: 'commandPreview',
       ariaKey: 'commandPreviewAria',
+    },
+    ruler: {
+      id: 'ruler',
+      command: 'toggleRuler',
+      icon: RulerIcon,
+      labelKey: 'commandRuler',
+      ariaKey: 'commandRulerAria',
+      active: 'isRulerVisible',
+      toggle: true,
     },
     readAloud: {
       id: 'readAloud',

@@ -47,9 +47,13 @@ export type PlaygroundMessages = {
   pagePropertiesAria: string
   pagePropertiesOff: string
   pagePropertiesOn: string
+  rulerAria: string
+  rulerOff: string
+  rulerOn: string
   defaultPagePropertiesAria: string
   defaultPagePropertiesOff: string
   defaultPagePropertiesOn: string
+  defaultPagePropertiesOnWithMargins: string
   commentsAria: string
   commentsOff: string
   commentsOn: string
@@ -208,9 +212,13 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     pagePropertiesAria: 'Print tab',
     pagePropertiesOff: 'Hidden',
     pagePropertiesOn: 'Shown',
+    rulerAria: 'Rulers',
+    rulerOff: 'Hidden',
+    rulerOn: 'Shown',
     defaultPagePropertiesAria: 'Default page properties',
     defaultPagePropertiesOff: 'None',
     defaultPagePropertiesOn: 'A4 portrait',
+    defaultPagePropertiesOnWithMargins: 'A4 portrait + margins',
     commentsAria: 'Comments',
     commentsOff: 'Off',
     commentsOn: 'On',
@@ -283,9 +291,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     fileCallbacksExampleBody:
       'By default, File → Save and Open use the built-in local HTML file picker. Pass onSave and/or onOpen to delegate to the host instead. The two props are independent. HTML file drag-drop is unchanged.',
     multiPagesExampleBody:
-      'Set enableMultiPages to edit multiple independent HTML pages in visual mode. Host onSave, onOpen, and onAutoSave receive all pages as a string array. Built-in file save/open still operate on the focused page only. HTML source mode shows all pages separated by <!-- wysiwyg-page-separator -->. When enablePageProperties is true, Edit → Page → Page properties → Print sets @page size and margins; the visual canvas previews each page. View → Zoom adjusts screen-only fit and percentage zoom.',
+      'Set enableMultiPages to edit multiple independent HTML pages in visual mode. Host onSave, onOpen, and onAutoSave receive all pages as a string array. Built-in file save/open still operate on the focused page only. HTML source mode shows all pages separated by <!-- wysiwyg-page-separator -->. When enablePageProperties is true, Edit → Page → Page properties → Print sets @page size and margins; the visual canvas previews each page. View → Zoom adjusts screen-only fit and percentage zoom. View → Ruler toggles horizontal and vertical rulers when print layout is active (single- or multi-page); use defaultRulerVisible and rulerUnit on Editor.',
     pagePropertiesExampleBody:
-      'Pass enablePageProperties to add the Print tab to Edit → Page → Page properties. Font and Paragraph tabs are always available. Pass defaultPageProperties to apply partial settings on uncontrolled initial content and on each Insert → Page. Controlled value/pages are not modified on load. In the playground, set Initial content → Empty with Default page properties → A4 portrait to preview a blank sized page.',
+      'Pass enablePageProperties to add the Print tab to Edit → Page → Page properties. Font and Paragraph tabs are always available. Pass defaultPageProperties to apply partial settings on uncontrolled initial content and on each Insert → Page. Controlled value/pages are not modified on load. In the playground, set Initial content → Empty with Default page properties → A4 portrait to preview a blank sized page, or A4 portrait + margins for 1 in @page margins the rulers read.',
     commentsExampleBody:
       'Set enableComments to add comment threads anchored with data-comment-thread markers. Pass commentAuthor for posting identity and onCommentsChange to persist CommentThread[] separately from document HTML. Use stripCommentAnchors(html) for sanitized publish HTML. In readOnly mode, comment operations fire onCommentsChange only.',
     customActionsExampleBody:
@@ -388,9 +396,13 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     pagePropertiesAria: 'Pestaña Impresión',
     pagePropertiesOff: 'Oculta',
     pagePropertiesOn: 'Visible',
+    rulerAria: 'Reglas',
+    rulerOff: 'Ocultas',
+    rulerOn: 'Visibles',
     defaultPagePropertiesAria: 'Propiedades de página por defecto',
     defaultPagePropertiesOff: 'Ninguna',
     defaultPagePropertiesOn: 'A4 vertical',
+    defaultPagePropertiesOnWithMargins: 'A4 vertical + márgenes',
     commentsAria: 'Comentarios',
     commentsOff: 'Desactivado',
     commentsOn: 'Activado',
@@ -463,9 +475,9 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     fileCallbacksExampleBody:
       'Por defecto, Archivo → Guardar y Abrir usan el selector de archivo HTML integrado. Pasa onSave y/o onOpen para delegar en el anfitrión. Las dos propiedades son independientes. Soltar un archivo HTML no cambia.',
     multiPagesExampleBody:
-      'Con enableMultiPages puedes editar varias páginas HTML independientes en modo visual. Los callbacks del anfitrión onSave, onOpen y onAutoSave reciben todas las páginas como un array de cadenas. Guardar/abrir integrado sigue operando solo en la página activa. El modo HTML muestra todas las páginas separadas por <!-- wysiwyg-page-separator -->. Con enablePageProperties, Editar → Página → Propiedades de página → Impresión define el tamaño y márgenes @page; el lienzo visual los previsualiza. Ver → Zoom ajusta el ajuste y el porcentaje solo en pantalla.',
+      'Con enableMultiPages puedes editar varias páginas HTML independientes en modo visual. Los callbacks del anfitrión onSave, onOpen y onAutoSave reciben todas las páginas como un array de cadenas. Guardar/abrir integrado sigue operando solo en la página activa. El modo HTML muestra todas las páginas separadas por <!-- wysiwyg-page-separator -->. Con enablePageProperties, Editar → Página → Propiedades de página → Impresión define el tamaño y márgenes @page; el lienzo visual los previsualiza. Ver → Zoom ajusta el ajuste y el porcentaje solo en pantalla. Ver → Regla muestra u oculta las reglas cuando hay diseño de impresión (una o varias páginas); usa defaultRulerVisible y rulerUnit en Editor.',
     pagePropertiesExampleBody:
-      'Pasa enablePageProperties para añadir la pestaña Impresión en Editar → Página → Propiedades de página. Las pestañas Fuente y Párrafo están siempre disponibles. Pasa defaultPageProperties para aplicar ajustes parciales al contenido inicial no controlado y a cada Insertar → Página. value/pages controlados no se modifican al cargar. En el playground, usa Contenido inicial → Vacío con Propiedades de página por defecto → A4 vertical para previsualizar una página en blanco con tamaño.',
+      'Pasa enablePageProperties para añadir la pestaña Impresión en Editar → Página → Propiedades de página. Las pestañas Fuente y Párrafo están siempre disponibles. Pasa defaultPageProperties para aplicar ajustes parciales al contenido inicial no controlado y a cada Insertar → Página. value/pages controlados no se modifican al cargar. En el playground, usa Contenido inicial → Vacío con Propiedades de página por defecto → A4 vertical para previsualizar una página en blanco con tamaño, o A4 vertical + márgenes para márgenes @page de 1 in que leen las reglas.',
     commentsExampleBody:
       'Con enableComments puedes añadir hilos de comentarios anclados con data-comment-thread. Pasa commentAuthor para la identidad al publicar y onCommentsChange para persistir CommentThread[] aparte del HTML del documento. Usa stripCommentAnchors(html) para HTML publicado sin anclajes. En modo readOnly, las operaciones de comentarios solo disparan onCommentsChange.',
     customActionsExampleBody:
