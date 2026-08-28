@@ -3,6 +3,9 @@ export const HISTORY_COALESCE_MS = 400
 /** Maximum undo steps retained in memory to avoid unbounded growth on long sessions. */
 export const HISTORY_MAX_PAST_ENTRIES = 100
 
+/** Maximum cumulative character budget for past entries to prevent base64 images from causing OOM. (~20MB text) */
+export const HISTORY_MAX_TOTAL_CHARS = 20_000_000
+
 export type RecordOptions = {
   coalesce?: boolean
 }
@@ -19,6 +22,7 @@ export type DocumentHistory = {
 
 export function createDocumentHistory(initialHtml: string): DocumentHistory {
   let past: string[] = []
+  let pastCharCount = 0
   let present = initialHtml
   let future: string[] = []
   let applying = false
@@ -26,12 +30,23 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
   let lastRecordAt = 0
 
   function trimPast(): void {
-    if (past.length <= HISTORY_MAX_PAST_ENTRIES) return
-    past.splice(0, past.length - HISTORY_MAX_PAST_ENTRIES)
+    if (past.length > HISTORY_MAX_PAST_ENTRIES) {
+      const removed = past.splice(0, past.length - HISTORY_MAX_PAST_ENTRIES)
+      for (const item of removed) {
+        pastCharCount -= item.length
+      }
+    }
+    while (past.length > 1 && pastCharCount > HISTORY_MAX_TOTAL_CHARS) {
+      const removed = past.shift()
+      if (removed) {
+        pastCharCount -= removed.length
+      }
+    }
   }
 
   function pushPast(entry: string): void {
     past.push(entry)
+    pastCharCount += entry.length
     trimPast()
   }
 
@@ -64,7 +79,9 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
     if (past.length === 0) return null
     coalescing = false
     future.push(present)
-    present = past.pop() as string
+    const next = past.pop() as string
+    pastCharCount -= next.length
+    present = next
     return present
   }
 

@@ -945,9 +945,22 @@ export function Editor({
     const workspace = workspaceRef.current
     if (!workspace || typeof ResizeObserver === 'undefined') return
 
-    const observer = new ResizeObserver(() => measurePageZoomRef.current())
+    let rafId: number | null = null
+    const observer = new ResizeObserver(() => {
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        measurePageZoomRef.current()
+      })
+    })
     observer.observe(workspace)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+        rafId = null
+      }
+    }
   }, [
     mode,
     html,
@@ -2191,6 +2204,9 @@ export function Editor({
   }, [selectedImage, recordVisualHtml, captureSelection, refreshMarkState])
 
   const getDocumentHtml = useCallback(() => {
+    if (!documentDirtyRef.current) {
+      return htmlRef.current
+    }
     if (enableMultiPagesRef.current) {
       if (modeRef.current === 'visual') {
         const nextPages = flushMultiPageHtml()
@@ -2215,7 +2231,7 @@ export function Editor({
       }
     }
     return htmlRef.current
-  }, [recordHtml])
+  }, [recordHtml, flushMultiPageHtml])
 
   const readAutoSaveMultiPageSnapshot = useCallback((): string => {
     if (!documentDirtyRef.current && autoSaveSnapshotRef.current) {

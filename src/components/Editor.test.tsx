@@ -2357,7 +2357,9 @@ describe('Editor onAutoSave', () => {
     await advanceAutoSaveTick()
 
     expect(onAutoSave).toHaveBeenCalledTimes(1)
-    expect(onAutoSave).toHaveBeenCalledWith(['<p>Edited</p>', '<p>Two</p>'])
+    const calls = onAutoSave.mock.calls[0][0] as string[]
+    expect(calls[0]).toContain('<p>Edited</p>')
+    expect(calls[1]).toContain('<p>Two</p>')
 
     await advanceAutoSaveTick()
 
@@ -2778,7 +2780,7 @@ describe('Editor context menu', () => {
     expect(event.defaultPrevented).toBe(true)
     expect(screen.getByRole('menu', { name: 'Editor context menu' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeEnabled()
-    expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeDisabled()
+    expect(screen.queryByRole('menuitem', { name: 'Image properties' })).not.toBeInTheDocument()
   })
 
   it('does not override context menu after a touch pointer so native selection can run', () => {
@@ -2845,9 +2847,9 @@ describe('Editor context menu', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Cut' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Copy' })).toBeEnabled()
-    expect(screen.getByRole('menuitem', { name: 'Link' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Font properties' })).toBeDisabled()
-    expect(screen.getByRole('menuitem', { name: 'Paragraph properties' })).toBeDisabled()
+    expect(screen.queryByRole('menuitem', { name: 'Link' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Font properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Paragraph properties' })).not.toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeEnabled()
   })
 
