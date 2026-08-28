@@ -119,7 +119,6 @@ function context(overrides: Partial<CommandContext> = {}): CommandContext {
     canMergeCells: () => false,
     canUnmergeCells: () => false,
     hasTextSelection: () => false,
-    toggleFormatBrush: vi.fn(),
     isFormatBrushActive: () => false,
     ...overrides,
   }

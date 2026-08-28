@@ -115,6 +115,12 @@ describe('font stylesheet urls', () => {
     ).toEqual(['https://example.com/pacifico.css'])
   })
 
+  it('ignores plain-text occurrences of font names without font styling', () => {
+    const body = '<p>We live in modern pacifico times and roboto places</p>'
+    expect(fontFamilyUsedInHtml(body, 'Pacifico, cursive')).toBe(false)
+    expect(fontFamilyUsedInHtml(body, 'Roboto, sans-serif')).toBe(false)
+  })
+
   it('keeps previous document links even when the customFonts prop is empty', () => {
     const previous = prependFontStylesheets('<p>Hi</p>', ['https://example.com/pacifico.css'])
     expect(collectDocumentFontStylesheets('<p>Hi</p>', previous, [])).toEqual([

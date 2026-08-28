@@ -149,4 +149,13 @@ describe('createDocumentHistory', () => {
     history.record('2')
     expect(history.canUndo()).toBe(true)
   })
+
+  it('accounts for future stack in character budget when undoing', () => {
+    const history = createDocumentHistory('0')
+    const largePayload = 'y'.repeat(12_000_000)
+    history.record(largePayload)
+    history.record('state2')
+    history.undo()
+    expect(history.canRedo()).toBe(true)
+  })
 })

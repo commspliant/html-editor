@@ -150,9 +150,13 @@ export function prependFontStylesheets(body: string, hrefs: readonly string[]): 
 export function fontFamilyUsedInHtml(html: string, family: string): boolean {
   const needle = normalizeFontFamily(family)
   if (!needle) return false
-  // Fast substring check: if the normalized family name or primary name is not in html at all, skip DOMParser
+  // Fast check: the HTML must mention "font-family" or "face" AND contain the primary family name
+  const lower = html.toLowerCase()
+  if (!lower.includes('font-family') && !lower.includes('face=')) {
+    return false
+  }
   const primaryName = needle.split(',')[0].replace(/['"]/g, '').trim().toLowerCase()
-  if (primaryName && !html.toLowerCase().includes(primaryName)) {
+  if (primaryName && !lower.includes(primaryName)) {
     return false
   }
   const doc = new DOMParser().parseFromString(html, 'text/html')

@@ -271,7 +271,7 @@ import {
 } from './MultiPageVisualSurface'
 import styles from './Editor.module.css'
 
-const PAGE_ZOOM_MEASURE_EPSILON = 0.001
+const PAGE_ZOOM_MEASURE_EPSILON = 0.005
 
 export function Editor({
   value,
@@ -2239,7 +2239,6 @@ export function Editor({
     }
     const snapshot = JSON.stringify(getAllPagesHtml())
     autoSaveSnapshotRef.current = snapshot
-    documentDirtyRef.current = false
     return snapshot
   }, [getAllPagesHtml])
 
@@ -2252,10 +2251,11 @@ export function Editor({
 
   useAutoSave({
     onAutoSave: onAutoSave
-      ? () => {
+      ? async () => {
           const payload = enableMultiPagesRef.current
             ? (JSON.parse(readAutoSaveMultiPageSnapshot()) as string[])
             : getDocumentHtml()
+          documentDirtyRef.current = false
           return onAutoSave(payload)
         }
       : undefined,

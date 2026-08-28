@@ -25,6 +25,7 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
   let pastCharCount = 0
   let present = initialHtml
   let future: string[] = []
+  let futureCharCount = 0
   let applying = false
   let coalescing = false
   let lastRecordAt = 0
@@ -36,7 +37,7 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
         pastCharCount -= item.length
       }
     }
-    while (past.length > 1 && pastCharCount > HISTORY_MAX_TOTAL_CHARS) {
+    while (past.length > 1 && pastCharCount + futureCharCount > HISTORY_MAX_TOTAL_CHARS) {
       const removed = past.shift()
       if (removed) {
         pastCharCount -= removed.length
@@ -48,6 +49,11 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
     past.push(entry)
     pastCharCount += entry.length
     trimPast()
+  }
+
+  function clearFuture(): void {
+    future = []
+    futureCharCount = 0
   }
 
   function record(next: string, options?: RecordOptions): void {
@@ -70,7 +76,7 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
 
     pushPast(present)
     present = next
-    future = []
+    clearFuture()
     lastRecordAt = now
     coalescing = wantCoalesce
   }
@@ -79,9 +85,11 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
     if (past.length === 0) return null
     coalescing = false
     future.push(present)
+    futureCharCount += present.length
     const next = past.pop() as string
     pastCharCount -= next.length
     present = next
+    trimPast()
     return present
   }
 
@@ -89,7 +97,9 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
     if (future.length === 0) return null
     coalescing = false
     pushPast(present)
-    present = future.pop() as string
+    const next = future.pop() as string
+    futureCharCount -= next.length
+    present = next
     return present
   }
 
@@ -102,7 +112,7 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
     if (html === present) return
     pushPast(present)
     present = html
-    future = []
+    clearFuture()
     coalescing = false
   }
 
