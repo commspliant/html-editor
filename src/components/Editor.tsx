@@ -3089,6 +3089,24 @@ export function Editor({
         if (modeRef.current !== 'visual') return
         const root = resolveActiveVisualRoot()
         if (root) restoreVisualRange(root)
+        const picker = customImagePickerRef.current
+        if (disableBuiltinImageInsertRef.current && picker) {
+          picker.onPick((image) => {
+            const pageHtml = enableMultiPagesRef.current
+              ? (pagesRef.current[activePageIndexRef.current] ?? '')
+              : htmlRef.current
+            const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
+            applyPageProperties({
+              ...fromDom,
+              backgroundImage: {
+                ...fromDom.backgroundImage,
+                src: image.src,
+              },
+              atRule: queryPageAtRule(extractFontStylesheets(pageHtml).body),
+            })
+          })
+          return
+        }
         const pageHtml = enableMultiPagesRef.current
           ? (pagesRef.current[activePageIndexRef.current] ?? '')
           : htmlRef.current
@@ -3107,6 +3125,22 @@ export function Editor({
         if (modeRef.current !== 'visual') return
         const root = visualRootRef.current
         if (root) restoreVisualRange(root)
+        const picker = customImagePickerRef.current
+        if (disableBuiltinImageInsertRef.current && picker) {
+          picker.onPick((image) => {
+            const paragraph = root
+              ? queryParagraphProperties(root)
+              : emptyParagraphPropertiesApply()
+            const backgroundImage = root
+              ? queryParagraphBackgroundImage(root)
+              : emptyPageBackgroundImageApply()
+            applyParagraphProperties(paragraph, {
+              ...backgroundImage,
+              src: image.src,
+            })
+          })
+          return
+        }
         setParagraphDialog({
           open: true,
           tab: 'backgroundImage',
@@ -3967,6 +4001,7 @@ export function Editor({
               onApplyFontProperties={(draft) => commandContext.applyFontProperties(draft)}
               paragraphDialog={paragraphDialog}
               customImagePicker={customImagePicker}
+              disableBuiltinImageInsert={disableBuiltinImageInsert}
               onParagraphCustomImagePick={() => {
                 customImagePicker?.onPick((image) => {
                   setParagraphDialog((prev) => ({

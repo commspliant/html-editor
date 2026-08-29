@@ -181,7 +181,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `sanitizeHtml` | `boolean` | `true` | Strip `<script>` tags and `javascript:` URLs from document HTML on load and every write. See [HTML sanitization](#html-sanitization) |
 | `transformHtml` | `(html: string) => string` | — | Optional map over document HTML after built-in sanitization. See [Transform HTML](#transform-html) |
 | `customImagePicker` | `CustomImagePicker` | — | Optional third Insert image source. See [Custom image picker](#custom-image-picker) |
-| `disableBuiltinImageInsert` | `boolean` | `false` | Skip the Insert image dialog and call `customImagePicker.onPick` from the toolbar or Insert menu |
+| `disableBuiltinImageInsert` | `boolean` | `false` | Skip built-in File/URL image sources when `customImagePicker` is set. Insert → Image calls `onPick` immediately; page and paragraph background image commands do the same; background image fields in properties dialogs show only the custom picker |
 | `customAudioPicker` | `CustomAudioPicker` | — | Optional third Insert audio source. See [Custom audio picker](#custom-audio-picker) |
 | `disableBuiltinAudioInsert` | `boolean` | `false` | Skip the Insert audio dialog and call `customAudioPicker.onPick` from the Insert menu |
 | `customVideoPicker` | `CustomVideoPicker` | — | Optional third Insert YouTube video source. See [Custom video picker](#custom-video-picker) |
@@ -762,7 +762,7 @@ const gallery: CustomImagePicker = {
 | `buttonCaption` | `string` | Caption of the button that starts the host picker |
 | `onPick` | `(insertImage) => void` | Called when that button is clicked. Call `insertImage` with a URL or raster data URL, plus optional `alt`, `title`, and inline `css` |
 
-Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInsert` to skip the dialog: Insert → Image and the toolbar Image button call `onPick` immediately.
+Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInsert` to skip built-in sources: Insert → Image and the toolbar Image button call `onPick` immediately; Insert → Page background image and Insert → Paragraph background image do the same; Page properties and Paragraph properties background image tabs show only the custom picker.
 
 ```tsx
 <Editor customImagePicker={gallery} disableBuiltinImageInsert />

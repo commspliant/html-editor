@@ -197,6 +197,7 @@ export type EditorChromeProps = {
 
   paragraphDialog: EditorParagraphDialogState
   customImagePicker?: CustomImagePicker
+  disableBuiltinImageInsert?: boolean
   onParagraphCustomImagePick: () => void
   onParagraphDialogTabChange: (tab: ParagraphDialogTab) => void
   onParagraphDialogClose: () => void
@@ -325,6 +326,7 @@ export const EditorChrome = memo(function EditorChrome({
   onApplyFontProperties,
   paragraphDialog,
   customImagePicker,
+  disableBuiltinImageInsert,
   onParagraphCustomImagePick,
   onParagraphDialogTabChange,
   onParagraphDialogClose,
@@ -461,6 +463,7 @@ export const EditorChrome = memo(function EditorChrome({
           backgroundImage={paragraphDialog.backgroundImage}
           disabled={contentLocked}
           customImagePicker={customImagePicker}
+          disableBuiltinImageInsert={disableBuiltinImageInsert}
           onCustomImagePick={onParagraphCustomImagePick}
           onTabChange={onParagraphDialogTabChange}
           onApply={onApplyParagraphProperties}
@@ -486,6 +489,7 @@ export const EditorChrome = memo(function EditorChrome({
           disabled={contentLocked}
           printTabVisible={enablePageProperties}
           customImagePicker={customImagePicker}
+          disableBuiltinImageInsert={disableBuiltinImageInsert}
           onCustomImagePick={onPageCustomImagePick}
           onTabChange={onPageDialogTabChange}
           onApply={onApplyPageProperties}
