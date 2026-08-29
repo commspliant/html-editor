@@ -415,7 +415,7 @@ Pass `transformHtml` to further sanitize or enhance the document on every write:
 />
 ```
 
-Keep the callback idempotent. If it rewrites markup on every keystroke (pretty-print, wrap tags), the visual surface resyncs `innerHTML` and the caret may jump. Prefer stripping disallowed tags over format-on-type. Do **not** strip HTML comments in `transformHtml` when using multi-page mode — that removes `<!-- wysiwyg-page-separator -->` and collapses pages.
+Keep the callback idempotent. If it rewrites markup on every keystroke (pretty-print, wrap tags), the visual surface resyncs `innerHTML` and the caret may jump. Prefer stripping disallowed tags over format-on-type. Do **not** strip HTML comments in `transformHtml` when using multi-page mode — that removes `<!-- wysiwyg-page-separator -->` from joined storage HTML (`joinPagesToHtml`) and collapses pages. The HTML-mode textarea shows one page at a time and does not include the separator.
 
 ### Embedded image registry
 
@@ -439,7 +439,7 @@ Try it in the playground: open the sidebar, set **Embedded images** to **Optimiz
 
 ### Auto save
 
-Pass `onAutoSave` to persist the document HTML from the host. The editor polls every second and calls the callback only when that HTML changed since the last auto-save. Omit the prop to disable (the default). The callback is not awaited, so a slow or failing save does not block editing.
+Pass `onAutoSave` to persist the document HTML from the host. The editor polls every second and calls the callback only when that HTML changed since the last auto-save. Omit the prop to disable (the default). The callback is not awaited, so a slow or failing save does not block editing. When `enableMultiPages` is true, the callback receives all pages as a `string[]`.
 
 The HTML is the same string `onChange` receives (after built-in sanitization and `transformHtml`, with font stylesheet links when a custom face is used). The initial document is not treated as a change.
 
@@ -511,7 +511,7 @@ export function MultiPageEditor() {
     <Editor
       enableMultiPages
       pages={pages}
-      onPagesChange={(nextPages) => setPages(nextPages)}
+      onPagesChange={(nextPages, _activeIndex) => setPages(nextPages)}
       onSave={async (payload) => {
         if (Array.isArray(payload)) {
           await fetch('/api/documents/pages', {
