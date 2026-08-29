@@ -113,6 +113,20 @@ describe('createDocumentHistory', () => {
     expect(history.undo()).toBe('restored')
   })
 
+  it('finishApplying clears the applying flag without recording', () => {
+    const history = createDocumentHistory('start')
+
+    history.record('edited')
+    history.undo()
+    history.markApplying()
+    history.finishApplying()
+
+    history.record('next')
+
+    expect(history.canRedo()).toBe(false)
+    expect(history.undo()).toBe('start')
+  })
+
   it('records an external value change', () => {
     const history = createDocumentHistory('a')
 

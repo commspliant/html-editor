@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  clearFontFamilyParseCache,
   collectDocumentFontStylesheets,
   collectPreviewFontStylesheets,
   extractFontStylesheets,
   FONT_STYLESHEET_ATTR,
   fontFamilyUsedInHtml,
+  fontFamilyUsedInRoot,
   isAllowedFontStylesheetUrl,
   mergeFontFaces,
   normalizeFontFamily,
@@ -60,6 +62,7 @@ function selectOffsets(el: HTMLElement, start: number, end: number) {
 afterEach(() => {
   document.body.innerHTML = ''
   window.getSelection()?.removeAllRanges()
+  clearFontFamilyParseCache()
 })
 
 describe('normalizeFontFamily', () => {
@@ -134,6 +137,37 @@ describe('font stylesheet urls', () => {
         { name: 'Roboto', family: 'Roboto, sans-serif', css: 'https://example.com/roboto.css' },
       ]),
     ).toEqual(['https://example.com/roboto.css'])
+  })
+
+  it('reuses parse cache for repeated html checks', () => {
+    const body = '<p><span style="font-family: Pacifico, cursive">Hi</span></p>'
+    const parseSpy = vi.spyOn(DOMParser.prototype, 'parseFromString')
+    try {
+      expect(fontFamilyUsedInHtml(body, 'Pacifico, cursive')).toBe(true)
+      expect(fontFamilyUsedInHtml(body, 'Pacifico, cursive')).toBe(true)
+      expect(parseSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      parseSpy.mockRestore()
+      clearFontFamilyParseCache()
+    }
+  })
+
+  it('matches live root and parsed html for equivalent markup', () => {
+    const html = '<p><span style="font-family: Pacifico, cursive">Hi</span></p>'
+    const root = document.createElement('div')
+    root.innerHTML = html
+    expect(fontFamilyUsedInRoot(root, 'Pacifico, cursive')).toBe(true)
+    expect(fontFamilyUsedInHtml(html, 'Pacifico, cursive')).toBe(true)
+    expect(fontFamilyUsedInRoot(root, 'Roboto, sans-serif')).toBe(false)
+  })
+
+  it('prefers live root when collecting document font stylesheets', () => {
+    const root = document.createElement('div')
+    root.innerHTML = '<p><span style="font-family: Pacifico, cursive">Hi</span></p>'
+    const hrefs = collectDocumentFontStylesheets('<p>Hi</p>', '<p>Hi</p>', [
+      { name: 'Pacifico', family: 'Pacifico, cursive', css: 'https://example.com/pacifico.css' },
+    ], { liveRoot: root })
+    expect(hrefs).toEqual(['https://example.com/pacifico.css'])
   })
 })
 

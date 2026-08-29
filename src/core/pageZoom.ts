@@ -39,3 +39,29 @@ export function isPageZoomPercent(value: PageZoomPreset): value is PageZoomPerce
 export function isPageZoomFitPreset(preset: PageZoomPreset): preset is 'fitWidth' | 'fitPage' {
   return preset === 'fitWidth' || preset === 'fitPage'
 }
+
+export type PageZoomMeasureScheduler = {
+  schedule: () => void
+  cancel: () => void
+}
+
+export function createPageZoomMeasureScheduler(
+  measure: () => void,
+): PageZoomMeasureScheduler {
+  let rafId: number | null = null
+  return {
+    schedule() {
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        measure()
+      })
+    },
+    cancel() {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+        rafId = null
+      }
+    },
+  }
+}

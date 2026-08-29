@@ -147,24 +147,43 @@ export function prependFontStylesheets(body: string, hrefs: readonly string[]): 
   return `${tags}${body}`
 }
 
-export function fontFamilyUsedInHtml(html: string, family: string): boolean {
-  const needle = normalizeFontFamily(family)
-  if (!needle) return false
-  // Fast check: the HTML must mention "font-family" or "face" AND contain the primary family name
-  const lower = html.toLowerCase()
-  if (!lower.includes('font-family') && !lower.includes('face=')) {
-    return false
+function authoredFontFamilyOnElement(el: HTMLElement): string | null {
+  const raw = el.style.fontFamily.trim()
+  return raw || null
+}
+
+const FONT_FAMILY_PARSE_CACHE_MAX = 32
+const fontFamilyParseCache = new Map<string, boolean>()
+
+function fontFamilyParseCacheKey(html: string, family: string): string {
+  return `${normalizeFontFamily(family)}\0${html}`
+}
+
+function readFontFamilyParseCache(html: string, family: string): boolean | undefined {
+  return fontFamilyParseCache.get(fontFamilyParseCacheKey(html, family))
+}
+
+function writeFontFamilyParseCache(html: string, family: string, result: boolean): void {
+  const key = fontFamilyParseCacheKey(html, family)
+  if (fontFamilyParseCache.size >= FONT_FAMILY_PARSE_CACHE_MAX) {
+    const oldest = fontFamilyParseCache.keys().next().value
+    if (oldest !== undefined) {
+      fontFamilyParseCache.delete(oldest)
+    }
   }
-  const primaryName = needle.split(',')[0].replace(/['"]/g, '').trim().toLowerCase()
-  if (primaryName && !lower.includes(primaryName)) {
-    return false
-  }
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT)
+  fontFamilyParseCache.set(key, result)
+}
+
+export function clearFontFamilyParseCache(): void {
+  fontFamilyParseCache.clear()
+}
+
+function fontFamilyUsedInElementTree(root: HTMLElement, needle: string): boolean {
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
   let current: Node | null = walker.currentNode
   while (current) {
     if (current instanceof HTMLElement) {
-      const authored = current.style.fontFamily
+      const authored = authoredFontFamilyOnElement(current)
       if (authored && normalizeFontFamily(authored) === needle) return true
     }
     current = walker.nextNode()
@@ -172,14 +191,53 @@ export function fontFamilyUsedInHtml(html: string, family: string): boolean {
   return false
 }
 
+export function fontFamilyUsedInRoot(root: HTMLElement, family: string): boolean {
+  const needle = normalizeFontFamily(family)
+  if (!needle) return false
+  return fontFamilyUsedInElementTree(root, needle)
+}
+
+export function fontFamilyUsedInHtml(html: string, family: string): boolean {
+  const needle = normalizeFontFamily(family)
+  if (!needle) return false
+  const cached = readFontFamilyParseCache(html, family)
+  if (cached !== undefined) return cached
+  // Fast check: the HTML must mention "font-family" or "face" AND contain the primary family name
+  const lower = html.toLowerCase()
+  if (!lower.includes('font-family') && !lower.includes('face=')) {
+    writeFontFamilyParseCache(html, family, false)
+    return false
+  }
+  const primaryName = needle.split(',')[0].replace(/['"]/g, '').trim().toLowerCase()
+  if (primaryName && !lower.includes(primaryName)) {
+    writeFontFamilyParseCache(html, family, false)
+    return false
+  }
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const result = fontFamilyUsedInElementTree(doc.body, needle)
+  writeFontFamilyParseCache(html, family, result)
+  return result
+}
+
+export type CollectDocumentFontStylesheetsOptions = {
+  liveRoot?: HTMLElement
+}
+
 export function collectDocumentFontStylesheets(
   bodyHtml: string,
   previousHtml: string,
   customFonts: readonly FontFace[] = [],
+  options?: CollectDocumentFontStylesheetsOptions,
 ): string[] {
   const previous = extractFontStylesheets(previousHtml).hrefs
   const used = customFonts
-    .filter((font) => font.css && fontFamilyUsedInHtml(bodyHtml, font.family))
+    .filter((font) => {
+      if (!font.css) return false
+      if (options?.liveRoot) {
+        return fontFamilyUsedInRoot(options.liveRoot, font.family)
+      }
+      return fontFamilyUsedInHtml(bodyHtml, font.family)
+    })
     .map((font) => font.css ?? '')
   return uniqueHrefs([...previous, ...used])
 }
@@ -197,11 +255,6 @@ function elementFromNode(node: Node): Element | null {
   if (node.nodeType === Node.TEXT_NODE) return node.parentElement
   if (node instanceof Element) return node
   return node.parentElement
-}
-
-function authoredFontFamilyOnElement(el: HTMLElement): string | null {
-  const raw = el.style.fontFamily.trim()
-  return raw || null
 }
 
 export function authoredFontFamilyAtNode(root: HTMLElement, node: Node): string | null {

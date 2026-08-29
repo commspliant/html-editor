@@ -18,6 +18,8 @@ export type DocumentHistory = {
   canRedo: () => boolean
   syncExternal: (html: string) => void
   markApplying: () => void
+  /** Clears the applying flag after undo/redo DOM sync without recording. */
+  finishApplying: () => void
 }
 
 export function createDocumentHistory(initialHtml: string): DocumentHistory {
@@ -71,6 +73,9 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
     if (inWindow) {
       present = next
       lastRecordAt = now
+      if (future.length > 0) {
+        clearFuture()
+      }
       return
     }
 
@@ -125,6 +130,9 @@ export function createDocumentHistory(initialHtml: string): DocumentHistory {
     syncExternal,
     markApplying: () => {
       applying = true
+    },
+    finishApplying: () => {
+      applying = false
     },
   }
 }

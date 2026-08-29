@@ -248,7 +248,7 @@ export function createMultiPageHistory(initialPages: readonly string[]): MultiPa
     }
 
     trimPast()
-    return present
+    return clonePages(present)
   }
 
   function redo(): readonly string[] | null {
@@ -282,7 +282,7 @@ export function createMultiPageHistory(initialPages: readonly string[]): MultiPa
       }
     }
 
-    return present
+    return clonePages(present)
   }
 
   return {

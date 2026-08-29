@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   clampPageZoomScale,
+  createPageZoomMeasureScheduler,
   isPageZoomFitPreset,
   PAGE_ZOOM_MAX,
   PAGE_ZOOM_MIN,
@@ -30,5 +31,22 @@ describe('pageZoom', () => {
     expect(isPageZoomFitPreset('fitWidth')).toBe(true)
     expect(isPageZoomFitPreset('fitPage')).toBe(true)
     expect(isPageZoomFitPreset(100)).toBe(false)
+  })
+
+  it('coalesces scheduled measure calls into one animation frame', () => {
+    vi.useFakeTimers()
+    const measure = vi.fn()
+    const scheduler = createPageZoomMeasureScheduler(measure)
+
+    scheduler.schedule()
+    scheduler.schedule()
+    scheduler.schedule()
+    expect(measure).not.toHaveBeenCalled()
+
+    vi.runAllTimers()
+    expect(measure).toHaveBeenCalledTimes(1)
+
+    scheduler.cancel()
+    vi.useRealTimers()
   })
 })
