@@ -73,6 +73,7 @@ import {
   queryPageSurfaceIndex,
   splitPagesFromHtml,
   emptyPageHtml,
+  updatePageAt,
 } from '../core/multiPage'
 import { sanitizeDocumentHtml } from '../core/sanitizeHtml'
 import {
@@ -207,6 +208,8 @@ import {
 } from '../core/rowProperties'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useControllableState } from '../hooks/useControllableState'
+import { usePageStore } from '../hooks/usePageStore'
+import { useVisualPageBodies } from '../hooks/useVisualPageBodies'
 import { ChromeThemeProvider, chromeThemeProps } from '../chrome/ChromeTheme'
 import { CloseIcon } from '../icons'
 import { LocaleProvider, useT } from '../i18n/LocaleProvider'
@@ -274,6 +277,7 @@ import type {
   ToolbarPosition,
 } from '../types'
 import { HtmlSurface } from './HtmlSurface'
+import { HtmlPageTabs } from './HtmlPageTabs'
 import { VisualSurface } from './VisualSurface'
 import {
   MultiPageVisualSurface,
@@ -418,9 +422,21 @@ export function Editor({
   commentThreadsRef.current = commentThreads
   const onPagesChangeRef = useRef(onPagesChange)
   onPagesChangeRef.current = onPagesChange
+  const pagesPropRef = useRef(pagesProp)
+  pagesPropRef.current = pagesProp
+  const pageStore = usePageStore({
+    enabled: enableMultiPages,
+    pagesProp,
+    defaultPages: initialPages,
+  })
   const [activePageIndex, setActivePageIndex] = useState(0)
+  const [htmlModePageHtml, setHtmlModePageHtml] = useState(() =>
+    enableMultiPages ? (initialPages[0] ?? '') : '',
+  )
   const activePageIndexRef = useRef(activePageIndex)
   activePageIndexRef.current = activePageIndex
+  const htmlModePageHtmlRef = useRef(htmlModePageHtml)
+  htmlModePageHtmlRef.current = htmlModePageHtml
   const [hasSelectedPage, setHasSelectedPage] = useState(false)
   const hasSelectedPageRef = useRef(hasSelectedPage)
   hasSelectedPageRef.current = hasSelectedPage
@@ -431,6 +447,10 @@ export function Editor({
   const history = historyRef.current
   const htmlRef = useRef(html)
   htmlRef.current = html
+  const pagesRef = useRef(pageStore.pages)
+  if (enableMultiPages) {
+    pagesRef.current = pageStore.pages
+  }
   const documentDirtyRef = useRef(true)
   const autoSaveSnapshotRef = useRef('')
   const selectionRefreshRafRef = useRef<number | null>(null)
@@ -726,13 +746,16 @@ export function Editor({
   const fontFaces = useMemo(() => mergeFontFaces(customFonts), [customFonts])
   const fontFacesRef = useRef(fontFaces)
   fontFacesRef.current = fontFaces
-  const previewFontKey = useMemo(
-    () => collectPreviewFontStylesheets(html, fontFaces).join('\n'),
-    [html, fontFaces],
-  )
-  const visualPageBodies = useMemo(
-    () => splitPagesFromHtml(html).map((page) => extractFontStylesheets(page).body),
-    [html],
+  const previewFontKey = useMemo(() => {
+    if (enableMultiPages) {
+      const page = pageStore.pages[activePageIndex] ?? pageStore.pages[0] ?? ''
+      return collectPreviewFontStylesheets(page, fontFaces).join('\n')
+    }
+    return collectPreviewFontStylesheets(html, fontFaces).join('\n')
+  }, [enableMultiPages, pageStore.pages, pageStore.revision, activePageIndex, html, fontFaces])
+  const visualPageBodies = useVisualPageBodies(
+    enableMultiPages ? pageStore.pages : [],
+    enableMultiPages ? pageStore.revision : 0,
   )
   const getActiveVisualRoot = useCallback((): HTMLElement | null => {
     if (enableMultiPagesRef.current) {
@@ -1045,16 +1068,37 @@ export function Editor({
       if (transformed !== htmlRef.current) {
         documentDirtyRef.current = true
       }
-      setHtml(transformed)
       if (enableMultiPagesRef.current) {
-        onPagesChangeRef.current?.(
-          splitPagesFromHtml(transformed),
-          activePageIndexRef.current,
-        )
+        const result = pageStore.replacePages(splitPagesFromHtml(transformed))
+        htmlRef.current = transformed
+        if (modeRef.current === 'html') {
+          setHtml(transformed)
+        }
+        onPagesChangeRef.current?.(result.pages, activePageIndexRef.current)
+        return transformed
       }
+      setHtml(transformed)
       return transformed
     },
-    [setHtml],
+    [pageStore, setHtml],
+  )
+
+  const commitPages = useCallback(
+    (nextPages: readonly string[], coalesce: boolean, editedIndex?: number) => {
+      const result = pageStore.setPages(nextPages, { editedIndex })
+      if (!result.changed) {
+        return result.joined
+      }
+      documentDirtyRef.current = true
+      htmlRef.current = result.joined
+      if (pagesPropRef.current === undefined && modeRef.current === 'html') {
+        setHtml(result.joined)
+      }
+      onPagesChangeRef.current?.(result.pages, activePageIndexRef.current)
+      history.record(result.joined, { coalesce })
+      return result.joined
+    },
+    [history, pageStore, setHtml],
   )
 
   const recordHtml = useCallback(
@@ -1069,16 +1113,16 @@ export function Editor({
   const onHtmlFileDrop = useCallback(
     (next: string) => {
       if (enableMultiPagesRef.current) {
-        const currentPages = splitPagesFromHtml(htmlRef.current)
         const index = activePageIndexRef.current
-        const nextPages = [...currentPages]
+        const currentPages = pagesRef.current
+        const nextPages = currentPages.slice()
         nextPages[index] = next
-        recordHtml(joinPagesToHtml(nextPages), false)
+        commitPages(nextPages, false, index)
         return
       }
       recordHtml(next, false)
     },
-    [recordHtml],
+    [commitPages, recordHtml],
   )
   const htmlFileDrop = useHtmlFileDrop({
     enabled: !contentLocked && !disableHtmlFileDrop,
@@ -1131,27 +1175,56 @@ export function Editor({
     )
   }, [])
 
-  const flushMultiPageHtml = useCallback(() => {
-    const multi = multiPageVisualRef.current
-    const container = multi?.getContainer()
-    if (!container) return splitPagesFromHtml(htmlRef.current)
-    const currentPages = splitPagesFromHtml(htmlRef.current)
-    return currentPages.map((previous, index) => {
-      const flushed = multi?.flushPageHtml(index)
-      if (flushed === null) return previous
-      const body = preservePageAtRuleInBody(flushed, extractFontStylesheets(previous).body)
-      return serializePageBody(body, previous)
-    })
-  }, [serializePageBody])
+  const flushMultiPageHtml = useCallback(
+    (options?: { allPages?: boolean }) => {
+      const multi = multiPageVisualRef.current
+      const container = multi?.getContainer()
+      const currentPages = pagesRef.current
+      if (!container) return [...currentPages]
+
+      const dirty = pageStore.dirtyPagesRef.current
+      const flushAll = options?.allPages === true
+      const active = activePageIndexRef.current
+
+      let changed = false
+      const nextPages = currentPages.map((previous, index) => {
+        const needsFlush = flushAll || dirty.has(index) || index === active
+        if (!needsFlush) return previous
+        const flushed = multi.flushPageHtml(index)
+        if (flushed === null) return previous
+        const body = preservePageAtRuleInBody(flushed, extractFontStylesheets(previous).body)
+        const serialized = serializePageBody(body, previous)
+        if (serialized !== previous) changed = true
+        return serialized
+      })
+
+      if (changed) {
+        const result = pageStore.setPages(nextPages)
+        htmlRef.current = result.joined
+      }
+      pageStore.markPagesClean()
+      return changed ? pageStore.pages : currentPages
+    },
+    [pageStore, serializePageBody],
+  )
 
   const recordPageVisualHtml = useCallback(
     (index: number, body: string, coalesce: boolean) => {
-      const currentPages = splitPagesFromHtml(htmlRef.current)
-      const nextPages = [...currentPages]
-      nextPages[index] = serializePageBody(body, currentPages[index] ?? '')
-      recordHtml(joinPagesToHtml(nextPages), coalesce)
+      const nextPage = serializePageBody(body, pagesRef.current[index] ?? '')
+      const updated = updatePageAt(pagesRef.current, index, nextPage)
+      if (!updated.changed) return
+      commitPages(updated.pages, coalesce, index)
     },
-    [recordHtml, serializePageBody],
+    [commitPages, serializePageBody],
+  )
+
+  const recordPageHtmlSource = useCallback(
+    (index: number, pageHtml: string, coalesce: boolean) => {
+      const updated = updatePageAt(pagesRef.current, index, pageHtml)
+      if (!updated.changed) return
+      commitPages(updated.pages, coalesce, index)
+    },
+    [commitPages],
   )
 
   const recordActivePageHtml = useCallback(
@@ -1177,9 +1250,9 @@ export function Editor({
         recordVisualHtml(preservePageAtRuleInBody(root.innerHTML, htmlRef.current), coalesce)
         return
       }
-      for (let index = 0; index < splitPagesFromHtml(htmlRef.current).length; index += 1) {
+      for (let index = 0; index < pagesRef.current.length; index += 1) {
         if (queryPageSurface(container, index) === root) {
-          const previous = splitPagesFromHtml(htmlRef.current)[index] ?? ''
+          const previous = pagesRef.current[index] ?? ''
           recordPageVisualHtml(
             index,
             preservePageAtRuleInBody(root.innerHTML, extractFontStylesheets(previous).body),
@@ -1239,7 +1312,7 @@ export function Editor({
           const container = multiPageVisualRef.current?.getContainer()
           return container ? queryPageSurface(container, pageIndex) : null
         },
-        (pageIndex) => splitPagesFromHtml(htmlRef.current)[pageIndex] ?? '',
+        (pageIndex) => pagesRef.current[pageIndex] ?? '',
         previewPageMarginDrag,
       ),
     [previewPageMarginDrag],
@@ -1252,7 +1325,7 @@ export function Editor({
           const container = multiPageVisualRef.current?.getContainer()
           return container ? queryPageSurface(container, pageIndex) : null
         },
-        (pageIndex) => splitPagesFromHtml(htmlRef.current)[pageIndex] ?? '',
+        (pageIndex) => pagesRef.current[pageIndex] ?? '',
         commitPageMarginDrag,
         (pageIndex, pageHtml) =>
           recordPageVisualHtml(pageIndex, extractFontStylesheets(pageHtml).body, false),
@@ -1278,12 +1351,18 @@ export function Editor({
   const getActivePageHtml = useCallback(() => {
     const pages = enableMultiPagesRef.current
       ? flushMultiPageHtml()
-      : splitPagesFromHtml(htmlRef.current)
+      : [htmlRef.current]
     return pages[activePageIndexRef.current] ?? pages[0] ?? ''
   }, [flushMultiPageHtml])
 
   const getAllPagesHtml = useCallback(() => {
-    return enableMultiPagesRef.current ? flushMultiPageHtml() : [htmlRef.current]
+    if (!enableMultiPagesRef.current) return [htmlRef.current]
+    if (modeRef.current === 'html') {
+      const pages = pagesRef.current.slice()
+      pages[activePageIndexRef.current] = htmlModePageHtmlRef.current
+      return pages
+    }
+    return flushMultiPageHtml({ allPages: true })
   }, [flushMultiPageHtml])
 
   const runInsertPageAt = useCallback(
@@ -1297,12 +1376,12 @@ export function Editor({
         ? applyDefaultPagePropertiesToPageHtml(emptyPageHtml(), defaultPagePropertiesRef.current)
         : emptyPageHtml()
       nextPages.splice(clampedInsertAt, 0, blank)
-      recordHtml(joinPagesToHtml(nextPages), false)
+      commitPages(nextPages, false)
       activePageIndexRef.current = clampedInsertAt
       setActivePageIndex(clampedInsertAt)
       setHasSelectedPage(true)
     },
-    [flushMultiPageHtml, recordHtml],
+    [flushMultiPageHtml, commitPages],
   )
 
   const resolveSelectedPageIndex = useCallback((): number | null => {
@@ -1336,12 +1415,12 @@ export function Editor({
     const index = resolveSelectedPageIndex()
     if (index === null) return
     const nextPages = currentPages.filter((_, i) => i !== index)
-    recordHtml(joinPagesToHtml(nextPages), false)
+    commitPages(nextPages, false)
     const nextIndex = Math.min(index, nextPages.length - 1)
     activePageIndexRef.current = nextIndex
     setActivePageIndex(nextIndex)
     setHasSelectedPage(true)
-  }, [flushMultiPageHtml, recordHtml, resolveSelectedPageIndex])
+  }, [flushMultiPageHtml, commitPages, resolveSelectedPageIndex])
 
   useEffect(() => {
     if (!enableMultiPages) {
@@ -1364,8 +1443,12 @@ export function Editor({
   }, [commitHtml, history])
 
   useEffect(() => {
+    if (enableMultiPages) {
+      history.syncExternal(joinPagesToHtml(pageStore.pages))
+      return
+    }
     history.syncExternal(html)
-  }, [html, history])
+  }, [enableMultiPages, pageStore.pages, pageStore.revision, html, history])
 
   const captureSelection = useCallback(() => {
     selectionRef.current = snapshotSelection({
@@ -1577,7 +1660,7 @@ export function Editor({
         setHtml: (next) => {
           if (modeRef.current === 'visual') {
             const previousPageHtml = enableMultiPagesRef.current
-              ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+              ? (pagesRef.current[activePageIndexRef.current] ?? '')
               : htmlRef.current
             recordActivePageHtml(
               preservePageAtRuleInBody(
@@ -1597,14 +1680,42 @@ export function Editor({
     [recordHtml, recordActivePageHtml],
   )
 
+  const handleHtmlPageTabSelect = useCallback(
+    (index: number) => {
+      if (!enableMultiPagesRef.current || index === activePageIndexRef.current) return
+      recordPageHtmlSource(activePageIndexRef.current, htmlModePageHtmlRef.current, true)
+      activePageIndexRef.current = index
+      setActivePageIndex(index)
+      const pageHtml = pagesRef.current[index] ?? ''
+      htmlModePageHtmlRef.current = pageHtml
+      setHtmlModePageHtml(pageHtml)
+    },
+    [recordPageHtmlSource],
+  )
+
+  const handleHtmlSurfaceChange = useCallback(
+    (next: string) => {
+      if (enableMultiPagesRef.current) {
+        htmlModePageHtmlRef.current = next
+        setHtmlModePageHtml(next)
+        recordPageHtmlSource(activePageIndexRef.current, next, true)
+        return
+      }
+      recordHtml(next, true)
+    },
+    [recordHtml, recordPageHtmlSource],
+  )
+
   const handleModeChange = useCallback(
     (next: EditorMode) => {
       if (modeRef.current === 'visual' && next === 'html') {
         if (enableMultiPagesRef.current) {
-          const joined = joinPagesToHtml(flushMultiPageHtml())
-          if (joined !== htmlRef.current) {
-            recordHtml(joined, true)
-          }
+          const pages = flushMultiPageHtml({ allPages: true })
+          const index = activePageIndexRef.current
+          const pageHtml = pages[index] ?? pages[0] ?? ''
+          htmlModePageHtmlRef.current = pageHtml
+          setHtmlModePageHtml(pageHtml)
+          htmlRef.current = joinPagesToHtml(pages)
         } else if (visualRootRef.current) {
           const flushed = preservePageAtRuleInBody(
             visualRootRef.current.innerHTML,
@@ -1619,13 +1730,24 @@ export function Editor({
           }
         }
       }
+      if (modeRef.current === 'html' && next === 'visual' && enableMultiPagesRef.current) {
+        recordPageHtmlSource(activePageIndexRef.current, htmlModePageHtmlRef.current, true)
+      }
       setMode(next)
       if (next !== 'visual') {
         setHasSelectedPage(false)
       }
     },
-    [recordHtml, setMode, flushMultiPageHtml],
+    [recordHtml, recordPageHtmlSource, setMode, flushMultiPageHtml],
   )
+
+  useEffect(() => {
+    if (!enableMultiPages || mode !== 'html') return
+    const pageHtml = pageStore.pages[activePageIndex] ?? ''
+    if (pageHtml === htmlModePageHtmlRef.current) return
+    htmlModePageHtmlRef.current = pageHtml
+    setHtmlModePageHtml(pageHtml)
+  }, [enableMultiPages, mode, pageStore.pages, pageStore.revision, activePageIndex])
 
   useEffect(() => {
     if (!fullscreen) return
@@ -2033,7 +2155,7 @@ export function Editor({
       restoreVisualRange(root)
       setPageDialog((prev) => ({ ...prev, open: false }))
       const currentPageHtml = enableMultiPagesRef.current
-        ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+        ? (pagesRef.current[activePageIndexRef.current] ?? '')
         : htmlRef.current
       const atRuleChanged =
         JSON.stringify(draft.atRule) !==
@@ -2329,17 +2451,12 @@ export function Editor({
   }, [selectedImage, recordVisualHtml, captureSelection, refreshMarkState])
 
   const getDocumentHtml = useCallback(() => {
-    if (!documentDirtyRef.current) {
-      return htmlRef.current
-    }
     if (enableMultiPagesRef.current) {
-      if (modeRef.current === 'visual') {
-        const nextPages = flushMultiPageHtml()
-        const joined = joinPagesToHtml(nextPages)
-        if (joined !== htmlRef.current) {
-          return recordHtml(joined, true)
-        }
-      }
+      const joined = joinPagesToHtml(getAllPagesHtml())
+      htmlRef.current = joined
+      return joined
+    }
+    if (!documentDirtyRef.current) {
       return htmlRef.current
     }
     if (modeRef.current === 'visual' && visualRootRef.current) {
@@ -2356,16 +2473,21 @@ export function Editor({
       }
     }
     return htmlRef.current
-  }, [recordHtml, flushMultiPageHtml])
+  }, [getAllPagesHtml, recordHtml])
+
+  const autoSaveRevisionRef = useRef(-1)
 
   const readAutoSaveMultiPageSnapshot = useCallback((): string => {
     if (!documentDirtyRef.current && autoSaveSnapshotRef.current) {
       return autoSaveSnapshotRef.current
     }
-    const snapshot = JSON.stringify(getAllPagesHtml())
+    const pages = flushMultiPageHtml()
+    const snapshot = JSON.stringify(pages)
     autoSaveSnapshotRef.current = snapshot
+    autoSaveRevisionRef.current = pageStore.revision
+    documentDirtyRef.current = false
     return snapshot
-  }, [getAllPagesHtml])
+  }, [flushMultiPageHtml, pageStore.revision])
 
   const getAutoSaveComparisonHtml = useCallback(() => {
     if (enableMultiPagesRef.current) {
@@ -2376,11 +2498,11 @@ export function Editor({
 
   useAutoSave({
     onAutoSave: onAutoSave
-      ? async () => {
-          const payload = enableMultiPagesRef.current
-            ? (JSON.parse(readAutoSaveMultiPageSnapshot()) as string[])
-            : getDocumentHtml()
+      ? async (comparisonHtml) => {
           documentDirtyRef.current = false
+          const payload = enableMultiPagesRef.current
+            ? (JSON.parse(comparisonHtml) as string[])
+            : comparisonHtml
           return onAutoSave(payload)
         }
       : undefined,
@@ -2417,7 +2539,7 @@ export function Editor({
         setCustomizeToolbarOpen(true)
       },
       openDocumentPreview: () => {
-        setDocumentPreview({ open: true, html: getDocumentHtml() })
+        setDocumentPreview({ open: true, html: joinPagesToHtml(getAllPagesHtml()) })
       },
       toggleReadAloud: () => {
         const session = readAloudSessionRef.current
@@ -2668,7 +2790,7 @@ export function Editor({
         const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         const pageHtml = enableMultiPagesRef.current
-          ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+          ? (pagesRef.current[activePageIndexRef.current] ?? '')
           : htmlRef.current
         const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
         const nextTab =
@@ -2691,7 +2813,7 @@ export function Editor({
         const root = visualRootRef.current
         if (root) restoreVisualRange(root)
         const pageHtml = enableMultiPagesRef.current
-          ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+          ? (pagesRef.current[activePageIndexRef.current] ?? '')
           : htmlRef.current
         const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
         setPageDialog({
@@ -3424,7 +3546,7 @@ export function Editor({
           setHasSelectedPage(true)
         }}
         onPageChange={(index, next) => {
-          const previous = splitPagesFromHtml(htmlRef.current)[index] ?? ''
+          const previous = pagesRef.current[index] ?? ''
           recordPageVisualHtml(
             index,
             preservePageAtRuleInBody(next, extractFontStylesheets(previous).body),
@@ -3481,13 +3603,22 @@ export function Editor({
       />
     )
   ) : (
-    <HtmlSurface
-      ref={htmlAreaRef}
-      html={html}
-      onChange={(next) => recordHtml(next, true)}
-      placeholder={placeholder}
-      disabled={contentLocked}
-    />
+    <div className={styles.htmlModeShell}>
+      {enableMultiPages && pageStore.pages.length > 1 ? (
+        <HtmlPageTabs
+          pageCount={pageStore.pages.length}
+          activeIndex={activePageIndex}
+          onSelect={handleHtmlPageTabSelect}
+        />
+      ) : null}
+      <HtmlSurface
+        ref={htmlAreaRef}
+        html={enableMultiPages ? htmlModePageHtml : html}
+        onChange={handleHtmlSurfaceChange}
+        placeholder={placeholder}
+        disabled={contentLocked}
+      />
+    </div>
   )
 
   return (
@@ -3674,7 +3805,7 @@ export function Editor({
             const root = getActiveVisualRoot()
             if (!root || modeRef.current !== 'visual') return
             const pageHtml = enableMultiPagesRef.current
-              ? (splitPagesFromHtml(htmlRef.current)[activePageIndexRef.current] ?? '')
+              ? (pagesRef.current[activePageIndexRef.current] ?? '')
               : extractFontStylesheets(htmlRef.current).body
             const result = resetPageAtRuleInDocument(root, pageHtml)
             if (!result.changed) return

@@ -26,6 +26,82 @@ export function normalizePages(pages: readonly string[]): string[] {
   return pages.map((page) => page.trim())
 }
 
+export type PagesMergeResult = {
+  pages: string[]
+  changed: boolean
+  changedIndices: number[]
+}
+
+/** Reuse unchanged page string references when merging a new pages array. */
+export function mergePagesWithStructuralSharing(
+  current: readonly string[],
+  next: readonly string[],
+): PagesMergeResult {
+  if (current.length === next.length) {
+    let changed = false
+    const pages: string[] = []
+    const changedIndices: number[] = []
+    for (let i = 0; i < next.length; i += 1) {
+      const n = next[i] ?? ''
+      if (current[i] === n) {
+        pages.push(current[i]!)
+      } else {
+        pages.push(n)
+        changed = true
+        changedIndices.push(i)
+      }
+    }
+    if (!changed) {
+      return { pages: current as string[], changed: false, changedIndices: [] }
+    }
+    return { pages, changed: true, changedIndices }
+  }
+
+  const pages: string[] = []
+  const changedIndices: number[] = []
+  for (let i = 0; i < next.length; i += 1) {
+    const n = next[i] ?? ''
+    if (i < current.length && current[i] === n) {
+      pages.push(current[i]!)
+    } else {
+      pages.push(n)
+      changedIndices.push(i)
+    }
+  }
+  const changed =
+    changedIndices.length > 0 ||
+    current.length !== next.length ||
+    !pagesArraysEqual(current, pages)
+  if (!changed) {
+    return { pages: current as string[], changed: false, changedIndices: [] }
+  }
+  return { pages, changed: true, changedIndices }
+}
+
+export function pagesArraysEqual(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false
+  }
+  return true
+}
+
+export function updatePageAt(
+  pages: readonly string[],
+  index: number,
+  nextPage: string,
+): { pages: string[]; changed: boolean } {
+  if (index < 0 || index >= pages.length) {
+    return { pages: [...pages], changed: false }
+  }
+  if (pages[index] === nextPage) {
+    return { pages: pages as string[], changed: false }
+  }
+  const next = pages.slice()
+  next[index] = nextPage
+  return { pages: next, changed: true }
+}
+
 export function createEmptyPageInDocument(doc: Document): string {
   const visualRoot = doc.createElement('div')
   visualRoot.innerHTML = emptyPageHtml()

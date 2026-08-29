@@ -1,0 +1,89 @@
+.shell {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  gap: 0;
+  border-bottom: 1px solid var(--wysiwyg-chrome-border, #e5e5e5);
+  background: var(--wysiwyg-chrome-toolbar, #f4f4f4);
+}
+
+.scrollButton {
+  appearance: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--wysiwyg-chrome-border, #e5e5e5);
+  background: var(--wysiwyg-chrome-toolbar, #f4f4f4);
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.scrollButton:last-of-type {
+  border-right: 0;
+  border-left: 1px solid var(--wysiwyg-chrome-border, #e5e5e5);
+}
+
+.scrollButton:hover,
+.scrollButton:focus-visible {
+  background: var(--wysiwyg-chrome-hover, #ebebeb);
+}
+
+.scrollButton:focus-visible {
+  outline: 2px solid var(--wysiwyg-chrome-focus, #8ab4ff);
+  outline-offset: -2px;
+}
+
+.scrollButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tabList {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabList::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  appearance: none;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-right: 1px solid var(--wysiwyg-chrome-border, #e5e5e5);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover,
+.tab:focus-visible {
+  background: var(--wysiwyg-chrome-hover, #ebebeb);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--wysiwyg-chrome-focus, #8ab4ff);
+  outline-offset: -2px;
+}
+
+.tabActive {
+  background: #fff;
+  font-weight: 600;
+}

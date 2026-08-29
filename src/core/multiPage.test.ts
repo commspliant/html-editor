@@ -4,10 +4,13 @@ import {
   PAGE_SURFACE_ATTR,
   emptyPageHtml,
   joinPagesToHtml,
+  mergePagesWithStructuralSharing,
   normalizePages,
+  pagesArraysEqual,
   queryPageSurface,
   queryPageSurfaceIndex,
   splitPagesFromHtml,
+  updatePageAt,
 } from './multiPage'
 
 describe('multiPage', () => {
@@ -56,5 +59,30 @@ describe('multiPage', () => {
 
     expect(queryPageSurfaceIndex(first)).toBe(0)
     expect(queryPageSurfaceIndex(second)).toBe(1)
+  })
+
+  it('updatePageAt reuses the pages array when content is unchanged', () => {
+    const pages = ['<p>One</p>', '<p>Two</p>']
+    const result = updatePageAt(pages, 0, '<p>One</p>')
+    expect(result.changed).toBe(false)
+    expect(result.pages).toBe(pages)
+  })
+
+  it('mergePagesWithStructuralSharing keeps stable references for unchanged pages', () => {
+    const current = ['<p>One</p>', '<p>Two</p>']
+    const next = ['<p>One</p>', '<p>Two edited</p>']
+    const merged = mergePagesWithStructuralSharing(current, next)
+    expect(merged.changed).toBe(true)
+    expect(merged.changedIndices).toEqual([1])
+    expect(merged.pages[0]).toBe(current[0])
+    expect(merged.pages[1]).toBe(next[1])
+  })
+
+  it('pagesArraysEqual compares slot content', () => {
+    const a = ['<p>One</p>', '<p>Two</p>']
+    const b = ['<p>One</p>', '<p>Two</p>']
+    expect(pagesArraysEqual(a, b)).toBe(true)
+    expect(pagesArraysEqual(a, ['<p>One</p>', '<p>Three</p>'])).toBe(false)
+    expect(pagesArraysEqual(a, a)).toBe(true)
   })
 })
