@@ -256,7 +256,13 @@ import {
 import { CommentPanel } from '../modules/comments/CommentPanel'
 import { ContextMenu, shouldOpenEditorContextMenu, type ContextMenuKind } from '../modules/contextMenu'
 import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
-import { createDocumentHistory } from '../modules/history'
+import {
+  createDocumentHistory,
+  createMultiPageHistory,
+  isMultiPageHistory,
+  type DocumentHistory,
+  type MultiPageHistory,
+} from '../modules/history'
 import { defaultToolbarCatalog, defaultToolbarLayout, EditorToolbar } from '../toolbar'
 import { filterAllowedChrome } from '../toolbar/allowedChrome'
 import {
@@ -507,9 +513,12 @@ export function Editor({
   const [hasSelectedPage, setHasSelectedPage] = useState(false)
   const hasSelectedPageRef = useRef(hasSelectedPage)
   hasSelectedPageRef.current = hasSelectedPage
-  const historyRef = useRef<ReturnType<typeof createDocumentHistory> | null>(null)
+  const [historyRevision, setHistoryRevision] = useState(0)
+  const historyRef = useRef<DocumentHistory | MultiPageHistory | null>(null)
   if (historyRef.current === null) {
-    historyRef.current = createDocumentHistory(externalizeStorageHtml(initialHtml))
+    historyRef.current = enableMultiPages
+      ? createMultiPageHistory(storedInitialPagesRef.current ?? [emptyPageHtml()])
+      : createDocumentHistory(externalizeStorageHtml(initialHtml))
   }
   const history = historyRef.current
   const htmlRef = useRef(optimizeEmbeddedImages ? initialHtml : html)
@@ -1177,12 +1186,18 @@ export function Editor({
   )
 
   const commitPages = useCallback(
-    (nextPages: readonly string[], coalesce: boolean, editedIndex?: number) => {
+    (
+      nextPages: readonly string[],
+      coalesce: boolean,
+      editedIndex?: number,
+      options?: { skipHistory?: boolean },
+    ) => {
       const storedPages = nextPages.map((page) => externalizeStorageHtml(page))
       const result = pageStore.setPages(storedPages, { editedIndex })
       if (!result.changed) {
         return result.joined
       }
+      pagesRef.current = result.pages
       documentDirtyRef.current = true
       htmlRef.current = result.joined
       if (
@@ -1196,7 +1211,19 @@ export function Editor({
         hydrateExportPages(result.pages),
         activePageIndexRef.current,
       )
-      history.record(result.joined, { coalesce })
+      if (!options?.skipHistory && isMultiPageHistory(history)) {
+        const { changedIndices, pages } = result
+        if (changedIndices.length === 1) {
+          const index = editedIndex ?? changedIndices[0]!
+          history.recordPageEdit(index, pages[index] ?? '', { coalesce })
+        } else if (changedIndices.length > 1) {
+          history.recordReplaceAll(pages)
+        } else if (editedIndex !== undefined) {
+          history.recordPageEdit(editedIndex, pages[editedIndex] ?? '', { coalesce })
+        } else {
+          history.recordReplaceAll(pages)
+        }
+      }
       return result.joined
     },
     [externalizeStorageHtml, hydrateExportPages, history, pageStore, setHtml],
@@ -1244,7 +1271,11 @@ export function Editor({
       if (!coalesce && stateUpdated) {
         syncVisualDocumentFromStorage(stored)
       }
-      history.record(stored, { coalesce })
+      if (isMultiPageHistory(history)) {
+        history.recordReplaceAll(splitPagesFromHtml(stored))
+      } else {
+        history.record(stored, { coalesce })
+      }
       return stored
     },
     [commitHtml, history, syncVisualDocumentFromStorage],
@@ -1522,12 +1553,16 @@ export function Editor({
         ? applyDefaultPagePropertiesToPageHtml(emptyPageHtml(), defaultPagePropertiesRef.current)
         : emptyPageHtml()
       nextPages.splice(clampedInsertAt, 0, blank)
-      commitPages(nextPages, false)
+      const storedPages = nextPages.map((page) => externalizeStorageHtml(page))
+      commitPages(nextPages, false, undefined, { skipHistory: true })
+      if (isMultiPageHistory(history)) {
+        history.recordInsertPage(clampedInsertAt, storedPages)
+      }
       activePageIndexRef.current = clampedInsertAt
       setActivePageIndex(clampedInsertAt)
       setHasSelectedPage(true)
     },
-    [flushMultiPageHtml, commitPages],
+    [flushMultiPageHtml, commitPages, history, externalizeStorageHtml],
   )
 
   const resolveSelectedPageIndex = useCallback((): number | null => {
@@ -1560,13 +1595,19 @@ export function Editor({
     if (currentPages.length <= 1) return
     const index = resolveSelectedPageIndex()
     if (index === null) return
+    const deletedPage = currentPages[index] ?? ''
     const nextPages = currentPages.filter((_, i) => i !== index)
-    commitPages(nextPages, false)
+    const storedDeletedPage = externalizeStorageHtml(deletedPage)
+    const storedNextPages = nextPages.map((page) => externalizeStorageHtml(page))
+    commitPages(nextPages, false, undefined, { skipHistory: true })
+    if (isMultiPageHistory(history)) {
+      history.recordDeletePage(index, storedDeletedPage, storedNextPages)
+    }
     const nextIndex = Math.min(index, nextPages.length - 1)
     activePageIndexRef.current = nextIndex
     setActivePageIndex(nextIndex)
     setHasSelectedPage(true)
-  }, [flushMultiPageHtml, commitPages, resolveSelectedPageIndex])
+  }, [flushMultiPageHtml, commitPages, history, resolveSelectedPageIndex, externalizeStorageHtml])
 
   useEffect(() => {
     if (!enableMultiPages) {
@@ -1574,27 +1615,83 @@ export function Editor({
     }
   }, [enableMultiPages])
 
+  const applyPagesFromHistory = useCallback(
+    (pages: readonly string[]) => {
+      const result = pageStore.replacePages([...pages])
+      htmlRef.current = result.joined
+      documentDirtyRef.current = true
+      onPagesChangeRef.current?.(
+        hydrateExportPages(result.pages),
+        activePageIndexRef.current,
+      )
+      const nextIndex = Math.max(0, Math.min(activePageIndexRef.current, result.pages.length - 1))
+      if (nextIndex !== activePageIndexRef.current) {
+        activePageIndexRef.current = nextIndex
+        setActivePageIndex(nextIndex)
+      }
+      if (
+        pagesPropRef.current === undefined &&
+        modeRef.current === 'html' &&
+        !optimizeEmbeddedImagesRef.current
+      ) {
+        setHtml(result.joined)
+      }
+      visualPropSyncGuardRef.current?.()
+      syncVisualDocumentFromStorage(result.joined)
+      if (isMultiPageHistory(history)) {
+        history.applyPresent(result.pages)
+      }
+    },
+    [hydrateExportPages, history, pageStore, setHtml, syncVisualDocumentFromStorage],
+  )
+
   const undo = useCallback(() => {
+    if (isMultiPageHistory(history)) {
+      const next = history.undo()
+      if (next === null) return
+      history.markApplying()
+      applyPagesFromHistory(next)
+      setHistoryRevision((revision) => revision + 1)
+      return
+    }
     const next = history.undo()
     if (next === null) return
     history.markApplying()
     commitHtml(next, { fullReplace: true })
-  }, [commitHtml, history])
+    setHistoryRevision((revision) => revision + 1)
+  }, [applyPagesFromHistory, commitHtml, history])
 
   const redo = useCallback(() => {
+    if (isMultiPageHistory(history)) {
+      const next = history.redo()
+      if (next === null) return
+      history.markApplying()
+      applyPagesFromHistory(next)
+      setHistoryRevision((revision) => revision + 1)
+      return
+    }
     const next = history.redo()
     if (next === null) return
     history.markApplying()
     commitHtml(next, { fullReplace: true })
-  }, [commitHtml, history])
+    setHistoryRevision((revision) => revision + 1)
+  }, [applyPagesFromHistory, commitHtml, history])
 
   useEffect(() => {
     if (enableMultiPages) {
-      history.syncExternal(joinPagesToHtml(pageStore.pages))
+      if (isMultiPageHistory(history)) {
+        if (pagesProp !== undefined && !optimizeEmbeddedImages) {
+          history.syncPages(pageStore.pages)
+        } else {
+          history.applyPresent(pageStore.pages)
+        }
+      }
       return
     }
-    history.syncExternal(optimizeEmbeddedImages ? storageHtml : html)
-  }, [enableMultiPages, optimizeEmbeddedImages, pageStore.pages, pageStore.revision, html, storageHtml, history])
+    if (!isMultiPageHistory(history)) {
+      history.syncExternal(optimizeEmbeddedImages ? storageHtml : html)
+    }
+  }, [enableMultiPages, optimizeEmbeddedImages, pageStore.pages, pageStore.revision, html, storageHtml, history, pagesProp])
 
   const captureSelection = useCallback(() => {
     selectionRef.current = snapshotSelection({
@@ -1884,7 +1981,9 @@ export function Editor({
             htmlRef.current = stored
             if (stored !== previous) {
               documentDirtyRef.current = true
-              history.record(stored, { coalesce: true })
+              if (!isMultiPageHistory(history)) {
+                history.record(stored, { coalesce: true })
+              }
             }
           } else if (serialized !== htmlRef.current) {
             recordHtml(serialized, true)
@@ -2681,7 +2780,9 @@ export function Editor({
     const stored = externalizeStorageHtml(value)
     setStorageHtml(stored)
     htmlRef.current = stored
-    history.syncExternal(stored)
+    if (!isMultiPageHistory(history)) {
+      history.syncExternal(stored)
+    }
   }, [enableMultiPages, externalizeStorageHtml, history, optimizeEmbeddedImages, value])
 
   useEffect(() => {
@@ -2690,7 +2791,9 @@ export function Editor({
     if (pagesArraysEqual(storedPages, pagesRef.current)) return
     const result = pageStore.replacePages(storedPages)
     htmlRef.current = result.joined
-    history.syncExternal(result.joined)
+    if (isMultiPageHistory(history)) {
+      history.syncPages(result.pages)
+    }
     if (modeRef.current === 'html') {
       const pageHtml = result.pages[activePageIndexRef.current] ?? ''
       htmlModePageHtmlRef.current = pageHtml
@@ -3479,7 +3582,7 @@ export function Editor({
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
-    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos, pageZoom, hasSelectedPage],
+    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos, pageZoom, hasSelectedPage, historyRevision],
   )
 
   const handleVisualBeforeInput = useCallback(
