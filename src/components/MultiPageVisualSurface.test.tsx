@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { PAGE_MARGIN_VAR } from '../core/pageCanvasLayout'
 import { LocaleProvider } from '../i18n/LocaleProvider'
 import { MultiPageVisualSurface } from './MultiPageVisualSurface'
 
@@ -10,6 +11,12 @@ const pageA4 =
 const pageLetter =
   '<style data-page-at-rule>@page { size: letter; margin: 1in; }</style><div data-page><p>Two</p></div>'
 const pagePlain = '<div data-page><p>Plain</p></div>'
+const pageWithBg =
+  '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
+  '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><p>Bg</p></div>'
+const pageWithBgLetter =
+  '<style data-page-at-rule>@page { size: letter; margin: 1in; }</style>' +
+  '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg2.png&quot;)"></div><p>Bg2</p></div>'
 
 function renderMultiPage(
   props: Partial<ComponentProps<typeof MultiPageVisualSurface>> = {},
@@ -113,5 +120,13 @@ describe('MultiPageVisualSurface rulers', () => {
 
     fireEvent(window, new MouseEvent('pointerup', { clientY: 120 }))
     expect(onMarginChange).toHaveBeenCalledWith(1, { top: 120 })
+  })
+
+  it('sets per-page bleed margin vars when pages have background images', async () => {
+    renderMultiPage({ pages: [pageWithBg, pageWithBgLetter] })
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(surfaces[0].style.getPropertyValue(PAGE_MARGIN_VAR.top)).toBe('20pt')
+    expect(surfaces[1].style.getPropertyValue(PAGE_MARGIN_VAR.top)).toBe('72pt')
   })
 })

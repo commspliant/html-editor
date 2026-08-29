@@ -15,6 +15,7 @@ import {
   ensureSizedPageShellLayout,
   normalizeCaretInPageShell,
   queryPageShell,
+  reconcileCaretAfterBlockAbsorb,
   syncPageHolderBackground,
 } from '../core/page'
 import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
@@ -168,16 +169,7 @@ export const MultiPageVisualSurface = forwardRef<
     const container = containerRef.current
     if (!container) return
     const handler = (event: Event) => {
-      const inputEvent = event as InputEvent
-      const target = event.target
-      if (
-        target instanceof HTMLElement &&
-        target.hasAttribute(PAGE_SURFACE_ATTR) &&
-        (inputEvent.inputType === 'insertParagraph' || inputEvent.inputType === 'insertLineBreak')
-      ) {
-        normalizeCaretInPageShell(target)
-      }
-      onBeforeInputRef.current?.(inputEvent)
+      onBeforeInputRef.current?.(event as InputEvent)
     }
     container.addEventListener('beforeinput', handler)
     return () => container.removeEventListener('beforeinput', handler)
@@ -271,9 +263,12 @@ export const MultiPageVisualSurface = forwardRef<
                 onContextMenu={onContextMenu}
                 onInput={(event) => {
                   const surface = event.currentTarget
-                  const absorbed = absorbLooseBlocksIntoPageShell(surface)
-                  if (absorbed) normalizeCaretInPageShell(surface)
+                  const { absorbedBlocks } = absorbLooseBlocksIntoPageShell(surface)
                   onPageChange(index, surface.innerHTML)
+                  if (absorbedBlocks.length > 0) {
+                    const count = absorbedBlocks.length
+                    requestAnimationFrame(() => reconcileCaretAfterBlockAbsorb(surface, count))
+                  }
                   refreshRulerMetrics()
                 }}
               />

@@ -290,11 +290,20 @@
 }
 
 .root .visual[data-page-sized] {
+  display: flex;
+  flex-direction: column;
   flex: 0 0 auto;
   width: auto;
   min-height: auto;
   margin: 0 auto;
   padding: 0;
+  box-sizing: border-box;
+}
+
+.root .visual[data-page-sized] > [data-page] {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
   box-sizing: border-box;
 }
 
@@ -398,6 +407,25 @@
 
 .visual p {
   margin: 0 0 0.75em;
+}
+
+.visual [data-page] > :not([data-page-bg]) {
+  position: relative;
+  z-index: 1;
+}
+
+.visual[data-page-sized] [data-page] [data-page-bg] {
+  top: calc(-1 * var(--wysiwyg-page-margin-top, 0px));
+  right: calc(-1 * var(--wysiwyg-page-margin-right, 0px));
+  bottom: calc(-1 * var(--wysiwyg-page-margin-bottom, 0px));
+  left: calc(-1 * var(--wysiwyg-page-margin-left, 0px));
+}
+
+.visual:not([data-page-sized]) [data-page] [data-page-bg] {
+  top: calc(-1 * var(--wysiwyg-page-margin-top, 0px));
+  right: calc(-1 * var(--wysiwyg-page-margin-right, 0px));
+  bottom: calc(-1 * var(--wysiwyg-page-margin-bottom, 0px));
+  left: calc(-1 * var(--wysiwyg-page-margin-left, 0px));
 }
 
 .visual p:last-child {

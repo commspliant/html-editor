@@ -10,6 +10,8 @@ import {
   normalizeCaretInPageShell,
   PAGE_SHELL_ATTR,
   queryPageShell,
+  reconcileCaretAfterBlockAbsorb,
+  reconcileCaretToAbsorbedBlocks,
   syncPageHolderBackground,
 } from './page'
 import { PAGE_SIZED_ATTR } from './pageCanvasLayout'
@@ -337,7 +339,7 @@ describe('queryPageProperties', () => {
 })
 
 describe('ensureSizedPageShellLayout', () => {
-  it('uses auto height and min-height on sized holders', () => {
+  it('uses auto height on sized holders without percentage min-height', () => {
     const el = mountVisual('<div data-page><p>Hello</p></div>')
     el.setAttribute(PAGE_SIZED_ATTR, '')
     const shell = queryPageShell(el) as HTMLElement
@@ -346,7 +348,7 @@ describe('ensureSizedPageShellLayout', () => {
 
     expect(shell.style.width).toBe('100%')
     expect(shell.style.height).toBe('auto')
-    expect(shell.style.minHeight).toBe('100%')
+    expect(shell.style.minHeight).toBe('')
   })
 
   it('keeps full-height layout on unsized holders', () => {
@@ -367,7 +369,9 @@ describe('absorbLooseBlocksIntoPageShell', () => {
     )
     const shell = queryPageShell(el)
 
-    expect(absorbLooseBlocksIntoPageShell(el)).toBe(true)
+    const { changed, absorbedBlocks } = absorbLooseBlocksIntoPageShell(el)
+    expect(changed).toBe(true)
+    expect(absorbedBlocks).toHaveLength(1)
     expect(el.children).toHaveLength(1)
     expect(shell?.children).toHaveLength(2)
     expect(shell?.querySelectorAll('p')).toHaveLength(2)
@@ -378,7 +382,8 @@ describe('absorbLooseBlocksIntoPageShell', () => {
     const el = mountVisual('<div data-page><p>ello</p></div>H')
     const shell = queryPageShell(el)
 
-    expect(absorbLooseBlocksIntoPageShell(el)).toBe(true)
+    const { changed } = absorbLooseBlocksIntoPageShell(el)
+    expect(changed).toBe(true)
     expect(el.childNodes).toHaveLength(1)
     expect(shell?.textContent).toBe('elloH')
     expect(shell?.querySelector('p')?.textContent).toBe('elloH')
@@ -386,7 +391,102 @@ describe('absorbLooseBlocksIntoPageShell', () => {
 
   it('returns false when there is no shell', () => {
     const el = mountVisual('<p>Hello</p>')
-    expect(absorbLooseBlocksIntoPageShell(el)).toBe(false)
+    const { changed } = absorbLooseBlocksIntoPageShell(el)
+    expect(changed).toBe(false)
+  })
+})
+
+describe('reconcileCaretToAbsorbedBlocks', () => {
+  it('moves the caret into the last absorbed block when it stayed on the previous line', () => {
+    const el = mountVisual(
+      '<div data-page><p>Hello</p></div><p><br></p>',
+    )
+    const shell = queryPageShell(el)
+    const firstP = shell?.querySelector('p') as HTMLElement
+    const looseP = el.lastElementChild as HTMLElement
+    const text = firstP.firstChild as Text
+    const range = document.createRange()
+    range.setStart(text, text.length)
+    range.collapse(true)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+
+    const { absorbedBlocks } = absorbLooseBlocksIntoPageShell(el)
+    reconcileCaretToAbsorbedBlocks(absorbedBlocks)
+
+    expect(absorbedBlocks).toHaveLength(1)
+    expect(absorbedBlocks[0]).toBe(looseP)
+    expect(looseP.parentElement).toBe(shell)
+    expect(sel?.anchorNode).not.toBeNull()
+    expect(looseP.contains(sel?.anchorNode ?? null)).toBe(true)
+  })
+
+  it('leaves the caret unchanged when it is already inside the absorbed block', () => {
+    const el = mountVisual('<div data-page><p>Hello</p><p><br></p></div>')
+    const secondP = el.querySelectorAll('p')[1] as HTMLElement
+    const range = document.createRange()
+    range.setStart(secondP, 0)
+    range.collapse(true)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+
+    const before = sel?.getRangeAt(0).cloneRange()
+    reconcileCaretToAbsorbedBlocks([secondP])
+
+    const after = sel?.getRangeAt(0)
+    expect(after?.startContainer).toBe(before?.startContainer)
+    expect(after?.startOffset).toBe(before?.startOffset)
+  })
+
+  it('reconciles caret from the live shell after innerHTML resync', () => {
+    const el = mountVisual(
+      '<div data-page><p>Hello</p></div><p><br></p>',
+    )
+    const shell = queryPageShell(el)
+    const firstP = shell?.querySelector('p') as HTMLElement
+    const text = firstP.firstChild as Text
+    const range = document.createRange()
+    range.setStart(text, text.length)
+    range.collapse(true)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+
+    absorbLooseBlocksIntoPageShell(el)
+    el.innerHTML = el.innerHTML
+    reconcileCaretAfterBlockAbsorb(el, 1)
+
+    const liveShell = queryPageShell(el)
+    const blocks = liveShell?.querySelectorAll('p') ?? []
+    const lastP = blocks[blocks.length - 1] as HTMLElement
+    expect(lastP.contains(sel?.anchorNode ?? null)).toBe(true)
+  })
+
+  it('moves the caret into an absorbed line after inline marks', () => {
+    const el = mountVisual(
+      '<div data-page><p>Hello<strong>Worlds</strong></p></div><p><br></p>',
+    )
+    const shell = queryPageShell(el)
+    const firstP = shell?.querySelector('p') as HTMLElement
+    const strong = firstP.querySelector('strong') as HTMLElement
+    const worldsText = strong.firstChild as Text
+    const range = document.createRange()
+    range.setStart(worldsText, worldsText.length)
+    range.collapse(true)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+
+    const { absorbedBlocks } = absorbLooseBlocksIntoPageShell(el)
+    reconcileCaretToAbsorbedBlocks(absorbedBlocks)
+
+    const liveShell = queryPageShell(el)
+    const blocks = liveShell?.querySelectorAll('p') ?? []
+    const lastP = blocks[blocks.length - 1] as HTMLElement
+    expect(lastP.contains(sel?.anchorNode ?? null)).toBe(true)
+    expect(firstP.contains(sel?.anchorNode ?? null)).toBe(false)
   })
 })
 
@@ -439,14 +539,19 @@ describe('syncPageHolderBackground', () => {
     expect(el.style.backgroundColor).toBe('')
   })
 
-  it('mirrors page background image layer styles onto the holder', () => {
+  it('does not mirror page background image layer styles onto the holder', () => {
     const el = mountVisual(
-      '<div data-page style="width:100%;height:100%;position:relative;isolation:isolate"><div id="commspliant-background" data-page-bg style="position:absolute;inset:0;z-index:-1;pointer-events:none;user-select:none;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.7"></div><p>Hello</p></div>',
+      '<div data-page style="width:100%;height:100%;position:relative;isolation:isolate"><div id="commspliant-background" data-page-bg style="position:absolute;inset:0;z-index:0;pointer-events:none;user-select:none;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.7"></div><p>Hello</p></div>',
     )
+    el.style.backgroundImage = 'url("https://example.com/old.png")'
+    el.style.backgroundSize = 'cover'
+    el.style.backgroundPosition = 'center'
+    el.style.opacity = '0.7'
     syncPageHolderBackground(el)
-    expect(el.style.backgroundImage).toContain('example.com/bg.png')
-    expect(el.style.backgroundSize).toBe('cover')
-    expect(el.style.backgroundPosition).toBe('center')
-    expect(el.style.opacity).toBe('0.7')
+    expect(el.style.backgroundImage).toBe('')
+    expect(el.style.backgroundSize).toBe('')
+    expect(el.style.backgroundPosition).toBe('')
+    expect(el.style.backgroundRepeat).toBe('')
+    expect(el.style.opacity).toBe('')
   })
 })

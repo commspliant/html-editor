@@ -208,10 +208,15 @@ function ensureBackgroundLayerStyles(layer: HTMLElement): boolean {
   const before = layer.getAttribute('style')
   layer.style.position = 'absolute'
   layer.style.inset = '0'
-  layer.style.zIndex = '-1'
+  layer.style.zIndex = '0'
   layer.style.pointerEvents = 'none'
   layer.style.userSelect = 'none'
   layer.style.backgroundRepeat = 'no-repeat'
+  layer.style.setProperty('print-color-adjust', 'exact')
+  const cssText = layer.style.cssText
+  if (!cssText.includes('-webkit-print-color-adjust')) {
+    layer.setAttribute('style', `${cssText};-webkit-print-color-adjust:exact`)
+  }
   return layer.getAttribute('style') !== before
 }
 
@@ -346,6 +351,7 @@ export function writePageBackgroundImage(
   if (syncShellPosition(shell)) changed = true
 
   if (writeBackgroundImageStyles(layer, draft)) changed = true
+  if (ensureBackgroundLayerStyles(layer)) changed = true
 
   if (changed) {
     clearEmptyStyle(layer)

@@ -63,11 +63,30 @@ export function ensureSizedPageShellLayout(holder: HTMLElement, shell: HTMLEleme
     shell.style.height = 'auto'
     changed = true
   }
-  if (shell.style.minHeight !== '100%') {
-    shell.style.minHeight = '100%'
-    changed = true
-  }
   return changed
+}
+
+const ABSORBABLE_BLOCK_TAGS = new Set([
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'li',
+  'blockquote',
+  'pre',
+  'div',
+])
+
+export type AbsorbLooseBlocksResult = {
+  changed: boolean
+  absorbedBlocks: HTMLElement[]
+}
+
+function isAbsorbableBlock(el: HTMLElement): boolean {
+  return ABSORBABLE_BLOCK_TAGS.has(el.tagName.toLowerCase())
 }
 
 function lastContentBlock(shell: HTMLElement): HTMLElement | null {
@@ -76,10 +95,11 @@ function lastContentBlock(shell: HTMLElement): HTMLElement | null {
 }
 
 /** Move holder children that escaped the page shell back inside it. */
-export function absorbLooseBlocksIntoPageShell(holder: HTMLElement): boolean {
+export function absorbLooseBlocksIntoPageShell(holder: HTMLElement): AbsorbLooseBlocksResult {
   const shell = queryPageShell(holder)
-  if (!shell) return false
+  if (!shell) return { changed: false, absorbedBlocks: [] }
   let changed = false
+  const absorbedBlocks: HTMLElement[] = []
   for (const child of [...holder.childNodes]) {
     if (child === shell) continue
     if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
@@ -99,10 +119,58 @@ export function absorbLooseBlocksIntoPageShell(holder: HTMLElement): boolean {
       changed = true
       continue
     }
+    if (child instanceof HTMLElement && isAbsorbableBlock(child)) {
+      absorbedBlocks.push(child)
+    }
     shell.appendChild(child)
     changed = true
   }
-  return changed
+  return { changed, absorbedBlocks }
+}
+
+function placeCaretAtBlockStart(block: HTMLElement): void {
+  const range = document.createRange()
+  const first = block.firstChild
+  if (first?.nodeType === Node.TEXT_NODE) {
+    range.setStart(first, 0)
+  } else if (first) {
+    range.setStartBefore(first)
+  } else {
+    range.setStart(block, 0)
+  }
+  range.collapse(true)
+  const sel = window.getSelection()
+  if (!sel) return
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+const SHELL_CONTENT_BLOCKS = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, pre'
+
+/** Move the caret into the last absorbed block when Enter left it on the previous line. */
+export function reconcileCaretToAbsorbedBlocks(blocks: HTMLElement[]): void {
+  if (blocks.length === 0) return
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return
+  const target = blocks[blocks.length - 1]
+  const anchor = sel.getRangeAt(0).startContainer
+  if (target.contains(anchor)) return
+  placeCaretAtBlockStart(target)
+}
+
+/** Reconcile caret after React may have resynced innerHTML; queries the live shell. */
+export function reconcileCaretAfterBlockAbsorb(holder: HTMLElement, absorbedCount: number): void {
+  if (absorbedCount <= 0) return
+  const shell = queryPageShell(holder)
+  if (!shell) return
+  const blocks = shell.querySelectorAll(SHELL_CONTENT_BLOCKS)
+  if (blocks.length === 0) return
+  const target = blocks[blocks.length - 1] as HTMLElement
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return
+  const anchor = sel.getRangeAt(0).startContainer
+  if (target.contains(anchor)) return
+  placeCaretAtBlockStart(target)
 }
 
 export function isPageShell(el: Element, visualRoot: HTMLElement): boolean {
@@ -220,8 +288,7 @@ export function normalizeCaretInPageShell(holder: HTMLElement): void {
   placeCaretInShell(shell)
 }
 
-const PAGE_HOLDER_BG_PROPS = [
-  'background-color',
+const PAGE_HOLDER_IMAGE_PROPS = [
   'background-image',
   'background-size',
   'background-position',
@@ -232,30 +299,20 @@ const PAGE_HOLDER_BG_PROPS = [
 function copyPageBackgroundStyle(
   visualRoot: HTMLElement,
   source: HTMLElement | null,
-  prop: (typeof PAGE_HOLDER_BG_PROPS)[number],
+  prop: 'background-color',
 ): void {
   const value = source?.style.getPropertyValue(prop).trim() ?? ''
   if (value) visualRoot.style.setProperty(prop, value)
   else visualRoot.style.removeProperty(prop)
 }
 
-/** Paint the visual holder with the page fill and background image. Does not change document HTML. */
+/** Paint the visual holder with the page fill color only. Does not change document HTML. */
 export function syncPageHolderBackground(visualRoot: HTMLElement): void {
   const shell = queryPageShell(visualRoot)
-  const bgLayer = shell ? queryPageBackgroundLayer(shell) : null
-
   copyPageBackgroundStyle(visualRoot, shell, 'background-color')
 
-  if (bgLayer) {
-    for (const prop of PAGE_HOLDER_BG_PROPS) {
-      if (prop === 'background-color') continue
-      copyPageBackgroundStyle(visualRoot, bgLayer, prop)
-    }
-  } else {
-    for (const prop of PAGE_HOLDER_BG_PROPS) {
-      if (prop === 'background-color') continue
-      visualRoot.style.removeProperty(prop)
-    }
+  for (const prop of PAGE_HOLDER_IMAGE_PROPS) {
+    visualRoot.style.removeProperty(prop)
   }
 }
 
