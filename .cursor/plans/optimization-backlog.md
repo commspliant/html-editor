@@ -14,14 +14,10 @@ Last updated: 2026-08-29. Use this file when chat context is full.
 | **Auto-save** | Multi-page dirty snapshot cache |
 | **Font preview scan** | `previewFontKey` uses active page only in multi-page mode |
 | **Image registry** | Opt-in `optimizeEmbeddedImages`; `imageRegistry.ts`, externalize on store, hydrate on export |
+| **Open image flash** | Canonical document equality + image-preserving visual sync on File → Open |
+| **Page-scoped undo** | `multiPageHistory.ts` — per-page edit entries + structural insert/delete/replace-all ops |
 
 ## Remaining — high impact
-
-### Page-scoped undo/redo (multi-page)
-
-Undo stores joined full document; with images each step is huge. Per-page undo stacks + global insert/delete page ops.
-
-**Touches:** `history.ts`, `Editor.tsx`
 
 ### Virtualized page list
 
@@ -55,7 +51,6 @@ Split `Editor.tsx` document surface vs chrome so typing does not re-render toolb
 
 ## Suggested priority
 
-1. Page-scoped undo
-2. Virtualization
-3. Stability leftovers + low-hanging
-4. Editor chrome split
+1. Virtualization
+2. Stability leftovers + low-hanging
+3. Editor chrome split

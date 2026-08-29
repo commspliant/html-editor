@@ -885,6 +885,116 @@ describe('Editor history', () => {
   })
 })
 
+describe('Editor multi-page history', () => {
+  it('undoes and redoes visual edits with toolbar state', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[1].innerHTML = '<p>Two edited</p>'
+    fireEvent.input(surfaces[1])
+
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+    const afterUndo = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(afterUndo[0]).toContainHTML('<p>One</p>')
+    expect(afterUndo[1]).toContainHTML('<p>Two</p>')
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Redo' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Redo' }))
+
+    const afterRedo = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(afterRedo[1]).toContainHTML('<p>Two edited</p>')
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled()
+  })
+
+  it('undoes a page edit without changing other pages', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[1].innerHTML = '<p>Two edited</p>'
+    fireEvent.input(surfaces[1])
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+    const afterUndo = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(afterUndo[0]).toContainHTML('<p>One</p>')
+    expect(afterUndo[1]).toContainHTML('<p>Two</p>')
+  })
+
+  it('undoes the most recent page edit in global timeline order', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[0].innerHTML = '<p>One edited</p>'
+    fireEvent.input(surfaces[0])
+    surfaces[1].innerHTML = '<p>Two edited</p>'
+    fireEvent.input(surfaces[1])
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+    const afterFirstUndo = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(afterFirstUndo[0]).toContainHTML('<p>One edited</p>')
+    expect(afterFirstUndo[1]).toContainHTML('<p>Two</p>')
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+    const afterSecondUndo = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(afterSecondUndo[0]).toContainHTML('<p>One</p>')
+    expect(afterSecondUndo[1]).toContainHTML('<p>Two</p>')
+  })
+
+  it('undoes and redoes insert page', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[0])
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page after' }))
+
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(3)
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Redo' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Redo' }))
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(3)
+    expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled()
+  })
+
+  it('undoes delete page', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>', '<p>Three</p>']} />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete page' }))
+    await user.click(screen.getByRole('button', { name: 'Delete page' }))
+
+    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+    const restored = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(restored).toHaveLength(3)
+    expect(restored[1]).toContainHTML('<p>Two</p>')
+  })
+})
+
 describe('Editor font marks', () => {
   it('applies bold from the toolbar as an inline style', async () => {
     const user = userEvent.setup()
