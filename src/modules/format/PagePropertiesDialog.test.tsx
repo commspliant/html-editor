@@ -91,6 +91,38 @@ describe('PagePropertiesDialog', () => {
     expect(screen.getByRole('radio', { name: 'Image URL' })).toBeInTheDocument()
   })
 
+  it('shows only the custom picker on Background Image when builtin insert is disabled', async () => {
+    const user = userEvent.setup()
+    const onCustomImagePick = vi.fn()
+    render(
+      <LocaleProvider>
+        <PagePropertiesDialog
+          open
+          tab="paragraph"
+          initialParagraphTab="backgroundImage"
+          value={emptyPagePropertiesApply()}
+          disableBuiltinImageInsert
+          customImagePicker={{
+            text: 'Gallery',
+            description: 'Choose from the media library',
+            buttonCaption: 'Open gallery',
+            onPick: () => undefined,
+          }}
+          onCustomImagePick={onCustomImagePick}
+          onTabChange={() => undefined}
+          onApply={() => undefined}
+          onClose={() => undefined}
+        />
+      </LocaleProvider>,
+    )
+
+    expect(screen.queryByRole('radio', { name: 'File' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Image URL' })).not.toBeInTheDocument()
+    expect(screen.getByText('Choose from the media library')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Open gallery' }))
+    expect(onCustomImagePick).toHaveBeenCalledTimes(1)
+  })
+
   it('applies a background image from the Background Image tab', async () => {
     const user = userEvent.setup()
     const onApply = vi.fn()

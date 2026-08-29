@@ -118,20 +118,25 @@ describe('ParagraphPropertiesDialog', () => {
     )
   })
 
-  it('applies a background image from the Background Image tab', async () => {
+  it('shows only the custom picker on Background Image when builtin insert is disabled', async () => {
     const user = userEvent.setup()
-    const { onApply } = renderDialog({ tab: 'backgroundImage' })
+    const onCustomImagePick = vi.fn()
+    renderDialog({
+      tab: 'backgroundImage',
+      disableBuiltinImageInsert: true,
+      customImagePicker: {
+        text: 'Gallery',
+        description: 'Choose from the media library',
+        buttonCaption: 'Open gallery',
+        onPick: () => undefined,
+      },
+      onCustomImagePick,
+    })
 
-    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
-    await user.type(screen.getByLabelText('Image URL'), 'https://example.com/bg.png')
-    await user.click(screen.getByRole('button', { name: 'OK' }))
-
-    expect(onApply).toHaveBeenCalledWith(
-      expect.objectContaining({
-        backgroundImage: expect.objectContaining({
-          src: 'https://example.com/bg.png',
-        }),
-      }),
-    )
+    expect(screen.queryByRole('radio', { name: 'File' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Image URL' })).not.toBeInTheDocument()
+    expect(screen.getByText('Choose from the media library')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Open gallery' }))
+    expect(onCustomImagePick).toHaveBeenCalledTimes(1)
   })
 })

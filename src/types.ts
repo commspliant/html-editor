@@ -368,8 +368,10 @@ export type EditorProps = {
    */
   customImagePicker?: CustomImagePicker
   /**
-   * Skip the Insert image dialog and call `customImagePicker.onPick` from the
-   * toolbar or Insert menu. Has no effect unless `customImagePicker` is set.
+   * Skip built-in File/URL image sources when `customImagePicker` is set.
+   * Insert → Image and the toolbar Image button call `onPick` immediately instead of
+   * opening the insert dialog. Page and paragraph background image commands do the same.
+   * Background image fields in Page/Paragraph properties hide File and URL.
    */
   disableBuiltinImageInsert?: boolean
   /**

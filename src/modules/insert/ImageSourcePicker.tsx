@@ -29,15 +29,27 @@ export type ImageSourcePickerProps = {
   src: string
   disabled?: boolean
   customImagePicker?: CustomImagePicker
+  /** When true with `customImagePicker`, hide File/URL and show only the custom source. */
+  disableBuiltinSources?: boolean
   onSrcChange: (src: string) => void
   onCustomPick?: () => void
   onSourceChange?: (source: ImageSource) => void
+}
+
+function initialImageSource(
+  src: string,
+  disableBuiltinSources: boolean,
+  customImagePicker?: CustomImagePicker,
+): ImageSource {
+  if (disableBuiltinSources && customImagePicker) return 'custom'
+  return src.startsWith('data:') ? 'file' : src.trim() ? 'url' : 'file'
 }
 
 export function ImageSourcePicker({
   src,
   disabled,
   customImagePicker,
+  disableBuiltinSources = false,
   onSrcChange,
   onCustomPick,
   onSourceChange,
@@ -46,8 +58,9 @@ export function ImageSourcePicker({
   const urlId = useId()
   const errorId = useId()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const customOnly = disableBuiltinSources && Boolean(customImagePicker)
   const [source, setSource] = useState<ImageSource>(() =>
-    src.startsWith('data:') ? 'file' : src.trim() ? 'url' : 'file',
+    initialImageSource(src, disableBuiltinSources, customImagePicker),
   )
   const [url, setUrl] = useState(() => (src.startsWith('data:') ? '' : src))
   const [fileName, setFileName] = useState('')
@@ -57,6 +70,10 @@ export function ImageSourcePicker({
   useEffect(() => {
     onSourceChange?.(source)
   }, [onSourceChange, source])
+
+  useEffect(() => {
+    if (customOnly) setSource('custom')
+  }, [customOnly])
 
   const activeSrc = source === 'file' && src.startsWith('data:') ? src : source === 'url' ? url : ''
   const srcError = source === 'custom' ? null : validateImageSrc(activeSrc)
@@ -100,40 +117,42 @@ export function ImageSourcePicker({
   return (
     <fieldset className={styles.group}>
       <legend className={styles.subLabel}>{t('imageDialogSource')}</legend>
-      <div className={styles.sizeRow} role="radiogroup" aria-label={t('imageDialogSource')}>
-        <button
-          type="button"
-          className={styles.action}
-          role="radio"
-          aria-checked={source === 'file'}
-          disabled={disabled}
-          onClick={() => setSource('file')}
-        >
-          {t('imageDialogFile')}
-        </button>
-        <button
-          type="button"
-          className={styles.action}
-          role="radio"
-          aria-checked={source === 'url'}
-          disabled={disabled}
-          onClick={() => setSource('url')}
-        >
-          {t('imageDialogUrl')}
-        </button>
-        {customImagePicker ? (
+      {customOnly ? null : (
+        <div className={styles.sizeRow} role="radiogroup" aria-label={t('imageDialogSource')}>
           <button
             type="button"
             className={styles.action}
             role="radio"
-            aria-checked={source === 'custom'}
+            aria-checked={source === 'file'}
             disabled={disabled}
-            onClick={() => setSource('custom')}
+            onClick={() => setSource('file')}
           >
-            {customImagePicker.text}
+            {t('imageDialogFile')}
           </button>
-        ) : null}
-      </div>
+          <button
+            type="button"
+            className={styles.action}
+            role="radio"
+            aria-checked={source === 'url'}
+            disabled={disabled}
+            onClick={() => setSource('url')}
+          >
+            {t('imageDialogUrl')}
+          </button>
+          {customImagePicker ? (
+            <button
+              type="button"
+              className={styles.action}
+              role="radio"
+              aria-checked={source === 'custom'}
+              disabled={disabled}
+              onClick={() => setSource('custom')}
+            >
+              {customImagePicker.text}
+            </button>
+          ) : null}
+        </div>
+      )}
       {source === 'file' ? (
         <div className={styles.fileRow}>
           <input
@@ -179,7 +198,7 @@ export function ImageSourcePicker({
           />
         </div>
       ) : null}
-      {source === 'custom' && customImagePicker ? (
+      {(customOnly || source === 'custom') && customImagePicker ? (
         <div className={styles.field}>
           <p className={styles.emptyHint}>{customImagePicker.description}</p>
           <button type="button" className={styles.action} disabled={disabled} onClick={pickCustom}>

@@ -16,6 +16,7 @@ export type PageBackgroundImageFieldsProps = {
   value: PageBackgroundImageApply
   disabled?: boolean
   customImagePicker?: CustomImagePicker
+  disableBuiltinSources?: boolean
   onCustomImagePick?: () => void
   onChange: (next: PageBackgroundImageApply) => void
 }
@@ -38,6 +39,7 @@ export function PageBackgroundImageFields({
   value,
   disabled,
   customImagePicker,
+  disableBuiltinSources,
   onCustomImagePick,
   onChange,
 }: PageBackgroundImageFieldsProps) {
@@ -78,6 +80,7 @@ export function PageBackgroundImageFields({
         src={src}
         disabled={disabled}
         customImagePicker={customImagePicker}
+        disableBuiltinSources={disableBuiltinSources}
         onCustomPick={onCustomImagePick}
         onSrcChange={(next) => {
           onChange({ ...value, src: next.trim() || null })

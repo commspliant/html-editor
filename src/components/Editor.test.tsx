@@ -1478,6 +1478,38 @@ describe('Editor insert chrome', () => {
     expect(img?.getAttribute('title')).toBe('Q1')
     expect(img?.style.width).toBe('80px')
   })
+
+  it('skips the page background dialog and applies from the host picker when builtin insert is disabled', async () => {
+    const user = userEvent.setup()
+    const onPick = vi.fn<(insertImage: (image: CustomImageInsert) => void) => void>()
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        disableBuiltinImageInsert
+        customImagePicker={{
+          text: 'Gallery',
+          description: 'Choose from the media library',
+          buttonCaption: 'Open gallery',
+          onPick,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page background image' }))
+
+    expect(onPick).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog', { name: 'Page properties' })).not.toBeInTheDocument()
+
+    onPick.mock.calls[0][0]({ src: 'https://example.com/bg.png' })
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const layer = visual.querySelector('[data-page-bg]')
+    expect(layer).toBeTruthy()
+    expect(layer).toHaveStyle({
+      backgroundImage: 'url("https://example.com/bg.png")',
+    })
+  })
 })
 
 describe('Editor paragraph chrome', () => {
