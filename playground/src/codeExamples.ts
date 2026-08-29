@@ -118,7 +118,7 @@ export function MultiPageEditor() {
       defaultRulerVisible
       rulerUnit="in"
       pages={pages}
-      onPagesChange={(nextPages) => setPages(nextPages)}
+      onPagesChange={(nextPages, _activeIndex) => setPages(nextPages)}
       onSave={async (payload) => {
         if (Array.isArray(payload)) {
           await fetch('/api/documents/current/pages', {

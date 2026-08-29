@@ -19,6 +19,7 @@ Last updated: 2026-08-29. Use this file when chat context is full.
 | **Multi-page virtualization** | Always-on virtual page list in visual mode — flush on unmount, `useVirtualPageRange`, height spacers, mounted-only ruler metrics |
 | **Font stylesheet collection** | Per-page scoping via `serializePageBody` + `liveRoot` in multi-page mode; `fontFamilyUsedInRoot` / parse cache for single-page |
 | **`onPagesChange` batching** | Microtask-coalesced `schedulePagesChange` in `Editor.tsx` (flush on unmount) |
+| **Playground multi-page HTML tabs** | `multiPagesExampleBody` aligned with per-page `HtmlPageTabs` behavior (en + es) |
 
 ## Remaining — high impact
 
@@ -41,10 +42,6 @@ Split `Editor.tsx` document surface vs chrome so typing does not re-render toolb
 ### Profiling-gated (defer until measured)
 
 - **Web Worker for sanitize/join** — only worthwhile for very large single-page docs with default `sanitizeHtml={true}` during typing; multi-page typing already skips per-keystroke sanitize. Revisit after main-thread profiling.
-
-## Documentation gaps
-
-- Playground `messages.ts`: note multi-page HTML tab behavior (README done)
 
 ## Suggested priority
 
