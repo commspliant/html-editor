@@ -17,6 +17,8 @@ Last updated: 2026-08-29. Use this file when chat context is full.
 | **Open image flash** | Canonical document equality + image-preserving visual sync on File → Open |
 | **Page-scoped undo** | `multiPageHistory.ts` — per-page edit entries + structural insert/delete/replace-all ops |
 | **Multi-page virtualization** | Always-on virtual page list in visual mode — flush on unmount, `useVirtualPageRange`, height spacers, mounted-only ruler metrics |
+| **Font stylesheet collection** | Per-page scoping via `serializePageBody` + `liveRoot` in multi-page mode; `fontFamilyUsedInRoot` / parse cache for single-page |
+| **`onPagesChange` batching** | Microtask-coalesced `schedulePagesChange` in `Editor.tsx` (flush on unmount) |
 
 ## Remaining — high impact
 
@@ -36,11 +38,9 @@ _(none — virtualization shipped)_
 
 Split `Editor.tsx` document surface vs chrome so typing does not re-render toolbar/dialogs. **Done** — `EditorChrome` + `EditorWorkspaceHost`, ref-backed document bridge, memo'd toolbar, lazy dialog mount, per-slice toolbar query subscriptions.
 
-### Low-hanging fruit
+### Profiling-gated (defer until measured)
 
-- Debounce `onPagesChange` (microtask batch)
-- Scope `collectDocumentFontStylesheets` to edited page only
-- Web Worker for sanitize/join on large export
+- **Web Worker for sanitize/join** — only worthwhile for very large single-page docs with default `sanitizeHtml={true}` during typing; multi-page typing already skips per-keystroke sanitize. Revisit after main-thread profiling.
 
 ## Documentation gaps
 
@@ -48,5 +48,6 @@ Split `Editor.tsx` document surface vs chrome so typing does not re-render toolb
 
 ## Suggested priority
 
-1. Stability leftovers + low-hanging — **done** (stability)
+1. Stability leftovers + low-hanging — **done**
 2. Editor chrome split — **done**
+3. Profiling-gated worker sanitize — defer

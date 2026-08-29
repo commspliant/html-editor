@@ -34,6 +34,12 @@ async function flushSelectionRefresh(): Promise<void> {
   })
 }
 
+async function flushPagesChangeNotify(): Promise<void> {
+  await act(async () => {
+    await Promise.resolve()
+  })
+}
+
 async function selectVisualText(visual: HTMLElement, start: number, end: number): Promise<void> {
   const walker = document.createTreeWalker(visual, NodeFilter.SHOW_TEXT)
   let startNode: Text | null = null
@@ -2134,7 +2140,7 @@ describe('Editor paragraph chrome', () => {
     expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
   })
 
-  it('keeps stable sibling page references when another page is edited', () => {
+  it('keeps stable sibling page references when another page is edited', async () => {
     const onPagesChange = vi.fn()
     render(
       <Editor
@@ -2151,10 +2157,33 @@ describe('Editor paragraph chrome', () => {
     surfaces[1].innerHTML = '<p>Two edited</p>'
     fireEvent.input(surfaces[1])
 
+    await flushPagesChangeNotify()
     expect(onPagesChange).toHaveBeenCalled()
     const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
     expect(lastPages[0]).toBe(pageOneBefore)
     expect(lastPages[1]).toContain('Two edited')
+  })
+
+  it('batches onPagesChange notifications within the same microtask turn', async () => {
+    const onPagesChange = vi.fn()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[1].innerHTML = '<p>Two edited once</p>'
+    fireEvent.input(surfaces[1])
+    surfaces[1].innerHTML = '<p>Two edited twice</p>'
+    fireEvent.input(surfaces[1])
+
+    await flushPagesChangeNotify()
+    expect(onPagesChange).toHaveBeenCalledTimes(1)
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages[1]).toContain('Two edited twice')
   })
 
   it('returns all pages from save after multi-page visual edits', async () => {
