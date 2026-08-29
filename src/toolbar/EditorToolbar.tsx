@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import type { EditorCommands, EditorQueries } from '../core/commandTypes'
 import type { ToolbarPosition } from '../types'
 import type { ChromeLockOptions } from './commentsChrome'
 import { IconNav } from './IconNav'
 import { MenuBar } from './MenuBar'
 import type { ToolbarCatalog, ToolbarLayout } from './types'
+import type { ToolbarQueryRevisions } from './toolbarQueryRevisions'
+import { ToolbarQueryRevisionsProvider } from './ToolbarQuerySubscription'
 import styles from './Toolbar.module.css'
 
 export type EditorToolbarProps = {
@@ -12,6 +14,7 @@ export type EditorToolbarProps = {
   layout: ToolbarLayout
   commands: EditorCommands
   queries: EditorQueries
+  queryRevisions?: ToolbarQueryRevisions
   disabled?: boolean
   chromeLock?: ChromeLockOptions
   menuVisible?: boolean
@@ -20,11 +23,12 @@ export type EditorToolbarProps = {
   position?: ToolbarPosition
 }
 
-export function EditorToolbar({
+export const EditorToolbar = memo(function EditorToolbar({
   catalog,
   layout,
   commands,
   queries,
+  queryRevisions,
   disabled,
   chromeLock,
   menuVisible = true,
@@ -38,7 +42,7 @@ export function EditorToolbar({
     return null
   }
 
-  return (
+  const toolbar = (
     <div
       className={styles.toolbar}
       data-compact={compact ? '' : undefined}
@@ -69,4 +73,12 @@ export function EditorToolbar({
       ) : null}
     </div>
   )
-}
+
+  if (!queryRevisions) {
+    return toolbar
+  }
+
+  return (
+    <ToolbarQueryRevisionsProvider value={queryRevisions}>{toolbar}</ToolbarQueryRevisionsProvider>
+  )
+})

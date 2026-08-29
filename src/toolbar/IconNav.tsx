@@ -1,10 +1,13 @@
+import { memo, useMemo } from 'react'
 import { useT } from '../i18n/LocaleProvider'
 import type { EditorCommands, EditorQueries } from '../core/commandTypes'
 import { runEditorCommand } from '../core/commandTypes'
 import { resolveChromeAria, resolveChromeLabel } from './resolveChrome'
 import { isChromeItemLocked, type ChromeLockOptions } from './commentsChrome'
 import { Tooltip } from './Tooltip'
-import type { ToolbarCatalog, ToolbarIconGroup, ToolbarItemId } from './types'
+import type { ToolbarCatalog, ToolbarIconGroup, ToolbarItem, ToolbarItemId } from './types'
+import { querySlicesForItem } from './toolbarQueryRevisions'
+import { useToolbarQuerySlices } from './ToolbarQuerySubscription'
 import styles from './Toolbar.module.css'
 
 const FULLSCREEN_ITEM_ID: ToolbarItemId = 'fullscreen'
@@ -38,6 +41,57 @@ function splitFullscreenGroups(groups: ToolbarIconGroup[]): {
   return { main, trailing }
 }
 
+type ToolbarIconButtonProps = {
+  item: ToolbarItem
+  itemId: ToolbarItemId
+  commands: EditorCommands
+  queries: EditorQueries
+  disabled?: boolean
+  chromeLock?: ChromeLockOptions
+}
+
+const ToolbarIconButton = memo(function ToolbarIconButton({
+  item,
+  itemId,
+  commands,
+  queries,
+  disabled,
+  chromeLock,
+}: ToolbarIconButtonProps) {
+  const t = useT()
+  const slices = useMemo(() => querySlicesForItem(item), [item])
+  useToolbarQuerySlices(slices)
+
+  if (!item.icon || !item.command) return null
+  const Icon = item.icon
+  const command = item.command
+  const unavailable = item.enabled ? !queries[item.enabled]() : false
+  const pressed = item.active ? queries[item.active]() : undefined
+
+  return (
+    <Tooltip label={item.tooltip ?? resolveChromeLabel(t, item)}>
+      <button
+        type="button"
+        className={styles.iconButton}
+        aria-label={resolveChromeAria(t, item)}
+        aria-pressed={pressed}
+        disabled={
+          disabled ||
+          (chromeLock ? isChromeItemLocked(itemId, chromeLock) : false) ||
+          unavailable
+        }
+        onPointerDown={(event) => event.preventDefault()}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => {
+          runEditorCommand(commands, command)
+        }}
+      >
+        <Icon className={styles.icon} />
+      </button>
+    </Tooltip>
+  )
+})
+
 export function IconNav({ groups, catalog, commands, queries, disabled, chromeLock }: IconNavProps) {
   const t = useT()
   const { main, trailing } = splitFullscreenGroups(groups)
@@ -68,30 +122,16 @@ export function IconNav({ groups, catalog, commands, queries, disabled, chromeLo
             )
           }
           if (!item.icon || !item.command) return null
-          const Icon = item.icon
-          const command = item.command
-          const pressed = item.active ? queries[item.active]() : undefined
           return (
-            <Tooltip key={id} label={item.tooltip ?? resolveChromeLabel(t, item)}>
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label={resolveChromeAria(t, item)}
-                aria-pressed={pressed}
-                disabled={
-                  disabled ||
-                  (chromeLock ? isChromeItemLocked(id, chromeLock) : false) ||
-                  unavailable
-                }
-                onPointerDown={(event) => event.preventDefault()}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  runEditorCommand(commands, command)
-                }}
-              >
-                <Icon className={styles.icon} />
-              </button>
-            </Tooltip>
+            <ToolbarIconButton
+              key={id}
+              itemId={id}
+              item={item}
+              commands={commands}
+              queries={queries}
+              disabled={disabled}
+              chromeLock={chromeLock}
+            />
           )
         })}
       </div>

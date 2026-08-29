@@ -22,5 +22,5 @@ export function useVisualPageBodies(pages: readonly string[], revision: number):
     bodiesRef.current = next
     return next
     // revision bumps when pages content changes even if array reference were stable
-  }, [pages, revision])
+  }, [pages, revision, pages.length])
 }

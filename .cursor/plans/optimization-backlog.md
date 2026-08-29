@@ -28,13 +28,13 @@ _(none — virtualization shipped)_
 
 | Task | Status |
 |------|--------|
-| Auto-save idle loops (single-page `getDocumentHtml` must not `recordHtml` on idle poll) | Partial |
-| `fontFamilyUsedInHtml` parse cache / live DOM | Partial (fast-path only) |
-| ResizeObserver / zoom debounce | Partial (`measuringPageZoomRef` exists) |
+| Auto-save idle loops (single-page `getDocumentHtml` must not `recordHtml` on idle poll) | Done |
+| `fontFamilyUsedInHtml` parse cache / live DOM | Done |
+| ResizeObserver / zoom debounce | Done |
 
 ### Editor render split
 
-Split `Editor.tsx` document surface vs chrome so typing does not re-render toolbar/dialogs.
+Split `Editor.tsx` document surface vs chrome so typing does not re-render toolbar/dialogs. **Done** — `EditorChrome` + `EditorWorkspaceHost`, ref-backed document bridge, memo'd toolbar, lazy dialog mount, per-slice toolbar query subscriptions.
 
 ### Low-hanging fruit
 
@@ -48,5 +48,5 @@ Split `Editor.tsx` document surface vs chrome so typing does not re-render toolb
 
 ## Suggested priority
 
-1. Stability leftovers + low-hanging
-2. Editor chrome split
+1. Stability leftovers + low-hanging — **done** (stability)
+2. Editor chrome split — **done**

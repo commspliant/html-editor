@@ -663,7 +663,8 @@ describe('Editor file commands', () => {
     visual.innerHTML = '<p>New</p>'
     await user.click(screen.getByRole('button', { name: 'Save as HTML file' }))
 
-    expect(saveHtml).toHaveBeenCalledWith('<p>New</p>')
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<p>New</p>'))
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<!DOCTYPE html>'))
   })
 
   it('saves the html surface contents in html mode', async () => {
@@ -673,7 +674,8 @@ describe('Editor file commands', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save as HTML file' }))
 
-    expect(saveHtml).toHaveBeenCalledWith('<p>Source</p>')
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<p>Source</p>'))
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<!DOCTYPE html>'))
   })
 
   it('replaces the document when open returns html', async () => {
@@ -1931,6 +1933,22 @@ describe('Editor paragraph chrome', () => {
     localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
   })
 
+  it('stabilizes fit-page zoom while typing on a single page', async () => {
+    localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitPage"')
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await user.click(visual)
+    await user.type(visual, ' world')
+
+    const zoomWhileTyping = await samplePageZoomContent(12)
+    const settled = zoomWhileTyping.slice(6)
+    expect(new Set(settled).size).toBe(1)
+
+    localStorage.removeItem(PAGE_ZOOM_STORAGE_KEY)
+  })
+
   it('keeps typed text inside page 2 shell in multi-page A4 mode', async () => {
     const user = userEvent.setup()
     const pageOne =
@@ -3058,6 +3076,36 @@ describe('Editor onAutoSave', () => {
 
     expect(onAutoSave).toHaveBeenCalledTimes(1)
     expect(onAutoSave).toHaveBeenCalledWith('<p>Saved</p>')
+  })
+
+  it('does not fire visual auto-save again when nothing changed', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const onAutoSave = vi.fn()
+    render(<Editor defaultValue="<p>Hello</p>" onAutoSave={onAutoSave} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    visual.innerHTML = '<p>Saved</p>'
+    fireEvent.input(visual)
+    await advanceAutoSaveTick()
+    await advanceAutoSaveTick()
+
+    expect(onAutoSave).toHaveBeenCalledTimes(1)
+    expect(onAutoSave).toHaveBeenCalledWith('<p>Saved</p>')
+  })
+
+  it('does not record history on visual idle auto-save polls', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const onAutoSave = vi.fn()
+    render(<Editor defaultValue="<p>Hello</p>" onAutoSave={onAutoSave} />)
+
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+
+    for (let i = 0; i < 5; i += 1) {
+      await advanceAutoSaveTick()
+    }
+
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    expect(onAutoSave).not.toHaveBeenCalled()
   })
 
   it('does not fire multi-page auto-save again when nothing changed', async () => {

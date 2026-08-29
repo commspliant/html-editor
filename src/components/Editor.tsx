@@ -62,14 +62,13 @@ import {
 } from '../core/pageAtRule'
 import {
   buildPageHtmlWithMarginPx,
-  isPageCanvasSized,
   previewPageCanvasMargins,
   probePageCanvasDimensions,
   syncPageCanvasLayout,
   type PageMarginSidesPx,
 } from '../core/pageCanvasLayout'
 import { normalizeCaretInPageShell } from '../core/page'
-import { resolvePageZoomScale } from '../core/pageZoom'
+import { createPageZoomMeasureScheduler, resolvePageZoomScale } from '../core/pageZoom'
 import {
   joinPagesToHtml,
   normalizePages,
@@ -90,9 +89,7 @@ import {
 } from '../core/textAlign'
 import {
   collectDocumentFontStylesheets,
-  collectPreviewFontStylesheets,
   extractFontStylesheets,
-  FONT_STYLESHEET_ATTR,
   hasPendingFontFamily,
   mergeFontFaces,
   prependFontStylesheets,
@@ -138,14 +135,12 @@ import {
   selectCommentThreadAnchor,
   setCommentHighlightsVisible,
   snapshotCommentAnchor,
-  syncCommentAnchorsToDom,
   threadIdAtSelection,
 } from '../core/comments/anchors'
 import {
   addMessageToThread,
   createCommentMessage,
   createCommentThread,
-  findCommentThread,
 } from '../core/comments/threads'
 import {
   copySelectionInDocument,
@@ -216,30 +211,11 @@ import {
   queryRowAtSelection,
 } from '../core/rowProperties'
 import { useAutoSave } from '../hooks/useAutoSave'
-import { useControllableState } from '../hooks/useControllableState'
 import { usePageStore } from '../hooks/usePageStore'
-import { useVisualPageBodies } from '../hooks/useVisualPageBodies'
+import { useControllableState } from '../hooks/useControllableState'
 import { ChromeThemeProvider, chromeThemeProps } from '../chrome/ChromeTheme'
 import { CloseIcon } from '../icons'
 import { LocaleProvider, useT } from '../i18n/LocaleProvider'
-import { FontPropertiesDialog } from '../modules/format/FontPropertiesDialog'
-import { ParagraphPropertiesDialog } from '../modules/format/ParagraphPropertiesDialog'
-import { PagePropertiesDialog } from '../modules/format/PagePropertiesDialog'
-import { DeletePageConfirmDialog } from '../modules/format/DeletePageConfirmDialog'
-import { CustomParagraphStyleDialog } from '../modules/format/CustomParagraphStyleDialog'
-import { CustomCssDialog } from '../modules/format/CustomCssDialog'
-import { BookmarkDialog } from '../modules/insert/BookmarkDialog'
-import { AudioDialog } from '../modules/insert/AudioDialog'
-import { ImageDialog } from '../modules/insert/ImageDialog'
-import { ImagePropertiesDialog } from '../modules/insert/ImagePropertiesDialog'
-import { ImageResizeOverlay } from '../modules/insert/ImageResizeOverlay'
-import { LinkDialog } from '../modules/insert/LinkDialog'
-import { YoutubeDialog } from '../modules/insert/YoutubeDialog'
-import { TableDialog } from '../modules/table/TableDialog'
-import { TablePropertiesDialog } from '../modules/table/TablePropertiesDialog'
-import { CellPropertiesDialog } from '../modules/table/CellPropertiesDialog'
-import { RowPropertiesDialog } from '../modules/table/RowPropertiesDialog'
-import { DocumentPreviewDialog } from '../modules/view/DocumentPreviewDialog'
 import {
   readDarkModeFromStorage,
   writeDarkModeToStorage,
@@ -253,8 +229,7 @@ import {
   readToolbarPositionFromStorage,
   writeToolbarPositionToStorage,
 } from '../modules/view/toolbarPositionPersistence'
-import { CommentPanel } from '../modules/comments/CommentPanel'
-import { ContextMenu, shouldOpenEditorContextMenu, type ContextMenuKind } from '../modules/contextMenu'
+import { shouldOpenEditorContextMenu, type ContextMenuKind } from '../modules/contextMenu'
 import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
 import {
   createDocumentHistory,
@@ -263,7 +238,7 @@ import {
   type DocumentHistory,
   type MultiPageHistory,
 } from '../modules/history'
-import { defaultToolbarCatalog, defaultToolbarLayout, EditorToolbar } from '../toolbar'
+import { defaultToolbarCatalog, defaultToolbarLayout } from '../toolbar'
 import { filterAllowedChrome } from '../toolbar/allowedChrome'
 import {
   mergeCommentsCatalog,
@@ -271,7 +246,6 @@ import {
   type ChromeLockOptions,
 } from '../toolbar/commentsChrome'
 import { filterMultiPageLayout } from '../toolbar/multiPageChrome'
-import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
 import {
   applyToolbarCustomization,
   readToolbarCustomizationFromStorage,
@@ -291,13 +265,7 @@ import type {
   ToolbarCustomization,
   ToolbarPosition,
 } from '../types'
-import { HtmlSurface } from './HtmlSurface'
-import { HtmlPageTabs } from './HtmlPageTabs'
-import { VisualSurface } from './VisualSurface'
-import {
-  MultiPageVisualSurface,
-  type MultiPageVisualSurfaceHandle,
-} from './MultiPageVisualSurface'
+import { type MultiPageVisualSurfaceHandle } from './MultiPageVisualSurface'
 import {
   createMultiPageRulerMarginChangeHandler,
   createMultiPageRulerMarginPreviewHandler,
@@ -306,6 +274,12 @@ import {
   createRulerMarginPreviewHandler,
 } from './rulerDocumentHandlers'
 import styles from './Editor.module.css'
+import { EditorChrome } from './EditorChrome'
+import { EditorWorkspaceFrame } from './EditorWorkspaceFrame'
+import { createToolbarQueryRevisions } from '../toolbar/toolbarQueryRevisions'
+import { EditorShellProvider } from './EditorShellContext'
+import { EditorWorkspaceHost, type EditorWorkspaceHandlers } from './EditorWorkspaceHost'
+import type { EditorDocumentBridgeRef } from './editorDocumentBridgeTypes'
 
 const PAGE_ZOOM_MEASURE_EPSILON = 0.005
 
@@ -430,7 +404,7 @@ export function Editor({
     },
     [hydrateExportHtml],
   )
-  const [storageHtml, setStorageHtml] = useState(() => {
+  const [storageHtmlInitial] = useState(() => {
     if (optimizeEmbeddedImages && value !== undefined && !enableMultiPages) {
       const raw = sanitizeHtml ? sanitizeDocumentHtml(value) : value
       if (imageRegistryRef.current) {
@@ -440,12 +414,6 @@ export function Editor({
     }
     return initialHtml
   })
-  const [html, setHtml] = useControllableState({
-    value: optimizeEmbeddedImages ? undefined : controlledHtml,
-    defaultValue: initialHtml,
-    onChange: enableMultiPages ? undefined : optimizeEmbeddedImages ? undefined : onChange,
-  })
-  const editorHtml = optimizeEmbeddedImages ? storageHtml : html
   const [mode, setMode] = useControllableState<EditorMode>({
     value: modeProp,
     defaultValue: defaultMode,
@@ -501,20 +469,24 @@ export function Editor({
   const pageStore = usePageStore({
     enabled: enableMultiPages,
     pagesProp: ingestedPagesProp,
-    defaultPages: storedInitialPagesRef.current,
+    defaultPages: storedInitialPagesRef.current ?? [emptyPageHtml()],
   })
+  const documentBridgeRef = useRef<EditorDocumentBridgeRef['current']>(null)
+  const shellApiRef = useRef<Record<string, unknown>>({})
+  const workspaceHandlersRef = useRef<EditorWorkspaceHandlers>(null!)
   const [activePageIndex, setActivePageIndex] = useState(0)
-  const [htmlModePageHtml, setHtmlModePageHtml] = useState(() =>
-    enableMultiPages ? (storedInitialPagesRef.current?.[0] ?? '') : '',
-  )
   const activePageIndexRef = useRef(activePageIndex)
   activePageIndexRef.current = activePageIndex
-  const htmlModePageHtmlRef = useRef(htmlModePageHtml)
-  htmlModePageHtmlRef.current = htmlModePageHtml
+  const htmlModePageHtmlRef = useRef(
+    enableMultiPages ? (storedInitialPagesRef.current?.[0] ?? '') : '',
+  )
   const [hasSelectedPage, setHasSelectedPage] = useState(false)
   const hasSelectedPageRef = useRef(hasSelectedPage)
   hasSelectedPageRef.current = hasSelectedPage
   const [historyRevision, setHistoryRevision] = useState(0)
+  const historyCanUndoRef = useRef(false)
+  const historyCanRedoRef = useRef(false)
+  const toolbarQueryRevisions = useMemo(() => createToolbarQueryRevisions(), [])
   const historyRef = useRef<DocumentHistory | MultiPageHistory | null>(null)
   if (historyRef.current === null) {
     historyRef.current = enableMultiPages
@@ -522,16 +494,23 @@ export function Editor({
       : createDocumentHistory(externalizeStorageHtml(initialHtml))
   }
   const history = historyRef.current
-  const htmlRef = useRef(optimizeEmbeddedImages ? initialHtml : html)
-  if (!optimizeEmbeddedImagesRef.current) {
-    htmlRef.current = html
-  } else if (!enableMultiPagesRef.current) {
-    htmlRef.current = storageHtml
-  }
-  const pagesRef = useRef(pageStore.pages)
+  const bumpHistoryChromeIfNeeded = useCallback(() => {
+    const canUndo = history.canUndo()
+    const canRedo = history.canRedo()
+    if (canUndo === historyCanUndoRef.current && canRedo === historyCanRedoRef.current) {
+      return
+    }
+    historyCanUndoRef.current = canUndo
+    historyCanRedoRef.current = canRedo
+    setHistoryRevision((revision) => revision + 1)
+  }, [history])
+  const htmlRef = useRef(initialHtml)
+  const pagesRef = useRef<string[]>(storedInitialPagesRef.current ?? [emptyPageHtml()])
   if (enableMultiPages) {
     pagesRef.current = pageStore.pages
   }
+  const activePageHtmlRef = useRef('')
+  const pageCanvasSizedRef = useRef(false)
   const documentDirtyRef = useRef(true)
   const autoSaveSnapshotRef = useRef('')
   const selectionRefreshRafRef = useRef<number | null>(null)
@@ -829,17 +808,6 @@ export function Editor({
   const fontFaces = useMemo(() => mergeFontFaces(customFonts), [customFonts])
   const fontFacesRef = useRef(fontFaces)
   fontFacesRef.current = fontFaces
-  const previewFontKey = useMemo(() => {
-    if (enableMultiPages) {
-      const page = pageStore.pages[activePageIndex] ?? pageStore.pages[0] ?? ''
-      return collectPreviewFontStylesheets(page, fontFaces).join('\n')
-    }
-    return collectPreviewFontStylesheets(editorHtml, fontFaces).join('\n')
-  }, [enableMultiPages, pageStore.pages, pageStore.revision, activePageIndex, editorHtml, fontFaces])
-  const visualPageBodies = useVisualPageBodies(
-    enableMultiPages ? pageStore.pages : [],
-    enableMultiPages ? pageStore.revision : 0,
-  )
   const getActiveVisualRoot = useCallback((): HTMLElement | null => {
     if (enableMultiPagesRef.current) {
       const surface = multiPageVisualRef.current?.getActivePageRoot()
@@ -853,22 +821,7 @@ export function Editor({
     if (surface instanceof HTMLDivElement) {
       visualRootRef.current = surface
     }
-  }, [enableMultiPages, activePageIndex, visualPageBodies.length])
-  const activePageHtml = useMemo(() => {
-    if (enableMultiPages) {
-      const rulerContextIndex = hasSelectedPage ? activePageIndex : 0
-      return visualPageBodies[rulerContextIndex] ?? ''
-    }
-    return extractFontStylesheets(editorHtml).body
-  }, [enableMultiPages, visualPageBodies, activePageIndex, hasSelectedPage, editorHtml])
-  const pageCanvasSized = useMemo(
-    () => isPageCanvasSized(queryPageAtRule(activePageHtml)),
-    [activePageHtml],
-  )
-  const activePageHtmlRef = useRef(activePageHtml)
-  activePageHtmlRef.current = activePageHtml
-  const pageCanvasSizedRef = useRef(pageCanvasSized)
-  pageCanvasSizedRef.current = pageCanvasSized
+  }, [enableMultiPages, activePageIndex])
   const measurePageZoomRef = useRef<() => void>(() => {})
   const measuringPageZoomRef = useRef(false)
 
@@ -929,22 +882,7 @@ export function Editor({
     const surface = getActiveVisualRoot()
     if (!surface || surface !== document.activeElement) return
     normalizeCaretInPageShell(surface)
-  }, [mode, pageCanvasSized, activePageIndex, getActiveVisualRoot])
-
-  useEffect(() => {
-    const hrefs = previewFontKey ? previewFontKey.split('\n') : []
-    const links = hrefs.map((href) => {
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = href
-      link.setAttribute(FONT_STYLESHEET_ATTR, '')
-      document.head.append(link)
-      return link
-    })
-    return () => {
-      for (const link of links) link.remove()
-    }
-  }, [previewFontKey])
+  }, [mode, activePageIndex, getActiveVisualRoot])
 
   const reloadCustomStyles = useCallback(async () => {
     const load = loadCustomParagraphStylesRef.current
@@ -1079,31 +1017,18 @@ export function Editor({
     const workspace = workspaceRef.current
     if (!workspace || typeof ResizeObserver === 'undefined') return
 
-    let rafId: number | null = null
+    const scheduler = createPageZoomMeasureScheduler(() => {
+      measurePageZoomRef.current()
+    })
     const observer = new ResizeObserver(() => {
-      if (rafId !== null) return
-      rafId = window.requestAnimationFrame(() => {
-        rafId = null
-        measurePageZoomRef.current()
-      })
+      scheduler.schedule()
     })
     observer.observe(workspace)
     return () => {
       observer.disconnect()
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId)
-        rafId = null
-      }
+      scheduler.cancel()
     }
-  }, [
-    mode,
-    editorHtml,
-    activePageIndex,
-    visualPageBodies,
-    pageZoom,
-    pageCanvasSized,
-    enableMultiPages,
-  ])
+  }, [mode, activePageIndex, pageZoom, enableMultiPages])
 
   const persistToolbarPosition = useCallback(async (next: ToolbarPosition) => {
     setToolbarPos(next)
@@ -1164,11 +1089,18 @@ export function Editor({
       if (stored !== htmlRef.current) {
         documentDirtyRef.current = true
       }
+      const bridge = documentBridgeRef.current
       if (enableMultiPagesRef.current) {
-        const result = pageStore.replacePages(splitPagesFromHtml(stored))
+        const pageStoreHandle = pageStore
+        if (!pageStoreHandle) {
+          htmlRef.current = stored
+          return { stored, stateUpdated: false }
+        }
+        const result = pageStoreHandle.replacePages(splitPagesFromHtml(stored))
         htmlRef.current = result.joined
+        pagesRef.current = result.pages
         if (modeRef.current === 'html' && !optimizeEmbeddedImagesRef.current) {
-          setHtml(stored)
+          bridge?.setHtml(stored)
         }
         onPagesChangeRef.current?.(
           hydrateExportPages(result.pages),
@@ -1177,15 +1109,16 @@ export function Editor({
         return { stored, stateUpdated: true }
       }
       if (optimizeEmbeddedImagesRef.current) {
-        setStorageHtml(stored)
         htmlRef.current = stored
+        bridge?.setStorageHtml(stored)
         notifyHtmlChange(stored)
         return { stored, stateUpdated: true }
       }
-      setHtml(stored)
+      htmlRef.current = stored
+      bridge?.setHtml(stored)
       return { stored, stateUpdated: true }
     },
-    [externalizeStorageHtml, hydrateExportHtml, hydrateExportPages, notifyHtmlChange, pageStore, setHtml],
+    [externalizeStorageHtml, hydrateExportHtml, hydrateExportPages, notifyHtmlChange],
   )
 
   const commitPages = useCallback(
@@ -1196,7 +1129,9 @@ export function Editor({
       options?: { skipHistory?: boolean },
     ) => {
       const storedPages = nextPages.map((page) => externalizeStorageHtml(page))
-      const result = pageStore.setPages(storedPages, { editedIndex })
+      const pageStoreHandle = pageStore
+      if (!pageStoreHandle) return joinPagesToHtml(storedPages)
+      const result = pageStoreHandle.setPages(storedPages, { editedIndex })
       if (!result.changed) {
         return result.joined
       }
@@ -1208,7 +1143,7 @@ export function Editor({
         modeRef.current === 'html' &&
         !optimizeEmbeddedImagesRef.current
       ) {
-        setHtml(result.joined)
+        documentBridgeRef.current?.setHtml(result.joined)
       }
       onPagesChangeRef.current?.(
         hydrateExportPages(result.pages),
@@ -1227,9 +1162,10 @@ export function Editor({
           history.recordReplaceAll(pages)
         }
       }
+      bumpHistoryChromeIfNeeded()
       return result.joined
     },
-    [externalizeStorageHtml, hydrateExportPages, history, pageStore, setHtml],
+    [bumpHistoryChromeIfNeeded, externalizeStorageHtml, hydrateExportPages, history, pageStore],
   )
 
   const syncVisualDocumentFromStorage = useCallback(
@@ -1279,9 +1215,10 @@ export function Editor({
       } else {
         history.record(stored, { coalesce })
       }
+      bumpHistoryChromeIfNeeded()
       return stored
     },
-    [commitHtml, history, syncVisualDocumentFromStorage],
+    [bumpHistoryChromeIfNeeded, commitHtml, history, syncVisualDocumentFromStorage],
   )
 
   const onHtmlFileDrop = useCallback(
@@ -1309,7 +1246,9 @@ export function Editor({
       return recordHtml(
         prependFontStylesheets(
           body,
-          collectDocumentFontStylesheets(body, htmlRef.current, fontFacesRef.current),
+          collectDocumentFontStylesheets(body, htmlRef.current, fontFacesRef.current, {
+            liveRoot: visualRootRef.current ?? undefined,
+          }),
         ),
         coalesce,
       )
@@ -1342,21 +1281,29 @@ export function Editor({
     [],
   )
 
-  const serializePageBody = useCallback((body: string, previousPageHtml: string) => {
-    return prependFontStylesheets(
-      body,
-      collectDocumentFontStylesheets(body, previousPageHtml, fontFacesRef.current),
-    )
-  }, [])
+  const serializePageBody = useCallback(
+    (body: string, previousPageHtml: string, liveRoot?: HTMLElement) => {
+      return prependFontStylesheets(
+        body,
+        collectDocumentFontStylesheets(body, previousPageHtml, fontFacesRef.current, {
+          liveRoot,
+        }),
+      )
+    },
+    [],
+  )
 
   const flushMultiPageHtml = useCallback(
     (options?: { allPages?: boolean }) => {
       const multi = multiPageVisualRef.current
       const container = multi?.getContainer()
-      const currentPages = pagesRef.current
+      const currentPages = pageStore.pages.length > 0 ? pageStore.pages : pagesRef.current
       if (!container) return [...currentPages]
 
-      const dirty = pageStore.dirtyPagesRef.current
+      const pageStoreHandle = pageStore
+      if (!pageStoreHandle) return [...currentPages]
+
+      const dirty = pageStoreHandle.dirtyPagesRef.current
       const flushAll = options?.allPages === true
       const active = activePageIndexRef.current
 
@@ -1367,7 +1314,8 @@ export function Editor({
         const flushed = multi.flushPageHtml(index)
         if (flushed === null) return previous
         const body = preservePageAtRuleInBody(flushed, extractFontStylesheets(previous).body)
-        const serialized = serializePageBody(body, previous)
+        const surface = queryPageSurface(container, index)
+        const serialized = serializePageBody(body, previous, surface ?? undefined)
         if (serialized !== previous) changed = true
         return serialized
       })
@@ -1376,11 +1324,11 @@ export function Editor({
         const storedPages = optimizeEmbeddedImagesRef.current
           ? nextPages.map((page) => externalizeStorageHtml(page))
           : nextPages
-        const result = pageStore.setPages(storedPages)
+        const result = pageStoreHandle.setPages(storedPages)
         htmlRef.current = result.joined
       }
-      pageStore.markPagesClean()
-      const resultPages = changed ? pageStore.pages : currentPages
+      pageStoreHandle.markPagesClean()
+      const resultPages = changed ? pageStoreHandle.pages : currentPages
       return optimizeEmbeddedImagesRef.current
         ? resultPages.map((page) => externalizeStorageHtml(page))
         : [...resultPages]
@@ -1630,6 +1578,7 @@ export function Editor({
     (pages: readonly string[]) => {
       const result = pageStore.replacePages([...pages])
       htmlRef.current = result.joined
+      pagesRef.current = result.pages
       documentDirtyRef.current = true
       onPagesChangeRef.current?.(
         hydrateExportPages(result.pages),
@@ -1645,7 +1594,7 @@ export function Editor({
         modeRef.current === 'html' &&
         !optimizeEmbeddedImagesRef.current
       ) {
-        setHtml(result.joined)
+        documentBridgeRef.current?.setHtml(result.joined)
       }
       visualPropSyncGuardRef.current?.()
       syncVisualDocumentFromStorage(result.joined)
@@ -1653,8 +1602,23 @@ export function Editor({
         history.applyPresent(result.pages)
       }
     },
-    [hydrateExportPages, history, pageStore, setHtml, syncVisualDocumentFromStorage],
+    [hydrateExportPages, history, pageStore, syncVisualDocumentFromStorage],
   )
+
+  const syncSelectedImageFromSelection = useCallback(() => {
+    if (modeRef.current !== 'visual' || contentLocked) {
+      setSelectedImage(null)
+      return
+    }
+    const root = visualRootRef.current
+    if (!root) return
+    const live = imageAtSelection(root)
+    setSelectedImage((prev) => {
+      if (live) return live
+      if (prev && prev.isConnected && root.contains(prev)) return prev
+      return null
+    })
+  }, [contentLocked])
 
   const undo = useCallback(() => {
     if (isMultiPageHistory(history)) {
@@ -1662,15 +1626,18 @@ export function Editor({
       if (next === null) return
       history.markApplying()
       applyPagesFromHistory(next)
-      setHistoryRevision((revision) => revision + 1)
+      bumpHistoryChromeIfNeeded()
       return
     }
     const next = history.undo()
     if (next === null) return
     history.markApplying()
     commitHtml(next, { fullReplace: true })
-    setHistoryRevision((revision) => revision + 1)
-  }, [applyPagesFromHistory, commitHtml, history])
+    syncVisualDocumentFromStorage(next)
+    history.finishApplying()
+    syncSelectedImageFromSelection()
+    bumpHistoryChromeIfNeeded()
+  }, [applyPagesFromHistory, bumpHistoryChromeIfNeeded, commitHtml, history, syncSelectedImageFromSelection, syncVisualDocumentFromStorage])
 
   const redo = useCallback(() => {
     if (isMultiPageHistory(history)) {
@@ -1678,31 +1645,34 @@ export function Editor({
       if (next === null) return
       history.markApplying()
       applyPagesFromHistory(next)
-      setHistoryRevision((revision) => revision + 1)
+      bumpHistoryChromeIfNeeded()
       return
     }
     const next = history.redo()
     if (next === null) return
     history.markApplying()
     commitHtml(next, { fullReplace: true })
-    setHistoryRevision((revision) => revision + 1)
-  }, [applyPagesFromHistory, commitHtml, history])
+    syncVisualDocumentFromStorage(next)
+    history.finishApplying()
+    syncSelectedImageFromSelection()
+    bumpHistoryChromeIfNeeded()
+  }, [applyPagesFromHistory, bumpHistoryChromeIfNeeded, commitHtml, history, syncSelectedImageFromSelection, syncVisualDocumentFromStorage])
 
   useEffect(() => {
     if (enableMultiPages) {
       if (isMultiPageHistory(history)) {
         if (pagesProp !== undefined && !optimizeEmbeddedImages) {
-          history.syncPages(pageStore.pages)
+          history.syncPages(pagesRef.current)
         } else {
-          history.applyPresent(pageStore.pages)
+          history.applyPresent(pagesRef.current)
         }
       }
       return
     }
     if (!isMultiPageHistory(history)) {
-      history.syncExternal(optimizeEmbeddedImages ? storageHtml : html)
+      history.syncExternal(htmlRef.current)
     }
-  }, [enableMultiPages, optimizeEmbeddedImages, pageStore.pages, pageStore.revision, html, storageHtml, history, pagesProp])
+  }, [enableMultiPages, optimizeEmbeddedImages, history, pagesProp])
 
   const captureSelection = useCallback(() => {
     selectionRef.current = snapshotSelection({
@@ -1872,10 +1842,6 @@ export function Editor({
   }, [])
 
   useEffect(() => {
-    documentDirtyRef.current = true
-  }, [editorHtml])
-
-  useEffect(() => {
     if (mode === 'visual') {
       refreshMarkState()
       return
@@ -1942,7 +1908,6 @@ export function Editor({
       setActivePageIndex(index)
       const pageHtml = pagesRef.current[index] ?? ''
       htmlModePageHtmlRef.current = pageHtml
-      setHtmlModePageHtml(pageHtml)
     },
     [recordPageHtmlSource],
   )
@@ -1953,10 +1918,8 @@ export function Editor({
         if (optimizeEmbeddedImagesRef.current) {
           const stored = externalizeStorageHtml(next)
           htmlModePageHtmlRef.current = stored
-          setHtmlModePageHtml(stored)
         } else {
           htmlModePageHtmlRef.current = next
-          setHtmlModePageHtml(next)
         }
         recordPageHtmlSource(activePageIndexRef.current, next, true)
         return
@@ -1974,7 +1937,6 @@ export function Editor({
           const index = activePageIndexRef.current
           const pageHtml = pages[index] ?? pages[0] ?? ''
           htmlModePageHtmlRef.current = pageHtml
-          setHtmlModePageHtml(pageHtml)
           htmlRef.current = joinPagesToHtml(pages)
         } else if (visualRootRef.current) {
           const flushed = preservePageAtRuleInBody(
@@ -1983,12 +1945,14 @@ export function Editor({
           )
           const serialized = prependFontStylesheets(
             flushed,
-            collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
+            collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current, {
+              liveRoot: visualRootRef.current ?? undefined,
+            }),
           )
           if (optimizeEmbeddedImagesRef.current) {
             const stored = externalizeStorageHtml(serialized)
             const previous = htmlRef.current
-            setStorageHtml(stored)
+            documentBridgeRef.current?.setStorageHtml(stored)
             htmlRef.current = stored
             if (stored !== previous) {
               documentDirtyRef.current = true
@@ -2011,14 +1975,6 @@ export function Editor({
     },
     [externalizeStorageHtml, history, recordHtml, recordPageHtmlSource, setMode, flushMultiPageHtml],
   )
-
-  useEffect(() => {
-    if (!enableMultiPages || mode !== 'html') return
-    const pageHtml = pageStore.pages[activePageIndex] ?? ''
-    if (pageHtml === htmlModePageHtmlRef.current) return
-    htmlModePageHtmlRef.current = pageHtml
-    setHtmlModePageHtml(pageHtml)
-  }, [enableMultiPages, mode, pageStore.pages, pageStore.revision, activePageIndex])
 
   useEffect(() => {
     if (!fullscreen) return
@@ -2080,25 +2036,6 @@ export function Editor({
   }, [captureSelection, clearPendingMarksIfSelectionMoved, refreshMarkState, refreshTableState])
 
   useEffect(() => {
-    if (!enableComments || mode !== 'visual' || !commentsVisible) {
-      setActiveThreadId(null)
-    }
-  }, [enableComments, mode, commentsVisible])
-
-  useEffect(() => {
-    if (!activeThreadId) return
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node
-      if (commentPanelRef.current?.contains(target)) return
-      const root = visualRootRef.current
-      if (root && commentThreadElementAtPoint(root, target)) return
-      setActiveThreadId(null)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [activeThreadId])
-
-  useEffect(() => {
     if (mode !== 'html') return
     const el = htmlAreaRef.current
     if (!el) return
@@ -2112,21 +2049,6 @@ export function Editor({
       el.removeEventListener('mouseup', save)
     }
   }, [mode, captureSelection])
-
-  useLayoutEffect(() => {
-    if (mode !== 'visual' || contentLocked) {
-      setSelectedImage(null)
-      return
-    }
-    const root = visualRootRef.current
-    if (!root) return
-    const live = imageAtSelection(root)
-    setSelectedImage((prev) => {
-      if (live) return live
-      if (prev && prev.isConnected && root.contains(prev)) return prev
-      return null
-    })
-  }, [editorHtml, mode, contentLocked])
 
   const restoreVisualRange = useCallback((root: HTMLElement) => {
     const live = snapshotSelection({
@@ -2721,32 +2643,56 @@ export function Editor({
     refreshMarkState()
   }, [selectedImage, recordVisualHtml, captureSelection, refreshMarkState])
 
+  const serializeSinglePageVisualHtml = useCallback((): string => {
+    if (modeRef.current !== 'visual' || !visualRootRef.current) {
+      return htmlRef.current
+    }
+    const flushed = preservePageAtRuleInBody(
+      visualRootRef.current.innerHTML,
+      extractFontStylesheets(htmlRef.current).body,
+    )
+    return prependFontStylesheets(
+      flushed,
+      collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current, {
+        liveRoot: visualRootRef.current,
+      }),
+    )
+  }, [])
+
   const getDocumentHtml = useCallback(() => {
     if (enableMultiPagesRef.current) {
       const joined = joinPagesToHtml(getAllPagesHtml())
       htmlRef.current = joined
       return hydrateExportHtml(joined)
     }
-    if (!documentDirtyRef.current) {
-      return hydrateExportHtml(htmlRef.current)
-    }
-    if (modeRef.current === 'visual' && visualRootRef.current) {
-      const flushed = preservePageAtRuleInBody(
-        visualRootRef.current.innerHTML,
-        extractFontStylesheets(htmlRef.current).body,
-      )
-      const serialized = prependFontStylesheets(
-        flushed,
-        collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
-      )
+    if (documentDirtyRef.current) {
+      const serialized =
+        modeRef.current === 'visual' ? serializeSinglePageVisualHtml() : htmlRef.current
       if (serialized !== htmlRef.current) {
-        return hydrateExportHtml(recordHtml(serialized, true))
+        htmlRef.current = serialized
       }
     }
     return hydrateExportHtml(htmlRef.current)
-  }, [getAllPagesHtml, hydrateExportHtml, recordHtml])
+  }, [getAllPagesHtml, hydrateExportHtml, serializeSinglePageVisualHtml])
 
   const autoSaveRevisionRef = useRef(-1)
+
+  const readAutoSaveSinglePageSnapshot = useCallback((): string => {
+    if (!documentDirtyRef.current && autoSaveSnapshotRef.current) {
+      return autoSaveSnapshotRef.current
+    }
+    const snapshot = documentDirtyRef.current
+      ? modeRef.current === 'visual'
+        ? serializeSinglePageVisualHtml()
+        : htmlRef.current
+      : htmlRef.current
+    if (snapshot !== htmlRef.current) {
+      htmlRef.current = snapshot
+    }
+    autoSaveSnapshotRef.current = snapshot
+    documentDirtyRef.current = false
+    return snapshot
+  }, [serializeSinglePageVisualHtml])
 
   const readAutoSaveMultiPageSnapshot = useCallback((): string => {
     if (!documentDirtyRef.current && autoSaveSnapshotRef.current) {
@@ -2764,8 +2710,8 @@ export function Editor({
     if (enableMultiPagesRef.current) {
       return readAutoSaveMultiPageSnapshot()
     }
-    return getDocumentHtml()
-  }, [getDocumentHtml, readAutoSaveMultiPageSnapshot])
+    return readAutoSaveSinglePageSnapshot()
+  }, [readAutoSaveMultiPageSnapshot, readAutoSaveSinglePageSnapshot])
 
   useAutoSave({
     onAutoSave: onAutoSave
@@ -2789,7 +2735,7 @@ export function Editor({
   useEffect(() => {
     if (!optimizeEmbeddedImages || value === undefined || enableMultiPages) return
     const stored = externalizeStorageHtml(value)
-    setStorageHtml(stored)
+    documentBridgeRef.current?.setStorageHtml(stored)
     htmlRef.current = stored
     if (!isMultiPageHistory(history)) {
       history.syncExternal(stored)
@@ -2802,13 +2748,13 @@ export function Editor({
     if (pagesArraysEqual(storedPages, pagesRef.current)) return
     const result = pageStore.replacePages(storedPages)
     htmlRef.current = result.joined
+    pagesRef.current = result.pages
     if (isMultiPageHistory(history)) {
       history.syncPages(result.pages)
     }
     if (modeRef.current === 'html') {
       const pageHtml = result.pages[activePageIndexRef.current] ?? ''
       htmlModePageHtmlRef.current = pageHtml
-      setHtmlModePageHtml(pageHtml)
     }
   }, [enableMultiPages, externalizeStorageHtml, history, optimizeEmbeddedImages, pageStore, pagesProp])
 
@@ -3570,11 +3516,6 @@ export function Editor({
     [chromeDisabled, readOnly, enableComments],
   )
 
-  const activeCommentThread = useMemo(
-    () => (activeThreadId ? findCommentThread(commentThreads, activeThreadId) : null),
-    [activeThreadId, commentThreads],
-  )
-
   const postCommentMessage = useCallback(
     (message: string) => {
       if (!activeThreadId || !commentAuthor || disabled) return
@@ -3593,8 +3534,48 @@ export function Editor({
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
-    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos, pageZoom, hasSelectedPage, historyRevision],
+    [commandContext, markState, fontSizeState, fontFamilyState, fontColorState, highlightColorState, paragraphStyleState, customStyles, customStylesLoading, customParagraphStylesEnabled, fontFaces, selectedImage, inTable, canMergeCells, canUnmergeCells, hasTextSelectionState, formatBrushActiveState, dark, toolbarPos, pageZoom, hasSelectedPage, historyRevision, fullscreen],
   )
+
+  useLayoutEffect(() => {
+    toolbarQueryRevisions.bump('history')
+  }, [historyRevision, toolbarQueryRevisions])
+
+  useLayoutEffect(() => {
+    toolbarQueryRevisions.bump('marks')
+  }, [
+    markState,
+    fontSizeState,
+    fontFamilyState,
+    fontColorState,
+    highlightColorState,
+    paragraphStyleState,
+    formatBrushActiveState,
+    toolbarQueryRevisions,
+  ])
+
+  useLayoutEffect(() => {
+    toolbarQueryRevisions.bump('table')
+  }, [inTable, canMergeCells, canUnmergeCells, toolbarQueryRevisions])
+
+  useLayoutEffect(() => {
+    toolbarQueryRevisions.bump('selection')
+  }, [hasTextSelectionState, selectedImage, toolbarQueryRevisions])
+
+  useLayoutEffect(() => {
+    toolbarQueryRevisions.bump('chrome')
+  }, [
+    dark,
+    toolbarPos,
+    pageZoom,
+    hasSelectedPage,
+    fullscreen,
+    customStyles,
+    customStylesLoading,
+    customParagraphStylesEnabled,
+    fontFaces,
+    toolbarQueryRevisions,
+  ])
 
   const handleVisualBeforeInput = useCallback(
     (event: InputEvent) => {
@@ -3738,14 +3719,6 @@ export function Editor({
     [disabled, contentLocked, captureSelection],
   )
 
-  useEffect(() => {
-    if (!enableComments || mode !== 'visual') return
-    const root = visualRootRef.current
-    if (!root) return
-    syncCommentAnchorsToDom(root, commentThreads)
-    setCommentHighlightsVisible(root, commentsVisible)
-  }, [enableComments, mode, commentThreads, commentsVisible, editorHtml])
-
   const handleHistoryKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
       if (contentLocked) return
@@ -3836,510 +3809,323 @@ export function Editor({
     border,
   })
   const themeAttr = chromeThemeProps(dark)['data-wysiwyg-theme']
-  const showRulerChrome = mode === 'visual' && rulerVisible && pageCanvasSized
-  const visualSurface = mode === 'visual' ? (
-    enableMultiPages ? (
-      <MultiPageVisualSurface
-        ref={multiPageVisualRef}
-        pages={visualPageBodies}
-        activePageIndex={activePageIndex}
-        hasSelectedPage={hasSelectedPage}
-        scrollRootRef={workspaceRef}
-        suppressPageFlushRef={suppressPageFlushRef}
-        onActivePageIndexChange={(index) => {
-          activePageIndexRef.current = index
-          setActivePageIndex(index)
-          const container = multiPageVisualRef.current?.getContainer()
-          const surface = container ? queryPageSurface(container, index) : null
-          if (surface instanceof HTMLDivElement) {
-            visualRootRef.current = surface
-          }
-        }}
-        onPageSelected={() => {
-          setHasSelectedPage(true)
-        }}
-        onPageChange={(index, next) => {
-          const previous = pagesRef.current[index] ?? ''
-          recordPageVisualHtml(
-            index,
-            preservePageAtRuleInBody(next, extractFontStylesheets(previous).body),
-            true,
-          )
-        }}
-        onPageFlush={(index, next) => {
-          const previous = pagesRef.current[index] ?? ''
-          recordPageVisualHtml(
-            index,
-            preservePageAtRuleInBody(next, extractFontStylesheets(previous).body),
-            false,
-          )
-        }}
-        onBeforeInput={handleVisualBeforeInput}
-        onPointerDown={(event) => {
-          if (event.currentTarget instanceof HTMLDivElement) {
-            visualRootRef.current = event.currentTarget
-          }
-          handleVisualPointerDown(event)
-          if (event.currentTarget instanceof HTMLDivElement) {
-            const surface = event.currentTarget
-            requestAnimationFrame(() => normalizeCaretInPageShell(surface))
-          }
-        }}
-        onMouseUp={handleVisualMouseUp}
-        onContextMenu={handleVisualContextMenu}
-        placeholder={placeholder}
-        disabled={contentLocked}
-        rulerVisible={rulerVisible}
-        rulerUnit={rulerUnit}
-        zoomScale={pageZoomScale}
-        onMarginPreview={multiPageRulerMarginPreview}
-        onMarginChange={multiPageRulerMarginChange}
-        onIndentChange={multiPageRulerIndentChange}
-        resolveEmbeddedImageDataUrl={
-          optimizeEmbeddedImages ? resolveEmbeddedImageDataUrl : undefined
-        }
-        hydrateEmbeddedImages={optimizeEmbeddedImages ? hydrateExportHtml : undefined}
-      />
-    ) : (
-      <VisualSurface
-        ref={visualRootRef}
-        html={extractFontStylesheets(editorHtml).body}
-        pageHtml={editorHtml}
-        rulerVisible={rulerVisible}
-        rulerUnit={rulerUnit}
-        zoomScale={pageZoomScale}
-        propSyncGuardRef={visualPropSyncGuardRef}
-        resolveEmbeddedImageDataUrl={
-          optimizeEmbeddedImages ? resolveEmbeddedImageDataUrl : undefined
-        }
-        hydrateEmbeddedImages={optimizeEmbeddedImages ? hydrateExportHtml : undefined}
-        onMarginPreview={singlePageRulerMarginPreview}
-        onMarginChange={singlePageRulerMarginChange}
-        onIndentChange={singlePageRulerIndentChange}
-        onChange={(next) => recordVisualInputHtml(next, true)}
-        onBeforeInput={handleVisualBeforeInput}
-        onPointerDown={(event) => {
-          handleVisualPointerDown(event)
-          if (event.currentTarget instanceof HTMLDivElement) {
-            const surface = event.currentTarget
-            requestAnimationFrame(() => normalizeCaretInPageShell(surface))
-          }
-        }}
-        onMouseUp={handleVisualMouseUp}
-        onContextMenu={handleVisualContextMenu}
-        placeholder={placeholder}
-        disabled={contentLocked}
-      />
-    )
-  ) : (
-    <div className={styles.htmlModeShell}>
-      {enableMultiPages && pageStore.pages.length > 1 ? (
-        <HtmlPageTabs
-          pageCount={pageStore.pages.length}
-          activeIndex={activePageIndex}
-          onSelect={handleHtmlPageTabSelect}
-        />
-      ) : null}
-      <HtmlSurface
-        ref={htmlAreaRef}
-        html={enableMultiPages ? htmlModePageHtml : editorHtml}
-        onChange={handleHtmlSurfaceChange}
-        placeholder={placeholder}
-        disabled={contentLocked}
-      />
-    </div>
+
+  workspaceHandlersRef.current = {
+    multiPageVisualRef,
+    workspaceRef,
+    suppressPageFlushRef,
+    visualRootRef,
+    visualPropSyncGuardRef,
+    htmlAreaRef,
+    commentPanelRef,
+    activePageIndexRef,
+    htmlModePageHtmlRef,
+    activePageHtmlRef,
+    pageCanvasSizedRef,
+    setActivePageIndex,
+    setHasSelectedPage,
+    setActiveThreadId,
+    setContextMenu,
+    recordVisualInputHtml,
+    recordPageVisualHtml,
+    handleVisualBeforeInput,
+    handleVisualPointerDown,
+    handleVisualMouseUp,
+    handleVisualContextMenu,
+    handleHtmlPageTabSelect,
+    handleHtmlSurfaceChange,
+    handleImageResize,
+    handleImageResizeEnd,
+    multiPageRulerMarginPreview,
+    multiPageRulerMarginChange,
+    multiPageRulerIndentChange,
+    singlePageRulerMarginPreview,
+    singlePageRulerMarginChange,
+    singlePageRulerIndentChange,
+    resolveEmbeddedImageDataUrl: optimizeEmbeddedImages ? resolveEmbeddedImageDataUrl : undefined,
+    hydrateExportHtml,
+    postCommentMessage,
+    htmlFileDrop,
+  }
+
+  const toolbarShellProps = useMemo(
+    () => ({
+      catalog: displayCatalog,
+      layout: displayLayout,
+      commands,
+      queries,
+      queryRevisions: toolbarQueryRevisions,
+      disabled: chromeDisabled,
+      chromeLock,
+    }),
+    [
+      chromeDisabled,
+      chromeLock,
+      commands,
+      displayCatalog,
+      displayLayout,
+      queries,
+      toolbarQueryRevisions,
+    ],
+  )
+
+  const shellContextValue = useMemo(
+    () => ({ documentBridgeRef, htmlRef, pagesRef, shellRef: shellApiRef }),
+    [],
   )
 
   return (
     <LocaleProvider locale={locale}>
       <ChromeThemeProvider dark={dark}>
-      <div
-        className={rootClassName}
-        style={rootStyle}
-        data-fullscreen={fullscreen ? '' : undefined}
-        data-wysiwyg-theme={themeAttr}
-        data-toolbar-position={toolbarPos}
-        data-comments-visible={enableComments && commentsVisible ? '' : undefined}
-        onKeyDown={handleRootKeyDown}
-      >
-        {menuVisible ? (
-          <div className={styles.menuChrome} onPointerDownCapture={captureChromeSelection}>
-            <EditorToolbar
-              catalog={displayCatalog}
-              layout={displayLayout}
+        <EditorShellProvider value={shellContextValue}>
+          <div
+            className={rootClassName}
+            style={rootStyle}
+            data-fullscreen={fullscreen ? '' : undefined}
+            data-wysiwyg-theme={themeAttr}
+            data-toolbar-position={toolbarPos}
+            data-comments-visible={enableComments && commentsVisible ? '' : undefined}
+            onKeyDown={handleRootKeyDown}
+          >
+            <EditorChrome
+              menuVisible={menuVisible}
+              captureChromeSelection={captureChromeSelection}
+              displayCatalog={displayCatalog}
+              displayLayout={displayLayout}
               commands={commands}
               queries={queries}
-              disabled={chromeDisabled}
+              queryRevisions={toolbarQueryRevisions}
+              chromeDisabled={chromeDisabled}
               chromeLock={chromeLock}
-              menuVisible
-              toolbarVisible={false}
-            />
-          </div>
-        ) : null}
-        <div
-          className={styles.body}
-          data-icon-dock={toolbarVisible ? toolbarPos : undefined}
-        >
-          {toolbarVisible && (toolbarPos === 'top' || toolbarPos === 'left') ? (
-            <div className={styles.iconChrome} onPointerDownCapture={captureChromeSelection}>
-              <EditorToolbar
-                catalog={displayCatalog}
-                layout={displayLayout}
-                commands={commands}
-                queries={queries}
-                disabled={chromeDisabled}
-                chromeLock={chromeLock}
-                menuVisible={false}
-                toolbarVisible
-                position={toolbarPos}
-              />
-            </div>
-          ) : null}
-          <div
-            ref={workspaceRef}
-            className={`${styles.workspace} ${pageCanvasSized ? styles.workspacePageSized : ''} ${showRulerChrome ? styles.workspaceWithRuler : ''}`}
-            onDragEnter={htmlFileDrop.onDragEnter}
-            onDragOver={htmlFileDrop.onDragOver}
-            onDragLeave={htmlFileDrop.onDragLeave}
-            onDrop={htmlFileDrop.onDrop}
-          >
-            {mode === 'visual' ? (
-              <div
-                className={styles.pageCanvasViewport}
-                data-page-canvas-sized={pageCanvasSized ? '' : undefined}
-              >
-                {visualSurface}
-              </div>
-            ) : (
-              visualSurface
-            )}
-            {htmlFileDrop.dragging ? <HtmlFileDropOverlay /> : null}
-          </div>
-          {toolbarVisible && (toolbarPos === 'bottom' || toolbarPos === 'right') ? (
-            <div className={styles.iconChrome} onPointerDownCapture={captureChromeSelection}>
-              <EditorToolbar
-                catalog={displayCatalog}
-                layout={displayLayout}
-                commands={commands}
-                queries={queries}
-                disabled={chromeDisabled}
-                chromeLock={chromeLock}
-                menuVisible={false}
-                toolbarVisible
-                position={toolbarPos}
-              />
-            </div>
-          ) : null}
-        </div>
-        {fullscreen ? <ExitFullscreenButton onClick={() => setFullscreen(false)} /> : null}
-        <CustomizeToolbarDialog
-          open={customizeToolbarOpen}
-          catalog={baseCatalog}
-          groups={allowedLayout.iconGroups}
-          settings={toolbarSettings}
-          loading={toolbarSettingsLoading}
-          busy={toolbarSettingsBusy}
-          disabled={contentLocked}
-          onChange={(next) => {
-            void persistToolbarSettings(next)
-          }}
-          onReset={() => {
-            void persistToolbarSettings(null)
-          }}
-          onClose={() => setCustomizeToolbarOpen(false)}
-        />
-        <DocumentPreviewDialog
-          open={documentPreview.open}
-          html={documentPreview.html}
-          onClose={() => setDocumentPreview({ open: false, html: documentPreview.html })}
-        />
-        <FontPropertiesDialog
-          open={fontDialog.open}
-          tab={fontDialog.tab}
-          size={fontSizeState.value}
-          unit={fontSizeState.unit}
-          marks={markState}
-          fontFamily={fontFamilyState.value}
-          fontFamilyMixed={fontFamilyState.mixed}
-          fontColor={fontColorState.value}
-          fontColorMixed={fontColorState.mixed}
-          highlightColor={highlightColorState.value}
-          highlightColorMixed={highlightColorState.mixed}
-          fonts={fontFaces}
-          disabled={contentLocked}
-          onTabChange={(tab) => setFontDialog({ open: true, tab })}
-          onApply={(draft) => commandContext.applyFontProperties(draft)}
-          onClose={() => setFontDialog({ open: false, tab: fontDialog.tab })}
-        />
-        <ParagraphPropertiesDialog
-          open={paragraphDialog.open}
-          tab={paragraphDialog.tab}
-          value={paragraphDialog.value}
-          backgroundImage={paragraphDialog.backgroundImage}
-          disabled={contentLocked}
-          customImagePicker={customImagePicker}
-          onCustomImagePick={() => {
-            customImagePicker?.onPick((image) => {
-              setParagraphDialog((prev) => ({
-                ...prev,
-                tab: 'backgroundImage',
-                backgroundImage: {
-                  ...prev.backgroundImage,
-                  src: image.src,
-                },
-              }))
-            })
-          }}
-          onTabChange={(tab) => setParagraphDialog({ ...paragraphDialog, open: true, tab })}
-          onApply={({ value, backgroundImage }) =>
-            commandContext.applyParagraphProperties(value, backgroundImage)
-          }
-          onClose={() => setParagraphDialog({ ...paragraphDialog, open: false })}
-        />
-        <CustomCssDialog
-          open={customCssDialog.open}
-          value={customCssDialog.value}
-          disabled={contentLocked}
-          onApply={(css) => commandContext.applyCustomCss(css)}
-          onClose={() => setCustomCssDialog((prev) => ({ ...prev, open: false }))}
-        />
-        <PagePropertiesDialog
-          open={pageDialog.open}
-          tab={pageDialog.tab}
-          initialParagraphTab={pageDialog.paragraphTab}
-          value={pageDialog.value}
-          fonts={fontFaces}
-          disabled={contentLocked}
-          printTabVisible={enablePageProperties}
-          customImagePicker={customImagePicker}
-          onCustomImagePick={() => {
-            customImagePicker?.onPick((image) => {
-              setPageDialog((prev) => ({
-                ...prev,
-                tab: 'paragraph',
-                paragraphTab: 'backgroundImage',
-                value: {
-                  ...prev.value,
-                  backgroundImage: {
-                    ...prev.value.backgroundImage,
-                    src: image.src,
+              contentLocked={contentLocked}
+              customizeToolbarOpen={customizeToolbarOpen}
+              baseCatalog={baseCatalog}
+              allowedLayout={allowedLayout}
+              toolbarSettings={toolbarSettings}
+              toolbarSettingsLoading={toolbarSettingsLoading}
+              toolbarSettingsBusy={toolbarSettingsBusy}
+              onCustomizeToolbarClose={() => setCustomizeToolbarOpen(false)}
+              onToolbarSettingsChange={(next) => {
+                void persistToolbarSettings(next)
+              }}
+              onToolbarSettingsReset={() => {
+                void persistToolbarSettings(null)
+              }}
+              documentPreview={documentPreview}
+              onDocumentPreviewClose={() =>
+                setDocumentPreview({ open: false, html: documentPreview.html })
+              }
+              fontDialog={fontDialog}
+              fontSizeState={fontSizeState}
+              markState={markState}
+              fontFamilyState={fontFamilyState}
+              fontColorState={fontColorState}
+              highlightColorState={highlightColorState}
+              fontFaces={fontFaces}
+              onFontDialogTabChange={(tab) => setFontDialog({ open: true, tab })}
+              onFontDialogClose={() => setFontDialog({ open: false, tab: fontDialog.tab })}
+              onApplyFontProperties={(draft) => commandContext.applyFontProperties(draft)}
+              paragraphDialog={paragraphDialog}
+              customImagePicker={customImagePicker}
+              onParagraphCustomImagePick={() => {
+                customImagePicker?.onPick((image) => {
+                  setParagraphDialog((prev) => ({
+                    ...prev,
+                    tab: 'backgroundImage',
+                    backgroundImage: {
+                      ...prev.backgroundImage,
+                      src: image.src,
+                    },
+                  }))
+                })
+              }}
+              onParagraphDialogTabChange={(tab) =>
+                setParagraphDialog({ ...paragraphDialog, open: true, tab })
+              }
+              onParagraphDialogClose={() =>
+                setParagraphDialog({ ...paragraphDialog, open: false })
+              }
+              onApplyParagraphProperties={({ value, backgroundImage }) =>
+                commandContext.applyParagraphProperties(value, backgroundImage)
+              }
+              customCssDialog={customCssDialog}
+              onCustomCssDialogClose={() =>
+                setCustomCssDialog((prev) => ({ ...prev, open: false }))
+              }
+              onApplyCustomCss={(css) => commandContext.applyCustomCss(css)}
+              pageDialog={pageDialog}
+              enablePageProperties={enablePageProperties}
+              onPageCustomImagePick={() => {
+                customImagePicker?.onPick((image) => {
+                  setPageDialog((prev) => ({
+                    ...prev,
+                    tab: 'paragraph',
+                    paragraphTab: 'backgroundImage',
+                    value: {
+                      ...prev.value,
+                      backgroundImage: {
+                        ...prev.value.backgroundImage,
+                        src: image.src,
+                      },
+                    },
+                  }))
+                })
+              }}
+              onPageDialogTabChange={(tab) => setPageDialog({ ...pageDialog, open: true, tab })}
+              onPageDialogClose={() => setPageDialog({ ...pageDialog, open: false })}
+              onApplyPageProperties={(draft) => commandContext.applyPageProperties(draft)}
+              onPageDialogResetAtRule={() => {
+                const root = getActiveVisualRoot()
+                if (!root || modeRef.current !== 'visual') return
+                const pageHtml = enableMultiPagesRef.current
+                  ? (pagesRef.current[activePageIndexRef.current] ?? '')
+                  : extractFontStylesheets(htmlRef.current).body
+                const result = resetPageAtRuleInDocument(root, pageHtml)
+                if (!result.changed) return
+                recordActivePageHtml(result.pageHtml, false)
+                setPageDialog((prev) => ({
+                  ...prev,
+                  value: {
+                    ...prev.value,
+                    atRule: emptyPageAtRuleApply(),
                   },
-                },
-              }))
-            })
-          }}
-          onTabChange={(tab) => setPageDialog({ ...pageDialog, open: true, tab })}
-          onApply={(draft) => commandContext.applyPageProperties(draft)}
-          onResetAtRule={() => {
-            const root = getActiveVisualRoot()
-            if (!root || modeRef.current !== 'visual') return
-            const pageHtml = enableMultiPagesRef.current
-              ? (pagesRef.current[activePageIndexRef.current] ?? '')
-              : extractFontStylesheets(htmlRef.current).body
-            const result = resetPageAtRuleInDocument(root, pageHtml)
-            if (!result.changed) return
-            recordActivePageHtml(result.pageHtml, false)
-            setPageDialog((prev) => ({
-              ...prev,
-              value: {
-                ...prev.value,
-                atRule: emptyPageAtRuleApply(),
-              },
-            }))
-          }}
-          onClose={() => setPageDialog({ ...pageDialog, open: false })}
-        />
-        <DeletePageConfirmDialog
-          open={deletePageConfirmOpen}
-          disabled={contentLocked}
-          onClose={() => setDeletePageConfirmOpen(false)}
-          onConfirm={() => {
-            runDeleteSelectedPage()
-            setDeletePageConfirmOpen(false)
-          }}
-        />
-        <CustomParagraphStyleDialog
-          open={customStyleDialog.open}
-          mode={customStyleDialog.open ? customStyleDialog.mode : 'create'}
-          styleId={customStyleDialog.open && customStyleDialog.mode === 'edit' ? customStyleDialog.style.id : undefined}
-          name={customStyleDialog.open && customStyleDialog.mode === 'edit' ? customStyleDialog.style.name : ''}
-          font={
-            customStyleDialog.open
-              ? customStyleDialog.mode === 'edit'
-                ? customStyleDialog.style.font
-                : customStyleDialog.font
-              : {
-                  size: null,
-                  unit: DEFAULT_FONT_SIZE_UNIT,
-                  marks: emptyFontMarkState(),
-                  fontFamily: null,
-                  fontColor: null,
-                  highlightColor: null,
+                }))
+              }}
+              deletePageConfirmOpen={deletePageConfirmOpen}
+              onDeletePageConfirmClose={() => setDeletePageConfirmOpen(false)}
+              onDeletePageConfirm={() => {
+                runDeleteSelectedPage()
+                setDeletePageConfirmOpen(false)
+              }}
+              customStyleDialog={customStyleDialog}
+              canDeleteCustomParagraphStyle={Boolean(onDeleteCustomParagraphStyle)}
+              customStyleBusy={customStyleBusy}
+              onCustomStyleDialogClose={() => setCustomStyleDialog({ open: false })}
+              onCustomStyleSave={async (style) => {
+                const save = onSaveCustomParagraphStyleRef.current
+                if (!save) return
+                setCustomStyleBusy(true)
+                try {
+                  await save(style)
+                  setCustomStyleDialog({ open: false })
+                  await reloadCustomStyles()
+                } finally {
+                  setCustomStyleBusy(false)
                 }
-          }
-          paragraph={
-            customStyleDialog.open
-              ? customStyleDialog.mode === 'edit'
-                ? customStyleDialog.style.paragraph
-                : customStyleDialog.paragraph
-              : undefined
-          }
-          canDelete={Boolean(onDeleteCustomParagraphStyle)}
-          fonts={fontFaces}
-          busy={customStyleBusy}
-          disabled={contentLocked}
-          onSave={async (style) => {
-            const save = onSaveCustomParagraphStyleRef.current
-            if (!save) return
-            setCustomStyleBusy(true)
-            try {
-              await save(style)
-              setCustomStyleDialog({ open: false })
-              await reloadCustomStyles()
-            } finally {
-              setCustomStyleBusy(false)
-            }
-          }}
-          onDelete={async (id) => {
-            const remove = onDeleteCustomParagraphStyleRef.current
-            if (!remove) return
-            setCustomStyleBusy(true)
-            try {
-              await remove(id)
-              setCustomStyleDialog({ open: false })
-              await reloadCustomStyles()
-            } finally {
-              setCustomStyleBusy(false)
-            }
-          }}
-          onClose={() => setCustomStyleDialog({ open: false })}
-        />
-        <LinkDialog
-          open={linkDialog.open}
-          tab={linkDialog.tab}
-          href={linkDialog.href}
-          title={linkDialog.title}
-          targetBlank={linkDialog.targetBlank}
-          textDecorationNone={linkDialog.textDecorationNone}
-          hoverMode={linkDialog.hoverMode}
-          hoverColor={linkDialog.hoverColor}
-          hoverHtml={linkDialog.hoverHtml}
-          bookmarks={linkDialog.bookmarks}
-          selectedBookmarkId={linkDialog.selectedBookmarkId}
-          disabled={contentLocked}
-          onTabChange={(tab) => setLinkDialog({ ...linkDialog, open: true, tab })}
-          onApply={(draft) => commandContext.applyLink(draft)}
-          onClose={() => setLinkDialog({ ...linkDialog, open: false })}
-        />
-        <BookmarkDialog
-          open={bookmarkDialog.open}
-          existingIds={bookmarkDialog.existingIds}
-          disabled={contentLocked}
-          onApply={(name) => commandContext.applyBookmark(name)}
-          onClose={() => setBookmarkDialog({ ...bookmarkDialog, open: false })}
-        />
-        <ImageDialog
-          open={imageDialog.open}
-          disabled={contentLocked}
-          customImagePicker={customImagePicker}
-          onApply={(draft) => commandContext.applyImage(draft)}
-          onCustomPick={() => {
-            setImageDialog({ open: false })
-            customImagePicker?.onPick(insertCustomImage)
-          }}
-          onClose={() => setImageDialog({ open: false })}
-        />
-        <AudioDialog
-          open={audioDialog.open}
-          disabled={contentLocked}
-          customAudioPicker={customAudioPicker}
-          onApply={(draft) => commandContext.applyAudio(draft)}
-          onCustomPick={() => {
-            setAudioDialog({ open: false })
-            customAudioPicker?.onPick(insertCustomAudio)
-          }}
-          onClose={() => setAudioDialog({ open: false })}
-        />
-        <YoutubeDialog
-          open={youtubeDialog.open}
-          disabled={contentLocked}
-          customVideoPicker={customVideoPicker}
-          onApply={(draft) => commandContext.applyYoutube(draft)}
-          onCustomPick={() => {
-            setYoutubeDialog({ open: false })
-            customVideoPicker?.onPick(insertCustomVideo)
-          }}
-          onClose={() => setYoutubeDialog({ open: false })}
-        />
-        <ImagePropertiesDialog
-          open={imageProperties.open}
-          tab={imageProperties.tab}
-          value={imageProperties.value}
-          aspectRatio={imageProperties.aspectRatio}
-          disabled={contentLocked}
-          onTabChange={(tab) => setImageProperties((prev) => ({ ...prev, tab }))}
-          onApply={(draft) => commandContext.applyImageProperties(draft)}
-          onClose={() => setImageProperties((prev) => ({ ...prev, open: false }))}
-        />
-        <TableDialog
-          open={tableDialog.open}
-          disabled={contentLocked}
-          onApply={(draft) => commandContext.applyTable(draft)}
-          onClose={() => setTableDialog({ open: false })}
-        />
-        <TablePropertiesDialog
-          open={tableProperties.open}
-          value={tableProperties.value}
-          disabled={contentLocked}
-          onApply={(draft) => commandContext.applyTableProperties(draft)}
-          onClose={() => setTableProperties((prev) => ({ ...prev, open: false }))}
-        />
-        <CellPropertiesDialog
-          open={cellProperties.open}
-          value={cellProperties.value}
-          disabled={contentLocked}
-          onApply={(draft) => commandContext.applyCellProperties(draft)}
-          onClose={() => setCellProperties((prev) => ({ ...prev, open: false }))}
-        />
-        <RowPropertiesDialog
-          open={rowProperties.open}
-          value={rowProperties.value}
-          disabled={contentLocked}
-          onApply={(draft) => commandContext.applyRowProperties(draft)}
-          onClose={() => setRowProperties((prev) => ({ ...prev, open: false }))}
-        />
-        {mode === 'visual' && !contentLocked && selectedImage?.isConnected ? (
-          <ImageResizeOverlay
-            img={selectedImage}
-            onResize={handleImageResize}
-            onResizeEnd={handleImageResizeEnd}
-          />
-        ) : null}
-        {enableComments && commentsVisible && activeCommentThread ? (
-          <CommentPanel
-            panelRef={commentPanelRef}
-            thread={activeCommentThread}
-            locale={locale}
-            disabled={disabled}
-            commentAuthor={commentAuthor}
-            onPost={postCommentMessage}
-            onClose={() => setActiveThreadId(null)}
-          />
-        ) : null}
-        <ContextMenu
-          open={contextMenu.open}
-          x={contextMenu.x}
-          y={contextMenu.y}
-          kind={contextMenu.kind}
-          inTable={contextMenu.inTable}
-          canMergeCells={contextMenu.canMergeCells}
-          canUnmergeCells={contextMenu.canUnmergeCells}
-          canDeletePage={contextMenu.canDeletePage}
-          canAddComment={contextMenu.canAddComment}
-          commands={commands}
-          onClose={() => setContextMenu((prev) => ({ ...prev, open: false }))}
-        />
-      </div>
+              }}
+              onCustomStyleDelete={async (id) => {
+                const remove = onDeleteCustomParagraphStyleRef.current
+                if (!remove) return
+                setCustomStyleBusy(true)
+                try {
+                  await remove(id)
+                  setCustomStyleDialog({ open: false })
+                  await reloadCustomStyles()
+                } finally {
+                  setCustomStyleBusy(false)
+                }
+              }}
+              linkDialog={linkDialog}
+              onLinkDialogTabChange={(tab) => setLinkDialog({ ...linkDialog, open: true, tab })}
+              onLinkDialogClose={() => setLinkDialog({ ...linkDialog, open: false })}
+              onApplyLink={(draft) => commandContext.applyLink(draft)}
+              bookmarkDialog={bookmarkDialog}
+              onBookmarkDialogClose={() => setBookmarkDialog({ ...bookmarkDialog, open: false })}
+              onApplyBookmark={(name) => commandContext.applyBookmark(name)}
+              imageDialogOpen={imageDialog.open}
+              customAudioPicker={customAudioPicker}
+              customVideoPicker={customVideoPicker}
+              onImageDialogClose={() => setImageDialog({ open: false })}
+              onApplyImage={(draft) => commandContext.applyImage(draft)}
+              onImageDialogCustomPick={() => {
+                setImageDialog({ open: false })
+                customImagePicker?.onPick(insertCustomImage)
+              }}
+              audioDialogOpen={audioDialog.open}
+              onAudioDialogClose={() => setAudioDialog({ open: false })}
+              onApplyAudio={(draft) => commandContext.applyAudio(draft)}
+              onAudioDialogCustomPick={() => {
+                setAudioDialog({ open: false })
+                customAudioPicker?.onPick(insertCustomAudio)
+              }}
+              youtubeDialogOpen={youtubeDialog.open}
+              onYoutubeDialogClose={() => setYoutubeDialog({ open: false })}
+              onApplyYoutube={(draft) => commandContext.applyYoutube(draft)}
+              onYoutubeDialogCustomPick={() => {
+                setYoutubeDialog({ open: false })
+                customVideoPicker?.onPick(insertCustomVideo)
+              }}
+              imageProperties={imageProperties}
+              onImagePropertiesTabChange={(tab) =>
+                setImageProperties((prev) => ({ ...prev, tab }))
+              }
+              onImagePropertiesClose={() =>
+                setImageProperties((prev) => ({ ...prev, open: false }))
+              }
+              onApplyImageProperties={(draft) => commandContext.applyImageProperties(draft)}
+              tableDialogOpen={tableDialog.open}
+              onTableDialogClose={() => setTableDialog({ open: false })}
+              onApplyTable={(draft) => commandContext.applyTable(draft)}
+              tableProperties={tableProperties}
+              onTablePropertiesClose={() =>
+                setTableProperties((prev) => ({ ...prev, open: false }))
+              }
+              onApplyTableProperties={(draft) => commandContext.applyTableProperties(draft)}
+              cellProperties={cellProperties}
+              onCellPropertiesClose={() =>
+                setCellProperties((prev) => ({ ...prev, open: false }))
+              }
+              onApplyCellProperties={(draft) => commandContext.applyCellProperties(draft)}
+              rowProperties={rowProperties}
+              onRowPropertiesClose={() =>
+                setRowProperties((prev) => ({ ...prev, open: false }))
+              }
+              onApplyRowProperties={(draft) => commandContext.applyRowProperties(draft)}
+            />
+            <EditorWorkspaceFrame
+              toolbarVisible={toolbarVisible}
+              toolbarPos={toolbarPos}
+              captureChromeSelection={captureChromeSelection}
+              toolbarShellProps={toolbarShellProps}
+            >
+              <EditorWorkspaceHost
+                propsRef={workspaceHandlersRef}
+                pageStore={pageStore}
+                mode={mode}
+                enableMultiPages={enableMultiPages}
+                contentLocked={contentLocked}
+                activePageIndex={activePageIndex}
+                hasSelectedPage={hasSelectedPage}
+                pageZoomScale={pageZoomScale}
+                rulerVisible={rulerVisible}
+                rulerUnit={rulerUnit}
+                optimizeEmbeddedImages={optimizeEmbeddedImages}
+                placeholder={placeholder}
+                value={value}
+                pagesProp={pagesProp}
+                controlledHtml={controlledHtml}
+                initialHtml={initialHtml}
+                initialStorageHtml={storageHtmlInitial}
+                defaultPages={storedInitialPagesRef.current ?? [emptyPageHtml()]}
+                ingestedPagesProp={ingestedPagesProp}
+                onChange={onChange}
+                fontFaces={fontFaces}
+                enableComments={enableComments}
+                commentsVisible={commentsVisible}
+                disabled={disabled}
+                locale={locale}
+                commentAuthor={commentAuthor}
+                activeThreadId={activeThreadId}
+                contextMenu={contextMenu}
+                commentThreads={commentThreads}
+                commands={commands}
+                htmlFileDropDragging={htmlFileDrop.dragging}
+                selectedImage={selectedImage}
+              />
+            </EditorWorkspaceFrame>
+            {fullscreen ? <ExitFullscreenButton onClick={() => setFullscreen(false)} /> : null}
+          </div>
+        </EditorShellProvider>
       </ChromeThemeProvider>
     </LocaleProvider>
   )
@@ -4391,14 +4177,5 @@ function ExitFullscreenButton({ onClick }: { onClick: () => void }) {
     >
       <CloseIcon className={styles.exitFullscreenIcon} />
     </button>
-  )
-}
-
-function HtmlFileDropOverlay() {
-  const t = useT()
-  return (
-    <div className={styles.htmlFileDropOverlay} aria-hidden="true">
-      {t('htmlFileDropOverlay')}
-    </div>
   )
 }

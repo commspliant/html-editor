@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -24,6 +25,8 @@ import {
   type ToolbarSubmenuEntry,
 } from './types'
 import { isChromeItemLocked, isMenuTriggerLocked, type ChromeLockOptions } from './commentsChrome'
+import { querySlicesForItem } from './toolbarQueryRevisions'
+import { useToolbarQuerySlices } from './ToolbarQuerySubscription'
 import styles from './Toolbar.module.css'
 
 type MenuVariant = 'dropdown' | 'overlay'
@@ -460,6 +463,8 @@ type MenuItemButtonProps = {
 
 function MenuItemButton({ item, commands, queries, disabled, chromeLock, onClose }: MenuItemButtonProps) {
   const t = useT()
+  const slices = useMemo(() => querySlicesForItem(item), [item])
+  useToolbarQuerySlices(slices)
   if (!item.command) return null
   const Icon = item.icon
   const command = item.command
