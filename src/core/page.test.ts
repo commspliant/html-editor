@@ -8,6 +8,7 @@ import {
   ensurePageShell,
   ensureSizedPageShellLayout,
   normalizeCaretInPageShell,
+  PAGE_BG_LAYER_ATTR,
   PAGE_SHELL_ATTR,
   queryPageShell,
   reconcileCaretAfterBlockAbsorb,
@@ -393,6 +394,19 @@ describe('absorbLooseBlocksIntoPageShell', () => {
     const el = mountVisual('<p>Hello</p>')
     const { changed } = absorbLooseBlocksIntoPageShell(el)
     expect(changed).toBe(false)
+  })
+
+  it('moves holder-level background layers into the shell', () => {
+    const el = mountVisual(
+      '<div data-page><p>Hello</p></div><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div>',
+    )
+    const shell = queryPageShell(el)
+
+    const { changed } = absorbLooseBlocksIntoPageShell(el)
+    expect(changed).toBe(true)
+    expect(el.children).toHaveLength(1)
+    expect(shell?.firstElementChild?.hasAttribute(PAGE_BG_LAYER_ATTR)).toBe(true)
+    expect(shell?.querySelector('p')?.textContent).toBe('Hello')
   })
 })
 

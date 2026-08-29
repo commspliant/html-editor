@@ -35,6 +35,9 @@ function renderToolbar(
     toggleFullscreen: vi.fn(),
     openCustomizeToolbar: vi.fn(),
     openDocumentPreview: vi.fn(),
+    openHelp: vi.fn(),
+    openKeyboardShortcuts: vi.fn(),
+    openAbout: vi.fn(),
     toggleReadAloud: vi.fn(),
     toggleRuler: vi.fn(),
     setLightMode: vi.fn(),
@@ -607,6 +610,23 @@ describe('EditorToolbar', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Toolbar position submenu' }))
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Left' }))
     expect(commands.setToolbarPositionLeft).toHaveBeenCalledTimes(1)
+  })
+
+  it('runs help menu commands', async () => {
+    const user = userEvent.setup()
+    const { commands } = renderToolbar()
+
+    await user.click(screen.getByRole('button', { name: 'Help menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Editor Help' }))
+    expect(commands.openHelp).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'Help menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Keyboard shortcuts' }))
+    expect(commands.openKeyboardShortcuts).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'Help menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'About' }))
+    expect(commands.openAbout).toHaveBeenCalledTimes(1)
   })
 
   it('checks the active view in the View menu', async () => {

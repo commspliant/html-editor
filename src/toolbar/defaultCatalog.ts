@@ -3,6 +3,7 @@ import { formatCatalog } from '../modules/format'
 import { historyCatalog } from '../modules/history'
 import { insertCatalog } from '../modules/insert'
 import { tableCatalog } from '../modules/table'
+import { helpCatalog } from '../modules/help'
 import { viewCatalog } from '../modules/view'
 import type { ToolbarCatalog } from './types'
 
@@ -22,4 +23,5 @@ export const defaultToolbarCatalog = mergeCatalogs(
   tableCatalog,
   viewCatalog,
   formatCatalog,
+  helpCatalog,
 )

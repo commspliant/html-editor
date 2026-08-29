@@ -88,4 +88,27 @@ describe('prepareDocumentHtmlForOutput', () => {
     expect(shell.style.minHeight).toBe('100vh')
     expect(shell.style.height).toBe('auto')
   })
+
+  it('consolidates orphan layers and normalizes stacking without changing bleed padding', () => {
+    const html =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
+      '<div data-page><p>Hello</p></div>' +
+      '<div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div>'
+
+    const prepared = prepareDocumentHtmlForOutput(html)
+    expect(prepared.hasBleed).toBe(true)
+
+    const doc = new DOMParser().parseFromString(`<body>${prepared.html}</body>`, 'text/html')
+    const shell = doc.querySelector('[data-page]') as HTMLElement
+    const layer = shell.querySelector('[data-page-bg]') as HTMLElement
+
+    expect(layer).not.toBeNull()
+    expect(layer.parentElement).toBe(shell)
+    expect(layer.style.pointerEvents).toBe('none')
+    expect(layer.style.zIndex).toBe('0')
+    expect(shell.style.paddingTop).toBe('20pt')
+    expect(shell.style.paddingRight).toBe('20pt')
+    expect(shell.style.width).toBe('210mm')
+    expect(shell.style.minHeight).toBe('297mm')
+  })
 })

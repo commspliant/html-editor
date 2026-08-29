@@ -1,4 +1,5 @@
-import { PAGE_BG_LAYER_ATTR, PAGE_SHELL_ATTR } from './page'
+import { consolidateHolderBackgroundLayersIntoShell, PAGE_BG_LAYER_ATTR, PAGE_SHELL_ATTR } from './page'
+import { normalizePageBackgroundLayer } from './pageBackgroundImage'
 import {
   resolvePageCanvasMarginPadding,
   resolvePageCanvasSize,
@@ -74,12 +75,15 @@ export function prepareDocumentHtmlForOutput(html: string): { html: string; hasB
   const doc = parseBodyHtml(html)
   let hasBleed = false
 
+  consolidateHolderBackgroundLayersIntoShell(doc.body)
+
   for (const shell of doc.querySelectorAll(`[${PAGE_SHELL_ATTR}]`)) {
     if (!(shell instanceof HTMLElement)) continue
     const layer = shell.querySelector(`[${PAGE_BG_LAYER_ATTR}]`)
     if (!(layer instanceof HTMLElement) || !layerHasBackgroundImage(layer)) continue
     hasBleed = true
     applyShellBleedPadding(shell, html)
+    normalizePageBackgroundLayer(shell)
   }
 
   return { html: doc.body.innerHTML, hasBleed }

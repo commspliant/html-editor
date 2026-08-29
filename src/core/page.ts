@@ -94,11 +94,26 @@ function lastContentBlock(shell: HTMLElement): HTMLElement | null {
   return (blocks[blocks.length - 1] as HTMLElement | undefined) ?? null
 }
 
+/** Move holder-level background layers into the page shell as the first child. */
+export function consolidateHolderBackgroundLayersIntoShell(holder: HTMLElement): boolean {
+  const shell = queryPageShell(holder)
+  if (!shell) return false
+  let changed = false
+  for (const child of [...holder.childNodes]) {
+    if (child === shell) continue
+    if (child instanceof HTMLElement && isPageBackgroundLayer(child)) {
+      shell.insertBefore(child, shell.firstChild)
+      changed = true
+    }
+  }
+  return changed
+}
+
 /** Move holder children that escaped the page shell back inside it. */
 export function absorbLooseBlocksIntoPageShell(holder: HTMLElement): AbsorbLooseBlocksResult {
   const shell = queryPageShell(holder)
   if (!shell) return { changed: false, absorbedBlocks: [] }
-  let changed = false
+  let changed = consolidateHolderBackgroundLayersIntoShell(holder)
   const absorbedBlocks: HTMLElement[] = []
   for (const child of [...holder.childNodes]) {
     if (child === shell) continue

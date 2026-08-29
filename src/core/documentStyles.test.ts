@@ -29,7 +29,7 @@ describe('buildStandalonePrintDocument', () => {
     expect(doc).toContain('width: 210mm')
     expect(doc).toContain('height: auto')
     expect(doc).toContain('padding: 20pt')
-    expect(doc).toContain('background-size:contain')
+    expect(doc).toContain('background-size: contain')
     expect(doc).toContain('margin: 0 !important')
   })
 

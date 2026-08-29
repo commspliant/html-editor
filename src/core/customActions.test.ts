@@ -49,7 +49,7 @@ describe('mergeCustomActions', () => {
       defaultToolbarLayout,
     )
 
-    expect(layout.menus.map((menu) => menu.id)).toEqual(['file', 'edit', 'view', 'insert', 'format', 'table', 'tools'])
+    expect(layout.menus.map((menu) => menu.id)).toEqual(['file', 'edit', 'view', 'insert', 'format', 'table', 'help', 'tools'])
     expect(layout.menus.find((menu) => menu.id === 'tools')?.items).toEqual(['ai'])
     expect(catalog.menus.tools?.label).toBe('Tools')
     expect(layout.iconGroups.map((group) => group.id)).toEqual(['file', 'print', 'edit', 'insert', 'table', 'font', 'align', 'paragraph', 'view', 'fullscreen'])

@@ -132,6 +132,10 @@ export const defaultToolbarLayout: ToolbarLayout = {
         'cellProperties',
       ],
     },
+    {
+      id: 'help',
+      items: ['editorHelp', 'keyboardShortcuts', MENU_SEPARATOR, 'about'],
+    },
   ],
   iconGroups: [
     { id: 'file', items: ['save', 'open'] },

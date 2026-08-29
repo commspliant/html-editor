@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { useRef, type ComponentProps } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { PAGE_MARGIN_VAR } from '../core/pageCanvasLayout'
+import { PAGE_BG_LAYER_ATTR } from '../core/page'
+import { applyPagePropertiesInDocument, emptyPagePropertiesApply } from '../core/pageProperties'
 import { estimatePageRowHeight } from '../core/pageRowHeight'
 import { LocaleProvider } from '../i18n/LocaleProvider'
 import { MultiPageVisualSurface } from './MultiPageVisualSurface'
@@ -15,6 +17,9 @@ const pagePlain = '<div data-page><p>Plain</p></div>'
 const pageWithBg =
   '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
   '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><p>Bg</p></div>'
+const pageWithOrphanBg =
+  '<div data-page><p>Page two</p></div>' +
+  '<div data-page-bg style="background-image:url(&quot;https://example.com/bg2.png&quot;)"></div>'
 const pageWithBgLetter =
   '<style data-page-at-rule>@page { size: letter; margin: 1in; }</style>' +
   '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg2.png&quot;)"></div><p>Bg2</p></div>'
@@ -202,5 +207,67 @@ describe('MultiPageVisualSurface rulers', () => {
     const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
     expect(surfaces[0].style.getPropertyValue(PAGE_MARGIN_VAR.top)).toBe('20pt')
     expect(surfaces[1].style.getPropertyValue(PAGE_MARGIN_VAR.top)).toBe('72pt')
+  })
+
+  it('normalizes incomplete background layers when syncing page html', async () => {
+    renderMultiPage({ pages: [pagePlain, pageWithBg, pagePlain], activePageIndex: 1 })
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(3)
+    })
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    const layer = surfaces[1].querySelector(`[${PAGE_BG_LAYER_ATTR}]`) as HTMLElement | null
+    expect(layer).not.toBeNull()
+    expect(layer?.style.pointerEvents).toBe('none')
+    expect(layer?.style.zIndex).toBe('0')
+  })
+
+  it('applies page background only to the targeted surface', async () => {
+    renderMultiPage({
+      pages: [pagePlain, pagePlain, pagePlain],
+      activePageIndex: 1,
+    })
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(3)
+    })
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    const draft = emptyPagePropertiesApply()
+    draft.backgroundImage = {
+      src: 'https://example.com/target.png',
+      opacity: null,
+      fit: 'cover',
+      position: 'center',
+      width: null,
+      height: null,
+    }
+
+    applyPagePropertiesInDocument(surfaces[1], draft)
+
+    expect(surfaces[1].querySelector(`[${PAGE_BG_LAYER_ATTR}]`)).not.toBeNull()
+    expect(surfaces[0].querySelector(`[${PAGE_BG_LAYER_ATTR}]`)).toBeNull()
+    expect(surfaces[2].querySelector(`[${PAGE_BG_LAYER_ATTR}]`)).toBeNull()
+  })
+
+  it('consolidates malformed page background markup on sync', async () => {
+    renderMultiPage({
+      pages: [pagePlain, pageWithOrphanBg, pagePlain],
+      activePageIndex: 1,
+    })
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(3)
+    })
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    const shell = surfaces[1].querySelector('[data-page]')
+    const layer = shell?.querySelector(`[${PAGE_BG_LAYER_ATTR}]`) as HTMLElement | null
+
+    expect(layer).not.toBeNull()
+    expect(layer?.parentElement).toBe(shell)
+    expect(layer?.style.pointerEvents).toBe('none')
+    expect(surfaces[1].querySelector('p')?.textContent).toBe('Page two')
   })
 })

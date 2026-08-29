@@ -10,6 +10,8 @@ import {
 import {
   DEFAULT_PAGE_BACKGROUND_IMAGE_WIDTH,
   emptyPageBackgroundImageApply,
+  normalizePageBackgroundLayer,
+  normalizePageBackgroundLayerInHolder,
   readPageBackgroundImage,
   writePageBackgroundImage,
 } from './pageBackgroundImage'
@@ -215,6 +217,52 @@ describe('writePageBackgroundImage', () => {
       width: null,
       height: null,
     })
+  })
+})
+
+describe('normalizePageBackgroundLayer', () => {
+  it('adds managed stacking styles to an incomplete background layer', () => {
+    const { shell } = mountShell()
+    const layer = document.createElement('div')
+    layer.setAttribute(PAGE_BG_LAYER_ATTR, '')
+    layer.style.backgroundImage = 'url("https://example.com/bg.png")'
+    shell.insertBefore(layer, shell.firstChild)
+
+    expect(layer.style.pointerEvents).toBe('')
+    expect(normalizePageBackgroundLayer(shell)).toBe(true)
+    expect(layer.style.zIndex).toBe('0')
+    expect(layer.style.pointerEvents).toBe('none')
+    expect(layer.style.position).toBe('absolute')
+    expect(layer.style.userSelect).toBe('none')
+    expect(shell.style.position).toBe('relative')
+    expect(shell.style.isolation).toBe('isolate')
+    expect(layer).toBe(shell.firstChild)
+    expect(shell.querySelector('p')?.textContent).toBe('Hello')
+  })
+
+  it('normalizes through the visual holder wrapper', () => {
+    const { visual } = mountShell(
+      `<div ${PAGE_BG_LAYER_ATTR} style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><p>Hello</p>`,
+    )
+    const layer = visual.querySelector(`[${PAGE_BG_LAYER_ATTR}]`) as HTMLElement
+    expect(normalizePageBackgroundLayerInHolder(visual)).toBe(true)
+    expect(layer.style.pointerEvents).toBe('none')
+    expect(layer.style.zIndex).toBe('0')
+  })
+
+  it('consolidates holder-level orphan background layers into the shell', () => {
+    const visual = document.createElement('div')
+    visual.innerHTML =
+      '<div data-page><p>Hello</p></div><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div>'
+    document.body.appendChild(visual)
+    const shell = ensurePageShell(visual)
+    const layer = visual.querySelector(`[${PAGE_BG_LAYER_ATTR}]`) as HTMLElement
+
+    expect(normalizePageBackgroundLayerInHolder(visual)).toBe(true)
+    expect(layer.parentElement).toBe(shell)
+    expect(layer).toBe(shell.firstChild)
+    expect(layer.style.pointerEvents).toBe('none')
+    expect(shell.querySelector('p')?.textContent).toBe('Hello')
   })
 })
 

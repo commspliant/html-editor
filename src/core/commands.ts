@@ -4,6 +4,7 @@ import { createFormatCommands, createFormatQueries } from '../modules/format/com
 import { createHistoryCommands, createHistoryQueries } from '../modules/history/commands'
 import { createInsertCommands, createInsertQueries } from '../modules/insert/commands'
 import { createTableCommands, createTableQueries } from '../modules/table/commands'
+import { createHelpCommands } from '../modules/help/commands'
 import { createViewCommands, createViewQueries } from '../modules/view/commands'
 import { createCommentsCommands, createCommentsQueries } from '../modules/comments/commands'
 import type { CommandContext, EditorCommands, EditorQueries } from './commandTypes'
@@ -20,6 +21,7 @@ export function createEditorCommands(ctx: CommandContext): EditorCommands {
     ...createViewCommands(ctx),
     ...createFormatCommands(ctx),
     ...createCommentsCommands(ctx),
+    ...createHelpCommands(ctx),
   }
 }
 

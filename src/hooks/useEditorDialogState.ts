@@ -21,6 +21,7 @@ import {
 } from '../core/paragraphProperties'
 import { defaultRowPropertiesApply } from '../core/rowProperties'
 import { defaultTablePropertiesApply } from '../core/tableProperties'
+import type { HelpTopicId } from '../modules/help/articles'
 import type {
   CustomParagraphStyle,
   CustomParagraphStyleFont,
@@ -138,6 +139,14 @@ export function useEditorDialogState() {
     open: false,
     value: defaultRowPropertiesApply(),
   })
+  const [helpDialog, setHelpDialog] = useState<{
+    open: boolean
+    topicId: HelpTopicId
+  }>({
+    open: false,
+    topicId: 'getStarted',
+  })
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
 
   return {
     fontDialog,
@@ -182,5 +191,9 @@ export function useEditorDialogState() {
     setCellProperties,
     rowProperties,
     setRowProperties,
+    helpDialog,
+    setHelpDialog,
+    aboutDialogOpen,
+    setAboutDialogOpen,
   }
 }

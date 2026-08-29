@@ -281,6 +281,7 @@
 }
 
 .root .visual {
+  position: relative;
   flex: 1 0 auto;
   min-height: 100%;
   padding: 0.75rem;
@@ -420,6 +421,15 @@
 .visual [data-page] > :not([data-page-bg]) {
   position: relative;
   z-index: 1;
+}
+
+.visual [data-page] [data-page-bg],
+.visual > [data-page-bg] {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
 }
 
 .visual[data-page-sized] [data-page] [data-page-bg] {

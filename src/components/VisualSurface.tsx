@@ -16,6 +16,7 @@ import {
   syncPageHolderBackground,
 } from '../core/page'
 import { syncPageCanvasLayout, type PageMarginSidesPx } from '../core/pageCanvasLayout'
+import { normalizePageBackgroundLayerInHolder } from '../core/pageBackgroundImage'
 import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import type { HydrateEmbeddedImages } from '../core/documentEquality'
@@ -116,6 +117,7 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
       if (queryPageShell(el) || hasPrintLayout(layoutHtml)) {
         ensurePageShell(el)
         absorbLooseBlocksIntoPageShell(el)
+        normalizePageBackgroundLayerInHolder(el)
         const shell = queryPageShell(el)
         if (shell) ensureSizedPageShellLayout(el, shell)
       }
