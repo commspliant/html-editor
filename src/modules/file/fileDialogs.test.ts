@@ -102,6 +102,18 @@ describe('loadHtml', () => {
     expect(showOpenFilePicker).toHaveBeenCalled()
   })
 
+  it('unwraps standalone saved documents to the editable fragment', async () => {
+    const standalone =
+      '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Document</title></head>' +
+      '<body><style data-page-at-rule></style><div data-page><p>From disk</p></div></body></html>'
+    const file = new File([standalone], 'doc.html', { type: 'text/html' })
+    pickerWindow().showOpenFilePicker = vi.fn(async () => [{ getFile: async () => file }])
+
+    const opened = await loadHtml()
+    expect(opened).toContain('<p>From disk</p>')
+    expect(opened).not.toContain('<!DOCTYPE html>')
+  })
+
   it('returns null when the open picker is aborted', async () => {
     pickerWindow().showOpenFilePicker = vi.fn(async () => {
       throw new DOMException('The user aborted a request.', 'AbortError')

@@ -2388,6 +2388,51 @@ describe('Editor paragraph chrome', () => {
     expect(lastPages[3]).toContain('Three')
   })
 
+  it('preserves displaced content in the store after insert page before on a sized page', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    const pageHello =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>hello world</p></div>'
+    render(
+      <Editor enableMultiPages defaultPages={[pageHello]} onPagesChange={onPagesChange} />,
+    )
+
+    await focusMultiPageSurface(user, 0)
+    await insertPageBeforeSelected(user, 0)
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(2)
+    expect(lastPages[0]).toBe('<p></p>')
+    expect(lastPages[1]).toContain('hello world')
+  })
+
+  it('applies default page size to a new page immediately after insert page after', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    const pageHello =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>hello world</p></div>'
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={[pageHello]}
+        defaultPageProperties={{ atRule: { sizePreset: 'A4' } }}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    await focusMultiPageSurface(user, 0)
+    await insertPageAfterSelected(user, 0)
+
+    const newPageSurface = document.querySelector('[data-page-index="1"]') as HTMLElement | null
+    expect(newPageSurface).toBeInTheDocument()
+    expect(newPageSurface).toHaveAttribute('data-page-sized')
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages).toHaveLength(2)
+    expect(lastPages[0]).toContain('hello world')
+    expect(lastPages[1]).toContain('data-page-at-rule')
+  })
+
   async function selectPageSurface(
     user: ReturnType<typeof userEvent.setup>,
     pageIndex = 0,
@@ -3816,6 +3861,35 @@ describe('Editor context menu', () => {
     expect(visual.textContent).toBe('')
     await user.click(screen.getByRole('button', { name: 'Undo' }))
     expect(visual.textContent).toBe('Hello')
+  })
+
+  it('shows comment in the context menu when comments are enabled and text is selected', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        enableComments
+        commentAuthor={{ userId: 'u1', userName: 'Alice' }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+    fireEvent.contextMenu(visual)
+
+    expect(screen.getByRole('menuitem', { name: 'Insert comment on selection' })).toBeEnabled()
+    await user.click(screen.getByRole('menuitem', { name: 'Insert comment on selection' }))
+    expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
+  })
+
+  it('does not show comment in the context menu when comments are disabled', async () => {
+    render(<Editor defaultValue="<p>Hello world</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+    fireEvent.contextMenu(visual)
+
+    expect(screen.queryByRole('menuitem', { name: 'Comment' })).not.toBeInTheDocument()
   })
 })
 

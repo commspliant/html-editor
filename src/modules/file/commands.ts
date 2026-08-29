@@ -1,4 +1,5 @@
 import type { CommandContext, EditorCommands } from '../../core/commandTypes'
+import { buildStandalonePrintDocument } from '../../core/documentStyles'
 import { joinPagesToHtml, splitPagesFromHtml } from '../../core/multiPage'
 import { loadHtml, saveHtml } from './fileDialogs'
 import { printHtml, printPagesHtml } from './printHtml'
@@ -11,8 +12,7 @@ export function createFileCommands(ctx: CommandContext): Pick<EditorCommands, 's
         await ctx.onSave(payload)
         return
       }
-      const html = ctx.isMultiPagesEnabled() ? ctx.getActivePageHtml() : ctx.getHtml()
-      await saveHtml(html)
+      await saveHtml(buildStandalonePrintDocument(ctx.getHtml()))
     },
     open: async () => {
       const opened = ctx.onOpen ? await ctx.onOpen() : await loadHtml()

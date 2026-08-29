@@ -1,4 +1,6 @@
 import { extractFontStylesheets } from './fontFamily'
+import { splitPagesFromHtml } from './multiPage'
+import { collectPageAtRulesForPrint } from './pageAtRule'
 import { prepareDocumentHtmlForOutput } from './pagePrintBleed'
 
 export const DOCUMENT_STYLES = `
@@ -153,8 +155,96 @@ body:has([data-page-bg]) {
   @page {
     margin: 0 !important;
   }
+  [data-page]:has([data-page-bg]) {
+    height: auto;
+    box-sizing: border-box;
+  }
 }
 `.trim()
+
+function escapeHtmlText(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function escapeHtmlAttr(value: string): string {
+  return escapeHtmlText(value).replace(/'/g, '&#39;')
+}
+
+/** Extract the editable fragment from a standalone saved document, or return html unchanged. */
+export function extractEditorFragmentFromHtml(html: string): string {
+  const trimmed = html.trim()
+  if (!/^<!DOCTYPE/i.test(trimmed) && !/^<html[\s>]/i.test(trimmed)) {
+    return html
+  }
+  const doc = new DOMParser().parseFromString(trimmed, 'text/html')
+  const parts: string[] = []
+  for (const child of doc.body.childNodes) {
+    if (child.nodeType === Node.ELEMENT_NODE) {
+      parts.push((child as Element).outerHTML)
+    } else if (child.nodeType === Node.TEXT_NODE) {
+      const text = child.textContent ?? ''
+      if (text.trim()) parts.push(text)
+    }
+  }
+  return parts.join('') || doc.body.innerHTML
+}
+
+/** Build a self-contained HTML file that prints correctly in a browser without JavaScript. */
+export function buildStandalonePrintDocument(html: string, title = 'Document'): string {
+  const pages = splitPagesFromHtml(html)
+  const preparedPages = pages.map((page) => prepareDocumentHtmlForOutput(page))
+  const hasBleed = preparedPages.some((page) => page.hasBleed)
+
+  const hrefs: string[] = []
+  const bodies: string[] = []
+  for (const prepared of preparedPages) {
+    const extracted = extractFontStylesheets(prepared.html)
+    hrefs.push(...extracted.hrefs)
+    bodies.push(extracted.body)
+  }
+
+  const bodyHtml =
+    bodies.length <= 1
+      ? (bodies[0] ?? '')
+      : bodies
+          .map((body, index) => {
+            const isLast = index === bodies.length - 1
+            const breakStyle = isLast
+              ? 'display: block; break-inside: avoid; page-break-inside: avoid;'
+              : 'display: block; break-after: page; page-break-after: always; break-inside: avoid; page-break-inside: avoid;'
+            return `<div data-wysiwyg-print-page="" style="${breakStyle}">${body}</div>`
+          })
+          .join('')
+
+  const atRuleCss = collectPageAtRulesForPrint(pages)
+  const bleedMarginOverride = hasBleed ? '@page { margin: 0 !important; }' : ''
+  const documentCss = buildDocumentStyles(hasBleed)
+  const headStyle = [atRuleCss, bleedMarginOverride, documentCss].filter(Boolean).join('\n')
+  const fontLinkTags = Array.from(new Set(hrefs))
+    .map((href) => `<link rel="stylesheet" href="${escapeHtmlAttr(href)}" />`)
+    .join('\n')
+
+  return [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="utf-8">',
+    `<title>${escapeHtmlText(title)}</title>`,
+    `<style>${headStyle}</style>`,
+    fontLinkTags,
+    '</head>',
+    '<body>',
+    bodyHtml,
+    '</body>',
+    '</html>',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
 
 export function buildDocumentStyles(hasBleed: boolean): string {
   return hasBleed ? `${DOCUMENT_STYLES}\n${DOCUMENT_BLEED_STYLES}` : DOCUMENT_STYLES

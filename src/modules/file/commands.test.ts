@@ -269,7 +269,8 @@ describe('createFileCommands', () => {
 
     await commands.save()
 
-    expect(saveHtml).toHaveBeenCalledWith('<p>Doc</p>')
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<!DOCTYPE html>'))
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<p>Doc</p>'))
     expect(setHtml).not.toHaveBeenCalled()
   })
 
@@ -716,10 +717,11 @@ describe('createFileCommands', () => {
     expect(loadHtml).not.toHaveBeenCalled()
   })
 
-  it('saves only the active page when multi-page is enabled without onSave', async () => {
+  it('saves all pages as a standalone document when multi-page is enabled without onSave', async () => {
+    const joined = '<p>One</p>\n<!-- wysiwyg-page-separator -->\n<p>Two</p>'
     const commands = createFileCommands(
       fileContext({
-        getHtml: () => '<p>All</p>\n<!-- wysiwyg-page-separator -->\n<p>Two</p>',
+        getHtml: () => joined,
         isMultiPagesEnabled: () => true,
         getActivePageHtml: () => '<p>Active</p>',
       }),
@@ -727,7 +729,10 @@ describe('createFileCommands', () => {
 
     await commands.save()
 
-    expect(saveHtml).toHaveBeenCalledWith('<p>Active</p>')
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<!DOCTYPE html>'))
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<p>One</p>'))
+    expect(saveHtml).toHaveBeenCalledWith(expect.stringContaining('<p>Two</p>'))
+    expect(saveHtml).not.toHaveBeenCalledWith(expect.stringContaining('<p>Active</p>'))
   })
 
   it('passes all pages to onSave when multi-page is enabled', async () => {

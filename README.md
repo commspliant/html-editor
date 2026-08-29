@@ -169,7 +169,7 @@ import { Editor } from 'commspliant-html-editor'
 
 Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host. View → Toolbar → Position docks the icon toolbar; the menu bar stays at the top. Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column.
 
-On the visual surface, a mouse right-click opens the editor context menu (cut, copy, font and paragraph properties, and table items — including merge and unmerge — when the caret is in a table). A touch or pen long-press does not; phones keep the native selection handles and OS Copy / Paste callout so text can be selected.
+On the visual surface, a mouse right-click opens the editor context menu (cut, copy, font and paragraph properties, and table items — including merge and unmerge — when the caret is in a table). When `enableComments` is true and text is selected or an image is selected, **Comment** is also shown. A touch or pen long-press does not; phones keep the native selection handles and OS Copy / Paste callout so text can be selected.
 
 ```tsx
 import { useState } from 'react'
@@ -456,9 +456,9 @@ import { Editor } from 'commspliant-html-editor'
 
 ### Save and open
 
-By default, File → Save and the Save toolbar button write the document to a local HTML file (browser save picker or download). File → Open and the Open toolbar button load from a local HTML file. Omit both callbacks to keep that behavior.
+By default, File → Save and the Save toolbar button write a **standalone HTML file** (full document with embedded print styles) to the local save picker or download, so it can be opened in any browser and printed without the editor or JavaScript. File → Open and the Open toolbar button load from a local HTML file (standalone or fragment). Omit both callbacks to keep that behavior.
 
-Pass `onSave` to persist through the host instead of the built-in file picker. It receives the current document HTML (same as `onChange`, after sanitization and `transformHtml`) and is awaited.
+Pass `onSave` to persist through the host instead of the built-in file picker. It receives the current document HTML fragment (same as `onChange`, after sanitization and `transformHtml`) and is awaited — not the standalone print wrapper.
 
 Pass `onOpen` to load through the host instead of the built-in file picker. Return document HTML to replace the editor, or `null` to cancel. The callback is awaited. HTML file drag-drop is unchanged — it still reads a local file and does not call `onOpen`.
 
@@ -535,7 +535,7 @@ This is not the same as **Insert → Page → Page before / Page after** (multi-
 
 Set `enableComments` to add lightweight comment threads anchored in the document with `data-comment-thread` markers. Thread metadata (`CommentThread[]`) is separate from document HTML — use `comments` / `onCommentsChange` to persist it.
 
-- **Add comment** (toolbar Insert group and Insert → Comment) wraps the selection or marks the selected image, then opens the comment panel.
+- **Add comment** (toolbar Insert group, Insert → Comment, and the visual context menu when text or an image is selected) wraps the selection or marks the selected image, then opens the comment panel.
 - **Show/Hide comments** (View menu and View icon group) toggles highlight styling only; thread data and anchors remain. Highlights are visible by default; pass `defaultCommentsVisible={false}` to start hidden.
 - **`commentAuthor`** (`{ userId, userName }`) is required to enable Post in the panel.
 

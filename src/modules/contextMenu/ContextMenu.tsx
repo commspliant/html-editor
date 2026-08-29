@@ -17,6 +17,7 @@ export type ContextMenuProps = {
   canMergeCells?: boolean
   canUnmergeCells?: boolean
   canDeletePage?: boolean
+  canAddComment?: boolean
   commands: EditorCommands
   onClose: () => void
 }
@@ -26,6 +27,7 @@ type ContextMenuFlags = {
   canMergeCells: boolean
   canUnmergeCells: boolean
   canDeletePage: boolean
+  canAddComment: boolean
 }
 
 type MenuCommand =
@@ -33,6 +35,7 @@ type MenuCommand =
   | 'cut'
   | 'copy'
   | 'openLinkDialog'
+  | 'addComment'
   | 'openFontProperties'
   | 'openParagraphProperties'
   | 'openPageProperties'
@@ -85,6 +88,13 @@ const ENTRIES: MenuEntry[] = [
     labelKey: 'commandLink',
     ariaKey: 'commandLinkAria',
     enabled: (kind) => kind !== 'image',
+  },
+  {
+    type: 'item',
+    command: 'addComment',
+    labelKey: 'commandInsertComment',
+    ariaKey: 'commandInsertCommentAria',
+    enabled: (kind, flags) => flags.canAddComment && (kind === 'text' || kind === 'image'),
   },
   { type: 'separator' },
   {
@@ -194,6 +204,7 @@ export function ContextMenu({
   canMergeCells = false,
   canUnmergeCells = false,
   canDeletePage = false,
+  canAddComment = false,
   commands,
   onClose,
 }: ContextMenuProps) {
@@ -252,7 +263,13 @@ export function ContextMenu({
 
   if (!open) return null
 
-  const visibleEntries = getVisibleEntries(kind, { inTable, canMergeCells, canUnmergeCells, canDeletePage })
+  const visibleEntries = getVisibleEntries(kind, {
+    inTable,
+    canMergeCells,
+    canUnmergeCells,
+    canDeletePage,
+    canAddComment,
+  })
 
   const onMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
