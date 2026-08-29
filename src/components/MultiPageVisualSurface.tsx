@@ -392,8 +392,11 @@ export const MultiPageVisualSurface = forwardRef<
     syncPageCanvasLayout(surface, html)
     const shell = queryPageShell(surface)
     if (shell) ensureSizedPageShellLayout(surface, shell)
-    if (normalized && !isFocused) {
-      onPageChangeRef.current(index, surface.innerHTML)
+    if (normalized) {
+      const storedBody = stripPageAtRuleFromHtml(extractFontStylesheets(html).body)
+      if (surface.innerHTML !== storedBody) {
+        onPageChangeRef.current(index, surface.innerHTML)
+      }
     }
   }, [hydrateEmbeddedImages, resolveEmbeddedImageDataUrl])
 

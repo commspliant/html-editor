@@ -46,7 +46,7 @@ import {
   queryParagraphBackgroundImage,
 } from '../core/paragraphBackgroundImage'
 import { collectSelectedBlocks } from '../core/blocks'
-import { emptyPageBackgroundImageApply } from '../core/pageBackgroundImage'
+import { emptyPageBackgroundImageApply, normalizePageBackgroundLayerInHolder, repairPageBackgroundHtml } from '../core/pageBackgroundImage'
 import {
   applyDefaultPagePropertiesToPageHtml,
   applyPagePropertiesInDocument,
@@ -1286,10 +1286,16 @@ export function Editor({
       const nextPages = currentPages.map((previous, index) => {
         const needsFlush = flushAll || dirty.has(index) || index === active
         if (!needsFlush) return previous
-        const flushed = multi.flushPageHtml(index)
+        const surface = queryPageSurface(container, index)
+        let flushed: string | null = null
+        if (surface) {
+          normalizePageBackgroundLayerInHolder(surface)
+          flushed = surface.innerHTML
+        } else {
+          flushed = multi.flushPageHtml(index)
+        }
         if (flushed === null) return previous
         const body = preservePageAtRuleInBody(flushed, extractFontStylesheets(previous).body)
-        const surface = queryPageSurface(container, index)
         const serialized = serializePageBody(body, previous, surface ?? undefined)
         if (serialized !== previous) changed = true
         return serialized
@@ -1313,7 +1319,8 @@ export function Editor({
 
   const recordPageVisualHtml = useCallback(
     (index: number, body: string, coalesce: boolean) => {
-      const nextPage = serializePageBody(body, pagesRef.current[index] ?? '')
+      const repairedBody = repairPageBackgroundHtml(body)
+      const nextPage = serializePageBody(repairedBody, pagesRef.current[index] ?? '')
       const updated = updatePageAt(pagesRef.current, index, nextPage)
       if (!updated.changed) return
       commitPages(updated.pages, coalesce, index)
@@ -1347,27 +1354,26 @@ export function Editor({
       const bodySource = pageHtmlOverride
         ? extractFontStylesheets(pageHtmlOverride).body
         : root.innerHTML
+      const resolveBody = (previousFullHtml: string) =>
+        pageHtmlOverride
+          ? bodySource
+          : preservePageAtRuleInBody(bodySource, extractFontStylesheets(previousFullHtml).body)
       if (!enableMultiPagesRef.current) {
-        recordVisualHtml(preservePageAtRuleInBody(bodySource, htmlRef.current), coalesce)
+        recordVisualHtml(resolveBody(htmlRef.current), coalesce)
         return
       }
       const container = multiPageVisualRef.current?.getContainer()
       if (!container) {
-        recordVisualHtml(preservePageAtRuleInBody(bodySource, htmlRef.current), coalesce)
+        recordVisualHtml(resolveBody(htmlRef.current), coalesce)
         return
       }
       for (let index = 0; index < pagesRef.current.length; index += 1) {
         if (queryPageSurface(container, index) === root) {
-          const previous = pagesRef.current[index] ?? ''
-          recordPageVisualHtml(
-            index,
-            preservePageAtRuleInBody(bodySource, extractFontStylesheets(previous).body),
-            coalesce,
-          )
+          recordPageVisualHtml(index, resolveBody(pagesRef.current[index] ?? ''), coalesce)
           return
         }
       }
-      recordVisualHtml(preservePageAtRuleInBody(bodySource, htmlRef.current), coalesce)
+      recordVisualHtml(resolveBody(htmlRef.current), coalesce)
     },
     [recordPageVisualHtml, recordVisualHtml],
   )

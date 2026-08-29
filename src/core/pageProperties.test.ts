@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { PAGE_SIZED_ATTR } from './pageCanvasLayout'
+import { PAGE_BG_LAYER_ATTR } from './page'
 import { emptyPageAtRuleApply } from './pageAtRule'
 import {
   applyDefaultPagePropertiesToPageHtml,
@@ -60,6 +61,30 @@ describe('applyPagePropertiesInDocument @page sync', () => {
     expect(el.getAttribute(PAGE_SIZED_ATTR)).toBe('')
     expect(el.style.width).toBe('210mm')
     expect(stored.replace(/<style[\s\S]*?<\/style>/gi, '')).not.toContain('data-page-at-rule')
+  })
+
+  it('normalizes the background layer after innerHTML round-trip on apply', () => {
+    const el = mountVisual(
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>Hello</p></div>',
+    )
+    const draft = {
+      ...emptyPagePropertiesApply(),
+      backgroundImage: {
+        ...emptyPagePropertiesApply().backgroundImage,
+        src: 'https://example.com/bg.png',
+        fit: 'cover' as const,
+        width: { value: 100, unit: '%' as const },
+      },
+    }
+
+    applyPagePropertiesInDocument(el, draft)
+
+    const shell = el.querySelector('[data-page]') as HTMLElement
+    const layer = shell.querySelector(`[${PAGE_BG_LAYER_ATTR}]`) as HTMLElement
+    expect(layer).toBe(shell.firstChild)
+    expect(layer.style.pointerEvents).toBe('none')
+    expect(layer.style.zIndex).toBe('0')
+    expect(shell.querySelector('p')?.textContent).toBe('Hello')
   })
 })
 
