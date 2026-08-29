@@ -23,6 +23,7 @@ import {
   syncPageHolderBackground,
 } from '../core/page'
 import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
+import { normalizePageBackgroundLayerInHolder } from '../core/pageBackgroundImage'
 import type { PageMarginSidesPx } from '../core/pageCanvasLayout'
 import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
@@ -370,7 +371,12 @@ export const MultiPageVisualSurface = forwardRef<
     },
   }))
 
-  const syncSurfaceHtml = useCallback((surface: HTMLElement, html: string, options?: { forceBodySync?: boolean }) => {
+  const syncSurfaceHtml = useCallback((
+    index: number,
+    surface: HTMLElement,
+    html: string,
+    options?: { forceBodySync?: boolean },
+  ) => {
     const body = stripPageAtRuleFromHtml(extractFontStylesheets(html).body)
     const isFocused = surface === document.activeElement
     if (options?.forceBodySync || !isFocused) {
@@ -381,10 +387,14 @@ export const MultiPageVisualSurface = forwardRef<
     }
     ensurePageShell(surface)
     absorbLooseBlocksIntoPageShell(surface)
+    const normalized = normalizePageBackgroundLayerInHolder(surface)
     syncPageHolderBackground(surface)
     syncPageCanvasLayout(surface, html)
     const shell = queryPageShell(surface)
     if (shell) ensureSizedPageShellLayout(surface, shell)
+    if (normalized && !isFocused) {
+      onPageChangeRef.current(index, surface.innerHTML)
+    }
   }, [hydrateEmbeddedImages, resolveEmbeddedImageDataUrl])
 
   useLayoutEffect(() => {
@@ -410,7 +420,7 @@ export const MultiPageVisualSurface = forwardRef<
       if (!lengthChanged && !newlyVisible && !pageChanged) continue
       const surface = queryPageSurface(container, index)
       if (surface) {
-        syncSurfaceHtml(surface, pages[index] ?? '', { forceBodySync: lengthChanged })
+        syncSurfaceHtml(index, surface, pages[index] ?? '', { forceBodySync: lengthChanged })
       }
     }
     prevPagesRef.current = pages

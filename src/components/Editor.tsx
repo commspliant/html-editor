@@ -657,6 +657,10 @@ export function Editor({
     setCellProperties,
     rowProperties,
     setRowProperties,
+    helpDialog,
+    setHelpDialog,
+    aboutDialogOpen,
+    setAboutDialogOpen,
   } = useEditorDialogState()
   const [dark, setDark] = useState(() => {
     if (darkModePersistence) return darkMode
@@ -766,6 +770,23 @@ export function Editor({
     if (enableMultiPagesRef.current) {
       const surface = multiPageVisualRef.current?.getActivePageRoot()
       if (surface instanceof HTMLElement) return surface
+    }
+    return visualRootRef.current
+  }, [])
+  const resolveActiveVisualRoot = useCallback((): HTMLElement | null => {
+    if (enableMultiPagesRef.current) {
+      const multi = multiPageVisualRef.current
+      if (!multi) return null
+      multi.ensurePageMounted(activePageIndexRef.current)
+      const container = multi.getContainer()
+      const surface = container
+        ? queryPageSurface(container, activePageIndexRef.current)
+        : null
+      if (surface instanceof HTMLDivElement) {
+        visualRootRef.current = surface
+        return surface
+      }
+      return null
     }
     return visualRootRef.current
   }, [])
@@ -1322,14 +1343,17 @@ export function Editor({
   )
 
   const recordVisualHtmlFromRoot = useCallback(
-    (root: HTMLElement, coalesce: boolean) => {
+    (root: HTMLElement, coalesce: boolean, pageHtmlOverride?: string) => {
+      const bodySource = pageHtmlOverride
+        ? extractFontStylesheets(pageHtmlOverride).body
+        : root.innerHTML
       if (!enableMultiPagesRef.current) {
-        recordVisualHtml(preservePageAtRuleInBody(root.innerHTML, htmlRef.current), coalesce)
+        recordVisualHtml(preservePageAtRuleInBody(bodySource, htmlRef.current), coalesce)
         return
       }
       const container = multiPageVisualRef.current?.getContainer()
       if (!container) {
-        recordVisualHtml(preservePageAtRuleInBody(root.innerHTML, htmlRef.current), coalesce)
+        recordVisualHtml(preservePageAtRuleInBody(bodySource, htmlRef.current), coalesce)
         return
       }
       for (let index = 0; index < pagesRef.current.length; index += 1) {
@@ -1337,13 +1361,13 @@ export function Editor({
           const previous = pagesRef.current[index] ?? ''
           recordPageVisualHtml(
             index,
-            preservePageAtRuleInBody(root.innerHTML, extractFontStylesheets(previous).body),
+            preservePageAtRuleInBody(bodySource, extractFontStylesheets(previous).body),
             coalesce,
           )
           return
         }
       }
-      recordVisualHtml(preservePageAtRuleInBody(root.innerHTML, htmlRef.current), coalesce)
+      recordVisualHtml(preservePageAtRuleInBody(bodySource, htmlRef.current), coalesce)
     },
     [recordPageVisualHtml, recordVisualHtml],
   )
@@ -1952,13 +1976,13 @@ export function Editor({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       if (event.defaultPrevented) return
-      if (fontDialog.open || customCssDialog.open || paragraphDialog.open || pageDialog.open || deletePageConfirmOpen || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen || documentPreview.open) return
+      if (fontDialog.open || customCssDialog.open || paragraphDialog.open || pageDialog.open || deletePageConfirmOpen || tableDialog.open || tableProperties.open || cellProperties.open || rowProperties.open || customizeToolbarOpen || documentPreview.open || helpDialog.open || aboutDialogOpen) return
       event.preventDefault()
       setFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [fullscreen, setFullscreen, fontDialog.open, customCssDialog.open, paragraphDialog.open, pageDialog.open, deletePageConfirmOpen, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen, documentPreview.open])
+  }, [fullscreen, setFullscreen, fontDialog.open, customCssDialog.open, paragraphDialog.open, pageDialog.open, deletePageConfirmOpen, tableDialog.open, tableProperties.open, cellProperties.open, rowProperties.open, customizeToolbarOpen, documentPreview.open, helpDialog.open, aboutDialogOpen])
 
   useEffect(() => {
     const onSelectionChange = () => {
@@ -2305,7 +2329,7 @@ export function Editor({
   const applyPageProperties = useCallback(
     (draft: PagePropertiesApply) => {
       if (modeRef.current !== 'visual') return
-      const root = getActiveVisualRoot()
+      const root = resolveActiveVisualRoot()
       if (!root) return
       restoreVisualRange(root)
       setPageDialog((prev) => ({ ...prev, open: false }))
@@ -2324,11 +2348,11 @@ export function Editor({
         refreshMarkState()
         return
       }
-      recordActivePageHtml(result.pageHtml, false)
+      recordVisualHtmlFromRoot(root, false, result.pageHtml)
       captureSelection()
       refreshMarkState()
     },
-    [restoreVisualRange, recordActivePageHtml, captureSelection, refreshMarkState, getActiveVisualRoot],
+    [restoreVisualRange, recordVisualHtmlFromRoot, captureSelection, refreshMarkState, resolveActiveVisualRoot],
   )
 
   const applyLink = useCallback(
@@ -2755,6 +2779,15 @@ export function Editor({
           html: hydrateExportHtml(joinPagesToHtml(getAllPagesHtml())),
         })
       },
+      openHelp: () => {
+        setHelpDialog({ open: true, topicId: 'getStarted' })
+      },
+      openKeyboardShortcuts: () => {
+        setHelpDialog({ open: true, topicId: 'keyboardShortcuts' })
+      },
+      openAbout: () => {
+        setAboutDialogOpen(true)
+      },
       toggleReadAloud: () => {
         const session = readAloudSessionRef.current
         if (!session) return
@@ -3001,7 +3034,7 @@ export function Editor({
       },
       openPageProperties: (tab?: PageDialogTab, paragraphTab?: ParagraphDialogTab) => {
         if (modeRef.current !== 'visual') return
-        const root = visualRootRef.current
+        const root = resolveActiveVisualRoot()
         if (root) restoreVisualRange(root)
         const pageHtml = enableMultiPagesRef.current
           ? (pagesRef.current[activePageIndexRef.current] ?? '')
@@ -3024,7 +3057,7 @@ export function Editor({
       },
       openPageBackgroundImage: () => {
         if (modeRef.current !== 'visual') return
-        const root = visualRootRef.current
+        const root = resolveActiveVisualRoot()
         if (root) restoreVisualRange(root)
         const pageHtml = enableMultiPagesRef.current
           ? (pagesRef.current[activePageIndexRef.current] ?? '')
@@ -3749,6 +3782,11 @@ export function Editor({
 
   const handleRootKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'F1') {
+        event.preventDefault()
+        setHelpDialog({ open: true, topicId: 'getStarted' })
+        return
+      }
       if (event.key === 'Escape' && activeThreadId) {
         event.preventDefault()
         setActiveThreadId(null)
@@ -3878,6 +3916,15 @@ export function Editor({
               onDocumentPreviewClose={() =>
                 setDocumentPreview({ open: false, html: documentPreview.html })
               }
+              helpDialog={helpDialog}
+              onHelpDialogClose={() =>
+                setHelpDialog((prev) => ({ ...prev, open: false }))
+              }
+              onHelpTopicChange={(topicId) =>
+                setHelpDialog((prev) => ({ ...prev, open: true, topicId }))
+              }
+              aboutDialogOpen={aboutDialogOpen}
+              onAboutDialogClose={() => setAboutDialogOpen(false)}
               fontDialog={fontDialog}
               fontSizeState={fontSizeState}
               markState={markState}
@@ -3938,14 +3985,14 @@ export function Editor({
               onPageDialogClose={() => setPageDialog({ ...pageDialog, open: false })}
               onApplyPageProperties={(draft) => commandContext.applyPageProperties(draft)}
               onPageDialogResetAtRule={() => {
-                const root = getActiveVisualRoot()
+                const root = resolveActiveVisualRoot()
                 if (!root || modeRef.current !== 'visual') return
                 const pageHtml = enableMultiPagesRef.current
                   ? (pagesRef.current[activePageIndexRef.current] ?? '')
                   : extractFontStylesheets(htmlRef.current).body
                 const result = resetPageAtRuleInDocument(root, pageHtml)
                 if (!result.changed) return
-                recordActivePageHtml(result.pageHtml, false)
+                recordVisualHtmlFromRoot(root, false, result.pageHtml)
                 setPageDialog((prev) => ({
                   ...prev,
                   value: {

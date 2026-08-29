@@ -45,6 +45,9 @@ import { TablePropertiesDialog } from '../modules/table/TablePropertiesDialog'
 import { CellPropertiesDialog } from '../modules/table/CellPropertiesDialog'
 import { RowPropertiesDialog } from '../modules/table/RowPropertiesDialog'
 import { DocumentPreviewDialog } from '../modules/view/DocumentPreviewDialog'
+import { AboutDialog } from '../modules/help/AboutDialog'
+import { HelpDialog } from '../modules/help/HelpDialog'
+import type { HelpTopicId } from '../modules/help/articles'
 import { EditorToolbar } from '../toolbar'
 import type { ChromeLockOptions } from '../toolbar/commentsChrome'
 import type { ToolbarCatalog, ToolbarLayout } from '../toolbar/types'
@@ -142,6 +145,11 @@ export type EditorDocumentPreviewState = {
   html: string
 }
 
+export type EditorHelpDialogState = {
+  open: boolean
+  topicId: HelpTopicId
+}
+
 export type EditorChromeProps = {
   menuVisible: boolean
   captureChromeSelection: () => void
@@ -168,6 +176,13 @@ export type EditorChromeProps = {
 
   documentPreview: EditorDocumentPreviewState
   onDocumentPreviewClose: () => void
+
+  helpDialog: EditorHelpDialogState
+  onHelpDialogClose: () => void
+  onHelpTopicChange: (topicId: HelpTopicId) => void
+
+  aboutDialogOpen: boolean
+  onAboutDialogClose: () => void
 
   fontDialog: EditorFontDialogState
   fontSizeState: FontSizeQuery
@@ -293,6 +308,11 @@ export const EditorChrome = memo(function EditorChrome({
   onToolbarSettingsReset,
   documentPreview,
   onDocumentPreviewClose,
+  helpDialog,
+  onHelpDialogClose,
+  onHelpTopicChange,
+  aboutDialogOpen,
+  onAboutDialogClose,
   fontDialog,
   fontSizeState,
   markState,
@@ -404,6 +424,15 @@ export const EditorChrome = memo(function EditorChrome({
           onClose={onDocumentPreviewClose}
         />
       ) : null}
+      {helpDialog.open ? (
+        <HelpDialog
+          open
+          topicId={helpDialog.topicId}
+          onTopicChange={onHelpTopicChange}
+          onClose={onHelpDialogClose}
+        />
+      ) : null}
+      {aboutDialogOpen ? <AboutDialog open onClose={onAboutDialogClose} /> : null}
       {fontDialog.open ? (
         <FontPropertiesDialog
           open

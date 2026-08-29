@@ -147,6 +147,9 @@ export type CommandName =
   | 'toggleNumberedList'
   | 'addComment'
   | 'toggleCommentsVisible'
+  | 'openHelp'
+  | 'openKeyboardShortcuts'
+  | 'openAbout'
   | (string & {})
 
 export type QueryName =
@@ -214,6 +217,9 @@ export type CommandContext = {
   setToolbarPosition: (position: ToolbarPosition) => void
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
+  openHelp: () => void
+  openKeyboardShortcuts: () => void
+  openAbout: () => void
   toggleReadAloud: () => void
   toggleRuler: () => void
   isReadingAloud: () => boolean
@@ -351,6 +357,9 @@ export type EditorCommands = {
   toggleFullscreen: () => void
   openCustomizeToolbar: () => void
   openDocumentPreview: () => void
+  openHelp: () => void
+  openKeyboardShortcuts: () => void
+  openAbout: () => void
   toggleReadAloud: () => void
   toggleRuler: () => void
   setLightMode: () => void

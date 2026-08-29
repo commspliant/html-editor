@@ -115,6 +115,17 @@ img {
   position: relative;
   z-index: 1;
 }
+[data-page]:has([data-page-bg]) {
+  position: relative;
+  isolation: isolate;
+}
+[data-page-bg] {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
 [data-page],
 [data-page-bg] {
   -webkit-print-color-adjust: exact;

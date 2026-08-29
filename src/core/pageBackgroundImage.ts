@@ -17,8 +17,10 @@ import {
 import {
   PAGE_BG_LAYER_ATTR,
   PAGE_BG_LAYER_ID,
+  consolidateHolderBackgroundLayersIntoShell,
   queryPageBackgroundLayer,
   queryPageBackgroundLayers,
+  queryPageShell,
 } from './page'
 
 export type PageBackgroundImageApply = {
@@ -271,6 +273,27 @@ function syncShellPosition(shell: HTMLElement): boolean {
       changed = true
     }
   }
+  return changed
+}
+
+/** Ensure an existing page background layer has managed stacking and interaction styles. */
+export function normalizePageBackgroundLayer(shell: HTMLElement): boolean {
+  const layer = queryPageBackgroundLayer(shell)
+  if (!layer) return syncShellPosition(shell)
+
+  const ensured = ensureBackgroundLayer(shell)
+  let changed = ensured.changed
+  if (stampBackgroundLayer(ensured.layer)) changed = true
+  if (ensureBackgroundLayerStyles(ensured.layer)) changed = true
+  if (syncShellPosition(shell)) changed = true
+  return changed
+}
+
+export function normalizePageBackgroundLayerInHolder(holder: HTMLElement): boolean {
+  const shell = queryPageShell(holder)
+  if (!shell) return false
+  let changed = consolidateHolderBackgroundLayersIntoShell(holder)
+  if (normalizePageBackgroundLayer(shell)) changed = true
   return changed
 }
 
