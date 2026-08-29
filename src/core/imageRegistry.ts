@@ -1,7 +1,11 @@
 export const EMBEDDED_IMAGE_ID_ATTR = 'data-wysiwyg-img-id'
 
+const PAGE_BG_LAYER_ATTR = 'data-page-bg'
+
 const DATA_IMAGE_SRC =
   /^data:image\/(?:jpeg|jpg|png|gif|webp|bmp|avif)(?:;charset=[^;,]+)?;base64,/i
+
+const BACKGROUND_IMAGE_URL_RE = /background-image:\s*url\(\s*(["']?)(.+?)\1\s*\)/i
 
 export type ImageRegistryEntry = {
   dataUrl: string
@@ -28,6 +32,32 @@ function serializeHtmlFragment(doc: Document): string {
 
 function isEmbeddedDataImageSrc(src: string): boolean {
   return DATA_IMAGE_SRC.test(src.trim())
+}
+
+function htmlMayContainEmbeddedImages(html: string): boolean {
+  return (
+    html.includes('<img') ||
+    html.includes('IMG') ||
+    html.includes(PAGE_BG_LAYER_ATTR) ||
+    html.includes(EMBEDDED_IMAGE_ID_ATTR)
+  )
+}
+
+function readBackgroundImageUrlFromStyle(style: string): string | null {
+  const match = BACKGROUND_IMAGE_URL_RE.exec(style)
+  if (!match) return null
+  const src = match[2]?.trim() ?? ''
+  return src || null
+}
+
+function writeBackgroundImageUrlToStyle(style: string, url: string): string {
+  const escaped = url.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const nextValue = `url("${escaped}")`
+  if (BACKGROUND_IMAGE_URL_RE.test(style)) {
+    return style.replace(BACKGROUND_IMAGE_URL_RE, `background-image: ${nextValue}`)
+  }
+  const trimmed = style.trim().replace(/;+$/, '')
+  return trimmed ? `${trimmed};background-image: ${nextValue}` : `background-image: ${nextValue}`
 }
 
 function createId(): string {
@@ -79,23 +109,50 @@ export function createImageRegistry(): ImageRegistry {
     return entries.has(id)
   }
 
+  function findIdByObjectUrl(objectUrl: string): string | null {
+    const trimmed = objectUrl.trim()
+    if (!trimmed) return null
+    for (const [entryId, entry] of entries) {
+      if (entry.objectUrl === trimmed) return entryId
+    }
+    return null
+  }
+
+  function resolveDataUrlFromDisplayUrl(url: string, id?: string | null): string | null {
+    const trimmed = url.trim()
+    if (!trimmed) return null
+    if (isEmbeddedDataImageSrc(trimmed)) return trimmed
+    const resolvedId = id?.trim() || findIdByObjectUrl(trimmed)
+    if (resolvedId) return getDataUrl(resolvedId)
+    return null
+  }
+
   function processImages(doc: Document, mode: 'externalize' | 'hydrate'): void {
     for (const img of doc.querySelectorAll('img')) {
       const id = img.getAttribute(EMBEDDED_IMAGE_ID_ATTR)?.trim()
+      const src = img.getAttribute('src')?.trim() ?? ''
+
       if (mode === 'hydrate') {
-        if (!id) continue
-        const dataUrl = getDataUrl(id)
+        const dataUrl = resolveDataUrlFromDisplayUrl(src, id)
         if (!dataUrl) continue
         img.setAttribute('src', dataUrl)
         continue
       }
 
-      const src = img.getAttribute('src')?.trim() ?? ''
       if (id && has(id)) {
         const objectUrl = getObjectUrl(id)
         if (objectUrl) img.setAttribute('src', objectUrl)
         continue
       }
+
+      const registryId = findIdByObjectUrl(src)
+      if (registryId) {
+        img.setAttribute(EMBEDDED_IMAGE_ID_ATTR, registryId)
+        const objectUrl = getObjectUrl(registryId)
+        if (objectUrl) img.setAttribute('src', objectUrl)
+        continue
+      }
+
       if (!isEmbeddedDataImageSrc(src)) continue
       const nextId = register(src)
       img.setAttribute(EMBEDDED_IMAGE_ID_ATTR, nextId)
@@ -104,23 +161,73 @@ export function createImageRegistry(): ImageRegistry {
     }
   }
 
+  function processPageBackgroundLayers(doc: Document, mode: 'externalize' | 'hydrate'): void {
+    for (const layer of doc.querySelectorAll(`[${PAGE_BG_LAYER_ATTR}]`)) {
+      if (!(layer instanceof HTMLElement)) continue
+      const id = layer.getAttribute(EMBEDDED_IMAGE_ID_ATTR)?.trim()
+      const style = layer.getAttribute('style') ?? ''
+      const currentUrl = readBackgroundImageUrlFromStyle(style)
+
+      if (mode === 'hydrate') {
+        if (!currentUrl) continue
+        const dataUrl = resolveDataUrlFromDisplayUrl(currentUrl, id)
+        if (!dataUrl) continue
+        layer.setAttribute('style', writeBackgroundImageUrlToStyle(style, dataUrl))
+        continue
+      }
+
+      if (!currentUrl) continue
+
+      if (id && has(id)) {
+        const objectUrl = getObjectUrl(id)
+        if (objectUrl) {
+          layer.setAttribute('style', writeBackgroundImageUrlToStyle(style, objectUrl))
+        }
+        continue
+      }
+
+      const registryId = findIdByObjectUrl(currentUrl)
+      if (registryId) {
+        layer.setAttribute(EMBEDDED_IMAGE_ID_ATTR, registryId)
+        const objectUrl = getObjectUrl(registryId)
+        if (objectUrl) {
+          layer.setAttribute('style', writeBackgroundImageUrlToStyle(style, objectUrl))
+        }
+        continue
+      }
+
+      if (!isEmbeddedDataImageSrc(currentUrl)) continue
+      const nextId = register(currentUrl)
+      layer.setAttribute(EMBEDDED_IMAGE_ID_ATTR, nextId)
+      const objectUrl = getObjectUrl(nextId)
+      if (objectUrl) {
+        layer.setAttribute('style', writeBackgroundImageUrlToStyle(style, objectUrl))
+      }
+    }
+  }
+
   function externalizeHtml(html: string): string {
     const trimmed = html.trim()
     if (!trimmed) return html
-    if (!trimmed.includes('<img') && !trimmed.includes('IMG')) return html
+    if (!htmlMayContainEmbeddedImages(trimmed)) return html
     const doc = parseHtmlFragment(html)
     processImages(doc, 'externalize')
+    processPageBackgroundLayers(doc, 'externalize')
     return serializeHtmlFragment(doc)
   }
 
   function hydrateHtml(html: string): string {
     const trimmed = html.trim()
     if (!trimmed) return html
-    if (!trimmed.includes(EMBEDDED_IMAGE_ID_ATTR)) return html
+    if (!htmlMayContainEmbeddedImages(trimmed)) return html
     const doc = parseHtmlFragment(html)
+    processPageBackgroundLayers(doc, 'hydrate')
     processImages(doc, 'hydrate')
     for (const img of doc.querySelectorAll('img')) {
       img.removeAttribute(EMBEDDED_IMAGE_ID_ATTR)
+    }
+    for (const layer of doc.querySelectorAll(`[${PAGE_BG_LAYER_ATTR}]`)) {
+      layer.removeAttribute(EMBEDDED_IMAGE_ID_ATTR)
     }
     return serializeHtmlFragment(doc)
   }
@@ -167,4 +274,18 @@ export function externalizeEmbeddedImagesInHtml(
 
 export function hydrateEmbeddedImagesInHtml(html: string, registry: ImageRegistry): string {
   return registry.hydrateHtml(html)
+}
+
+/** Resolve a stored page-background layer URL via the image registry when present. */
+export function resolveRegistryBackgroundImageUrl(
+  el: HTMLElement,
+  resolveDataUrl?: (id: string) => string | null,
+): string | null {
+  const id = el.getAttribute(EMBEDDED_IMAGE_ID_ATTR)?.trim()
+  if (id && resolveDataUrl) {
+    const resolved = resolveDataUrl(id)
+    if (resolved) return resolved
+  }
+  const style = el.getAttribute('style') ?? ''
+  return readBackgroundImageUrlFromStyle(style)
 }

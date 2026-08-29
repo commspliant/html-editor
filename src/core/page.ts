@@ -94,6 +94,42 @@ function lastContentBlock(shell: HTMLElement): HTMLElement | null {
   return (blocks[blocks.length - 1] as HTMLElement | undefined) ?? null
 }
 
+function firstContentBlock(shell: HTMLElement): HTMLElement | null {
+  for (const child of shell.childNodes) {
+    if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
+    if (child instanceof HTMLElement && isAbsorbableBlock(child)) return child
+  }
+  return null
+}
+
+function ensureShellContentBlock(shell: HTMLElement): HTMLElement {
+  const existing = firstContentBlock(shell) ?? lastContentBlock(shell)
+  if (existing) return existing
+  const block = shell.ownerDocument.createElement('p')
+  block.appendChild(shell.ownerDocument.createElement('br'))
+  shell.appendChild(block)
+  return block
+}
+
+/** Move non-empty text nodes inside the page shell into content blocks. */
+export function absorbLooseTextInPageShell(shell: HTMLElement): boolean {
+  let changed = false
+  for (const child of [...shell.childNodes]) {
+    if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
+    if (child.nodeType !== Node.TEXT_NODE) continue
+    const text = child.textContent ?? ''
+    if (!text.trim()) {
+      child.remove()
+      changed = true
+      continue
+    }
+    const block = lastContentBlock(shell) ?? ensureShellContentBlock(shell)
+    block.appendChild(child)
+    changed = true
+  }
+  return changed
+}
+
 /** Move holder-level background layers into the page shell as the first child. */
 export function consolidateHolderBackgroundLayersIntoShell(holder: HTMLElement): boolean {
   const shell = queryPageShell(holder)
@@ -140,6 +176,7 @@ export function absorbLooseBlocksIntoPageShell(holder: HTMLElement): AbsorbLoose
     shell.appendChild(child)
     changed = true
   }
+  if (absorbLooseTextInPageShell(shell)) changed = true
   return { changed, absorbedBlocks }
 }
 
@@ -250,14 +287,6 @@ export function contentRoot(visualRoot: HTMLElement): HTMLElement {
   return queryPageShell(visualRoot) ?? visualRoot
 }
 
-function firstShellContentNode(shell: HTMLElement): Node | null {
-  for (const child of shell.childNodes) {
-    if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
-    return child
-  }
-  return null
-}
-
 function isSelectionOutsidePageShell(holder: HTMLElement, shell: HTMLElement, range: Range): boolean {
   const { startContainer } = range
   if (startContainer === shell || shell.contains(startContainer)) return false
@@ -265,25 +294,24 @@ function isSelectionOutsidePageShell(holder: HTMLElement, shell: HTMLElement, ra
   return holder.contains(startContainer)
 }
 
-function placeCaretInShell(shell: HTMLElement): void {
+function isCaretInInvalidShellLocation(shell: HTMLElement, range: Range): boolean {
+  const { startContainer } = range
+  if (startContainer === shell) return true
+  if (startContainer.nodeType === Node.TEXT_NODE && startContainer.parentElement === shell) {
+    return true
+  }
+  return false
+}
+
+function placeCaretAtBlockEnd(block: HTMLElement): void {
   const range = document.createRange()
-  const first = firstShellContentNode(shell)
-  if (first instanceof HTMLElement) {
-    const text = first.firstChild
-    if (text?.nodeType === Node.TEXT_NODE) {
-      range.setStart(text, text.textContent?.length ?? 0)
-    } else if (first.firstChild) {
-      range.setStartBefore(first.firstChild)
-    } else {
-      range.setStart(first, 0)
-    }
-  } else if (first?.nodeType === Node.TEXT_NODE) {
-    range.setStart(first, first.textContent?.length ?? 0)
+  const last = block.lastChild
+  if (last?.nodeType === Node.TEXT_NODE) {
+    range.setStart(last, last.textContent?.length ?? 0)
+  } else if (last) {
+    range.setStartAfter(last)
   } else {
-    const paragraph = document.createElement('p')
-    paragraph.appendChild(document.createElement('br'))
-    shell.appendChild(paragraph)
-    range.setStart(paragraph, 0)
+    range.setStart(block, 0)
   }
   range.collapse(true)
   const sel = window.getSelection()
@@ -292,13 +320,24 @@ function placeCaretInShell(shell: HTMLElement): void {
   sel.addRange(range)
 }
 
+function placeCaretInShell(shell: HTMLElement): void {
+  absorbLooseTextInPageShell(shell)
+  const block = lastContentBlock(shell) ?? firstContentBlock(shell) ?? ensureShellContentBlock(shell)
+  placeCaretAtBlockEnd(block)
+}
+
 /** Move the caret into the page shell when it landed on the holder or outside the shell. */
 export function normalizeCaretInPageShell(holder: HTMLElement): void {
   const shell = queryPageShell(holder)
   if (!shell) return
+  absorbLooseTextInPageShell(shell)
   const sel = window.getSelection()
   if (!sel || sel.rangeCount === 0) return
   const range = sel.getRangeAt(0)
+  if (isCaretInInvalidShellLocation(shell, range)) {
+    placeCaretInShell(shell)
+    return
+  }
   if (!isSelectionOutsidePageShell(holder, shell, range)) return
   placeCaretInShell(shell)
 }

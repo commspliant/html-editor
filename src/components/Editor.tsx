@@ -46,7 +46,11 @@ import {
   queryParagraphBackgroundImage,
 } from '../core/paragraphBackgroundImage'
 import { collectSelectedBlocks } from '../core/blocks'
-import { emptyPageBackgroundImageApply, normalizePageBackgroundLayerInHolder, repairPageBackgroundHtml } from '../core/pageBackgroundImage'
+import {
+  emptyPageBackgroundImageApply,
+  normalizePageBackgroundLayerInHolder,
+  repairPageBackgroundHtmlIfNeeded,
+} from '../core/pageBackgroundImage'
 import {
   applyDefaultPagePropertiesToPageHtml,
   applyPagePropertiesInDocument,
@@ -1294,7 +1298,17 @@ export function Editor({
         } else {
           flushed = multi.flushPageHtml(index)
         }
-        if (flushed === null) return previous
+        if (flushed === null) {
+          const previousBody = stripPageAtRuleFromHtml(extractFontStylesheets(previous).body)
+          const repairedBody = repairPageBackgroundHtmlIfNeeded(previousBody)
+          if (repairedBody === previousBody) return previous
+          const serialized = serializePageBody(
+            preservePageAtRuleInBody(repairedBody, extractFontStylesheets(previous).body),
+            previous,
+          )
+          if (serialized !== previous) changed = true
+          return serialized
+        }
         const body = preservePageAtRuleInBody(flushed, extractFontStylesheets(previous).body)
         const serialized = serializePageBody(body, previous, surface ?? undefined)
         if (serialized !== previous) changed = true
@@ -1319,8 +1333,7 @@ export function Editor({
 
   const recordPageVisualHtml = useCallback(
     (index: number, body: string, coalesce: boolean) => {
-      const repairedBody = repairPageBackgroundHtml(body)
-      const nextPage = serializePageBody(repairedBody, pagesRef.current[index] ?? '')
+      const nextPage = serializePageBody(body, pagesRef.current[index] ?? '')
       const updated = updatePageAt(pagesRef.current, index, nextPage)
       if (!updated.changed) return
       commitPages(updated.pages, coalesce, index)
@@ -1330,11 +1343,21 @@ export function Editor({
 
   const recordPageHtmlSource = useCallback(
     (index: number, pageHtml: string, coalesce: boolean) => {
-      const updated = updatePageAt(pagesRef.current, index, pageHtml)
+      const previous = pagesRef.current[index] ?? ''
+      const body = extractFontStylesheets(pageHtml).body
+      const repairedBody = repairPageBackgroundHtmlIfNeeded(body)
+      const nextPage =
+        repairedBody === body
+          ? pageHtml
+          : serializePageBody(
+              preservePageAtRuleInBody(repairedBody, extractFontStylesheets(previous).body),
+              previous,
+            )
+      const updated = updatePageAt(pagesRef.current, index, nextPage)
       if (!updated.changed) return
       commitPages(updated.pages, coalesce, index)
     },
-    [commitPages],
+    [commitPages, serializePageBody],
   )
 
   const recordActivePageHtml = useCallback(
@@ -1910,10 +1933,11 @@ export function Editor({
         if (optimizeEmbeddedImagesRef.current) {
           const stored = externalizeStorageHtml(next)
           htmlModePageHtmlRef.current = stored
+          recordPageHtmlSource(activePageIndexRef.current, stored, true)
         } else {
           htmlModePageHtmlRef.current = next
+          recordPageHtmlSource(activePageIndexRef.current, next, true)
         }
-        recordPageHtmlSource(activePageIndexRef.current, next, true)
         return
       }
       recordHtml(next, true)

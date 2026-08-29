@@ -4,6 +4,8 @@
 
 **Try it out here:** [https://htmleditor.commspliant.com/](https://htmleditor.commspliant.com/)
 
+**Documentation:** [developer guides](https://github.com/commspliant/html-editor/tree/main/docs)
+
 [![WYSIWYG editor screenshot](screenshot.png)](https://htmleditor.commspliant.com/)
 
 ## What problem does this solve?

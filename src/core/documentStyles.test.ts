@@ -16,6 +16,10 @@ describe('DOCUMENT_STYLES page background stacking', () => {
     expect(DOCUMENT_STYLES).toContain('[data-page] :not([data-page-bg])')
     expect(DOCUMENT_STYLES).not.toContain('[data-page] > :not([data-page-bg])')
   })
+
+  it('raises the page shell above holder-level orphan background layers', () => {
+    expect(DOCUMENT_STYLES).toContain('body:has(> [data-page-bg]) > [data-page]')
+  })
 })
 
 describe('buildStandalonePrintDocument', () => {

@@ -5,6 +5,7 @@ import type { ParagraphBoxApply } from './paragraphBox'
 import { emptyFontMarkState } from './marks'
 import {
   absorbLooseBlocksIntoPageShell,
+  absorbLooseTextInPageShell,
   ensurePageShell,
   ensureSizedPageShellLayout,
   normalizeCaretInPageShell,
@@ -407,6 +408,18 @@ describe('absorbLooseBlocksIntoPageShell', () => {
     expect(el.children).toHaveLength(1)
     expect(shell?.firstElementChild?.hasAttribute(PAGE_BG_LAYER_ATTR)).toBe(true)
     expect(shell?.querySelector('p')?.textContent).toBe('Hello')
+  })
+
+  it('merges shell-internal loose text into the last block when a background layer exists', () => {
+    const el = mountVisual(
+      '<div data-page><div data-page-bg></div>typed<p></p></div>',
+    )
+    const shell = queryPageShell(el) as HTMLElement
+
+    expect(absorbLooseTextInPageShell(shell)).toBe(true)
+    expect(shell.childNodes).toHaveLength(2)
+    expect(shell.firstElementChild?.hasAttribute(PAGE_BG_LAYER_ATTR)).toBe(true)
+    expect(shell.querySelector('p')?.textContent).toBe('typed')
   })
 })
 

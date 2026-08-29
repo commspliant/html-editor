@@ -17,6 +17,8 @@ import {
 import {
   PAGE_BG_LAYER_ATTR,
   PAGE_BG_LAYER_ID,
+  PAGE_SHELL_ATTR,
+  absorbLooseTextInPageShell,
   consolidateHolderBackgroundLayersIntoShell,
   queryPageBackgroundLayer,
   queryPageBackgroundLayers,
@@ -297,13 +299,26 @@ export function normalizePageBackgroundLayerInHolder(holder: HTMLElement): boole
   return changed
 }
 
+function pageBackgroundHtmlNeedsRepair(html: string): boolean {
+  return html.includes(PAGE_BG_LAYER_ATTR) || html.includes(PAGE_SHELL_ATTR)
+}
+
 /** Repair stored page body HTML: consolidate orphan layers and normalize stacking. */
 export function repairPageBackgroundHtml(html: string): string {
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html')
   consolidateHolderBackgroundLayersIntoShell(doc.body)
   const shell = queryPageShell(doc.body)
-  if (shell) normalizePageBackgroundLayer(shell)
+  if (shell) {
+    normalizePageBackgroundLayer(shell)
+    absorbLooseTextInPageShell(shell)
+  }
   return doc.body.innerHTML
+}
+
+/** Repair only when page background markup is present (avoid DOMParser on normal saves). */
+export function repairPageBackgroundHtmlIfNeeded(html: string): string {
+  if (!pageBackgroundHtmlNeedsRepair(html)) return html
+  return repairPageBackgroundHtml(html)
 }
 
 export function readBackgroundImageStyles(el: HTMLElement): PageBackgroundImageApply {
