@@ -18,6 +18,8 @@ import {
 import { syncPageCanvasLayout, type PageMarginSidesPx } from '../core/pageCanvasLayout'
 import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
+import type { HydrateEmbeddedImages } from '../core/documentEquality'
+import { syncVisualBodyHtml } from '../core/visualBodySync'
 import type { RulerUnit } from '../core/rulerUnits'
 import { useT } from '../i18n/LocaleProvider'
 import { RulerVisualFrame } from './RulerVisualFrame'
@@ -45,6 +47,8 @@ type VisualSurfaceProps = {
   onBeforeInput?: (event: InputEvent) => void
   /** Editor sets this to skip the next prop-driven innerHTML sync after a local visual commit. */
   propSyncGuardRef?: MutableRefObject<(() => void) | null>
+  resolveEmbeddedImageDataUrl?: (id: string) => string | null
+  hydrateEmbeddedImages?: HydrateEmbeddedImages
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onMouseUp?: (event: ReactMouseEvent<HTMLDivElement>) => void
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
@@ -66,6 +70,8 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
       onIndentChange,
       onBeforeInput,
       propSyncGuardRef,
+      resolveEmbeddedImageDataUrl,
+      hydrateEmbeddedImages,
       onPointerDown,
       onMouseUp,
       onContextMenu,
@@ -101,8 +107,11 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
       const isFocused = el === document.activeElement
       const skipSync = isFocused && skipPropSyncRef.current
       skipPropSyncRef.current = false
-      if (!skipSync && el.innerHTML !== editableHtml) {
-        el.innerHTML = editableHtml
+      if (!skipSync) {
+        syncVisualBodyHtml(el, editableHtml, {
+          resolveDataUrl: resolveEmbeddedImageDataUrl,
+          hydrateEmbeddedImages,
+        })
       }
       if (queryPageShell(el) || hasPrintLayout(layoutHtml)) {
         ensurePageShell(el)
@@ -112,7 +121,7 @@ export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
       }
       syncPageHolderBackground(el)
       syncPageCanvasLayout(el, layoutHtml)
-    }, [html, layoutHtml])
+    }, [html, layoutHtml, resolveEmbeddedImageDataUrl, hydrateEmbeddedImages])
 
     useLayoutEffect(() => {
       if (!propSyncGuardRef) return

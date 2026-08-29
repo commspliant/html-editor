@@ -2,6 +2,19 @@ import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 
+if (typeof URL !== 'undefined' && typeof URL.createObjectURL !== 'function') {
+  const objectUrls = new Map<string, string>()
+  let nextObjectUrlId = 0
+  URL.createObjectURL = (blob: Blob) => {
+    const url = `blob:test/${nextObjectUrlId++}`
+    objectUrls.set(url, blob.type)
+    return url
+  }
+  URL.revokeObjectURL = (url: string) => {
+    objectUrls.delete(url)
+  }
+}
+
 if (typeof HTMLCanvasElement !== 'undefined') {
   HTMLCanvasElement.prototype.toDataURL = function (type?: string) {
     if (type === 'image/webp') return 'data:,'

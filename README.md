@@ -89,6 +89,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `disableHtmlFileDrop` | `boolean` | `false` | When true, dropping an HTML file on the editor does not replace the document. File → Open is unchanged |
 | `enablePageProperties` | `boolean` | `false` | When true, the Page properties dialog includes the Print tab. Font and Paragraph tabs are always available. See [Page properties](#page-properties) |
 | `defaultPageProperties` | `DefaultPageProperties` | — | Optional partial page settings applied to uncontrolled initial content and each page inserted with Insert → Page → Page before / Page after. Does not mutate controlled `value` / `pages`. See [Page properties](#page-properties) |
+| `optimizeEmbeddedImages` | `boolean` | `false` | When true, embedded `data:image/...` sources are kept in an internal registry while editing so undo history and in-memory HTML stay small. `onChange`, `onPagesChange`, save, and export callbacks still receive full data URLs. See [Embedded image registry](#embedded-image-registry) |
 | `enableMultiPages` | `boolean` | `false` | When true, edit multiple independent HTML pages in visual mode. See [Multi-page editing](#multi-page-editing) |
 | `pages` | `string[]` | — | Controlled page HTML strings when `enableMultiPages` is true |
 | `defaultPages` | `string[]` | — | Initial pages when uncontrolled and `enableMultiPages` is true |
@@ -415,6 +416,26 @@ Pass `transformHtml` to further sanitize or enhance the document on every write:
 ```
 
 Keep the callback idempotent. If it rewrites markup on every keystroke (pretty-print, wrap tags), the visual surface resyncs `innerHTML` and the caret may jump. Prefer stripping disallowed tags over format-on-type. Do **not** strip HTML comments in `transformHtml` when using multi-page mode — that removes `<!-- wysiwyg-page-separator -->` and collapses pages.
+
+### Embedded image registry
+
+Large base64 images inflate React state, undo history, and `onPagesChange` payloads on every keystroke. Set `optimizeEmbeddedImages` to keep embedded images in an internal registry while editing: the visual surface uses `blob:` display URLs and `data-wysiwyg-img-id` attributes, while in-memory HTML and undo steps store the short ids instead of the full data URL.
+
+While editing, the **HTML source view** also shows this compact form (`data-wysiwyg-img-id` and `blob:` URLs), not base64 — including when `value` / `pages` are controlled. Host props remain full data URLs; the editor externalizes on ingest.
+
+Outbound writes (`onChange`, `onPagesChange`, `onSave`, `onAutoSave`, `getDocumentHtml`, preview, and custom-action `getHtml`) are **hydrated** back to full `data:image/...` sources so host persistence stays unchanged. Opt in only when documents contain many embedded images.
+
+```tsx
+<Editor
+  optimizeEmbeddedImages
+  defaultValue={`<p><img src="data:image/png;base64,..." alt="Chart"></p>`}
+  onChange={(html) => {
+    // html still contains full data URLs for save
+  }}
+/>
+```
+
+Try it in the playground: open the sidebar, set **Embedded images** to **Optimized**, then switch to HTML mode with the `<>` button — the sample document loads with an embedded image so you can verify compact markup without inserting one manually.
 
 ### Auto save
 

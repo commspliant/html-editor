@@ -1,5 +1,9 @@
 import { isInside } from './inlineRange'
 import {
+  EMBEDDED_IMAGE_ID_ATTR,
+  type ImageRegistry,
+} from './imageRegistry'
+import {
   convertImageFileToWebPDataUrl,
   shouldConvertImageFileToWebP,
   supportsWebPEncoding,
@@ -116,8 +120,18 @@ function dataUrlBinarySize(dataUrl: string): number {
   return Math.floor((base64.length * 3) / 4) - padding
 }
 
-export function applyImageAttrs(img: HTMLImageElement, attrs: ImageAttrs): void {
-  img.setAttribute('src', attrs.src.trim())
+export function applyImageAttrs(
+  img: HTMLImageElement,
+  attrs: ImageAttrs,
+  registry?: ImageRegistry | null,
+): void {
+  const resolved = resolveImageAttrsForEditor(attrs, registry)
+  img.setAttribute('src', resolved.src.trim())
+  if (resolved.registryId) {
+    img.setAttribute(EMBEDDED_IMAGE_ID_ATTR, resolved.registryId)
+  } else {
+    img.removeAttribute(EMBEDDED_IMAGE_ID_ATTR)
+  }
   const alt = attrs.alt.trim()
   const title = attrs.title.trim()
   if (alt) img.setAttribute('alt', alt)
@@ -142,9 +156,36 @@ function applyInlineCss(el: HTMLElement, css: string | undefined): void {
   }
 }
 
-export function insertImageInDocument(root: HTMLElement, attrs: ImageAttrs): boolean {
+type ResolvedImageAttrs = ImageAttrs & { registryId?: string }
+
+export function resolveImageAttrsForEditor(
+  attrs: ImageAttrs,
+  registry?: ImageRegistry | null,
+): ResolvedImageAttrs {
+  if (!registry) return attrs
+  const src = attrs.src.trim()
+  if (validateImageSrc(src)) return attrs
+  if (!DATA_IMAGE_SRC.test(src)) return attrs
+  const id = registry.register(src)
+  const objectUrl = registry.getObjectUrl(id)
+  if (!objectUrl) return attrs
+  return { ...attrs, src: objectUrl, registryId: id }
+}
+
+export function insertImageInDocument(
+  root: HTMLElement,
+  attrs: ImageAttrs,
+  registry?: ImageRegistry | null,
+): boolean {
   const next = defaultImageAttrs(attrs)
-  if (validateImageSrc(next.src)) return false
+  const resolved = registry ? resolveImageAttrsForEditor(next, registry) : next
+
+  if (resolved.registryId) {
+    const stored = registry?.getDataUrl(resolved.registryId)
+    if (!stored || validateImageSrc(stored)) return false
+  } else if (validateImageSrc(resolved.src)) {
+    return false
+  }
 
   const sel = window.getSelection()
   if (!sel || sel.rangeCount === 0) return false
@@ -154,7 +195,7 @@ export function insertImageInDocument(root: HTMLElement, attrs: ImageAttrs): boo
   if (!range.collapsed) range.deleteContents()
 
   const img = document.createElement('img')
-  applyImageAttrs(img, next)
+  applyImageAttrs(img, resolved, registry)
   range.insertNode(img)
   range.setStartAfter(img)
   range.collapse(true)
