@@ -115,6 +115,11 @@ img {
   position: relative;
   z-index: 1;
 }
+body:has(> [data-page-bg]) > [data-page] {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
 [data-page]:has([data-page-bg]) {
   position: relative;
   isolation: isolate;

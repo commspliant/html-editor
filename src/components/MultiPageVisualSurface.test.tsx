@@ -1,5 +1,8 @@
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { useRef, type ComponentProps } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { PAGE_MARGIN_VAR } from '../core/pageCanvasLayout'
@@ -294,5 +297,43 @@ describe('MultiPageVisualSurface rulers', () => {
         expect.stringMatching(/data-page-bg[\s\S]*Page two|Page two[\s\S]*data-page-bg/),
       )
     })
+  })
+
+  it('stores typed text inside a paragraph on a page with orphan background markup', async () => {
+    const onPageChange = vi.fn()
+    const user = userEvent.setup()
+    renderMultiPage({
+      pages: [pagePlain, pageWithOrphanBg, pagePlain],
+      activePageIndex: 1,
+      onPageChange,
+    })
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(3)
+    })
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+    await user.type(surfaces[1], 'Typed')
+
+    const shell = surfaces[1].querySelector('[data-page]')
+    expect(shell?.querySelector('p')?.textContent).toContain('Typed')
+    for (const child of shell?.childNodes ?? []) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        expect(child.textContent?.trim()).toBe('')
+      }
+    }
+
+    const lastCall = onPageChange.mock.calls.at(-1)?.[1] as string
+    expect(lastCall).toMatch(/<p[^>]*>[^<]*Typed/)
+    expect(lastCall).not.toMatch(/data-page-bg[^>]*>[^<]+Typed/)
+  })
+
+  it('uses editor CSS to raise the shell above holder-level orphan backgrounds', () => {
+    const css = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'Editor.module.css'),
+      'utf8',
+    )
+    expect(css).toContain('.visual:has(> [data-page-bg]) > [data-page]')
   })
 })

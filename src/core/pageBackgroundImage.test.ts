@@ -14,6 +14,7 @@ import {
   normalizePageBackgroundLayerInHolder,
   readPageBackgroundImage,
   repairPageBackgroundHtml,
+  repairPageBackgroundHtmlIfNeeded,
   writePageBackgroundImage,
 } from './pageBackgroundImage'
 import { applyPagePropertiesInDocument, emptyPagePropertiesApply } from './pageProperties'
@@ -316,5 +317,32 @@ describe('repairPageBackgroundHtml', () => {
     expect(layer.style.zIndex).toBe('0')
     expect(layer.style.pointerEvents).toBe('none')
     expect(shell.querySelector('p')?.textContent).toBe('text')
+  })
+
+  it('merges shell-internal loose text into content blocks', () => {
+    const html =
+      '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div>typed<p></p></div>'
+    const repaired = repairPageBackgroundHtml(html)
+    const doc = new DOMParser().parseFromString(`<body>${repaired}</body>`, 'text/html')
+    const shell = doc.querySelector('[data-page]') as HTMLElement
+
+    expect(shell.querySelector('p')?.textContent).toBe('typed')
+    expect(shell.firstElementChild?.hasAttribute(PAGE_BG_LAYER_ATTR)).toBe(true)
+  })
+})
+
+describe('repairPageBackgroundHtmlIfNeeded', () => {
+  it('returns input unchanged when no page background markup is present', () => {
+    const html = '<p>Hello</p>'
+    expect(repairPageBackgroundHtmlIfNeeded(html)).toBe(html)
+  })
+
+  it('repairs when page background markup is present', () => {
+    const html =
+      '<div data-page><p>text</p></div>' +
+      '<div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div>'
+    const repaired = repairPageBackgroundHtmlIfNeeded(html)
+    expect(repaired).toContain('data-page-bg')
+    expect(repaired.indexOf('data-page-bg')).toBeLessThan(repaired.indexOf('<p>text</p>'))
   })
 })

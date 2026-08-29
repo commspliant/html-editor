@@ -187,7 +187,12 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
         aria-label={visualEditorAria}
         aria-disabled={disabled || undefined}
         data-placeholder={index === 0 ? placeholder : undefined}
-        onFocus={() => onActivate(index)}
+        onFocus={(event) => {
+          const surface = event.currentTarget
+          absorbLooseBlocksIntoPageShell(surface)
+          normalizeCaretInPageShell(surface)
+          onActivate(index)
+        }}
         onPointerDown={(event) => onPointerDown(index, event)}
         onMouseUp={onMouseUp}
         onContextMenu={onContextMenu}

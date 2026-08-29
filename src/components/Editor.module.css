@@ -423,6 +423,12 @@
   z-index: 1;
 }
 
+.visual:has(> [data-page-bg]) > [data-page] {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
+
 .visual [data-page] [data-page-bg],
 .visual > [data-page-bg] {
   position: absolute;

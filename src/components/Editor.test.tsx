@@ -2893,6 +2893,214 @@ describe('Editor optimizeEmbeddedImages', () => {
     expect(htmlEditor.value).not.toContain('base64')
     expect(htmlEditor.value).toContain('data-wysiwyg-img-id')
   })
+
+  it('externalizes page 2 images after page background apply and HTML mode switch', async () => {
+    const user = userEvent.setup()
+    const pageOne = '<p>One</p>'
+    const pageTwo = `<p><img src="${PNG_DATA_URL}" alt="Chart"></p>`
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        enableMultiPages
+        enablePageProperties
+        defaultPages={[pageOne, pageTwo]}
+      />,
+    )
+
+    await focusMultiPageSurface(user, 1)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Paragraph' }))
+    await user.click(screen.getByRole('tab', { name: 'Background Image' }))
+    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
+    await user.type(screen.getByLabelText('Image URL'), 'https://example.com/page2.png')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(htmlEditor.value).not.toContain('base64')
+    expect(htmlEditor.value).toContain('data-wysiwyg-img-id')
+  })
+
+  it('keeps page 2 typed text inside a paragraph after page background apply', async () => {
+    const user = userEvent.setup()
+    const pageOne = '<p>One</p>'
+    const pageTwo = '<p></p>'
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        enableMultiPages
+        enablePageProperties
+        defaultPages={[pageOne, pageTwo]}
+      />,
+    )
+
+    const surface = await focusMultiPageSurface(user, 1)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Paragraph' }))
+    await user.click(screen.getByRole('tab', { name: 'Background Image' }))
+    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
+    await user.type(screen.getByLabelText('Image URL'), 'https://example.com/page2.png')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    await user.type(surface, 'Hello page two')
+
+    const shell = surface.querySelector('[data-page]')
+    expect(shell?.querySelector('p')?.textContent).toContain('Hello page two')
+    for (const child of shell?.childNodes ?? []) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        expect(child.textContent?.trim()).toBe('')
+      }
+    }
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(htmlEditor.value).toContain('Hello page two')
+    expect(htmlEditor.value).toMatch(/<p[^>]*>[^<]*Hello page two/)
+  })
+
+  it('externalizes page background data URLs in HTML mode on page 2', async () => {
+    const user = userEvent.setup()
+    const pageOne = '<p>One</p>'
+    const pageTwo = '<p>Two</p>'
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        enableMultiPages
+        enablePageProperties
+        defaultPages={[pageOne, pageTwo]}
+      />,
+    )
+
+    await focusMultiPageSurface(user, 1)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Paragraph' }))
+    await user.click(screen.getByRole('tab', { name: 'Background Image' }))
+    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
+    await user.type(screen.getByLabelText('Image URL'), PNG_DATA_URL)
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(htmlEditor.value).toContain('data-wysiwyg-img-id')
+    expect(htmlEditor.value).not.toContain('base64')
+  })
+})
+
+describe('Editor optimizeEmbeddedImages save hydration', () => {
+  const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgo='
+  const imageHtml = `<p><img src="${PNG_DATA_URL}" alt="Chart"></p>`
+
+  it('hydrates embedded images in File Save output when optimize is on', async () => {
+    const user = userEvent.setup()
+    vi.mocked(saveHtml).mockClear()
+    render(<Editor optimizeEmbeddedImages defaultValue={imageHtml} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const img = visual.querySelector('img')
+    expect(img).not.toBeNull()
+    img!.removeAttribute('data-wysiwyg-img-id')
+
+    await user.click(screen.getByRole('button', { name: 'Save as HTML file' }))
+
+    expect(saveHtml).toHaveBeenCalledTimes(1)
+    const saved = vi.mocked(saveHtml).mock.calls[0]?.[0] as string
+    expect(saved).toContain('data:image/')
+    expect(saved).not.toContain('blob:')
+  })
+
+  it('hydrates content images and page backgrounds in multi-page File Save output', async () => {
+    const user = userEvent.setup()
+    vi.mocked(saveHtml).mockClear()
+    const pageOne = `<p>Embedded image demo</p>${imageHtml}`
+    const pageTwo = '<p>Two</p>'
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        enableMultiPages
+        enablePageProperties
+        defaultPages={[pageOne, pageTwo]}
+      />,
+    )
+
+    await focusMultiPageSurface(user, 1)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Paragraph' }))
+    await user.click(screen.getByRole('tab', { name: 'Background Image' }))
+    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
+    await user.type(screen.getByLabelText('Image URL'), PNG_DATA_URL)
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[0]?.querySelector('img')?.removeAttribute('data-wysiwyg-img-id')
+    surfaces[1]?.querySelector('[data-page-bg]')?.removeAttribute('data-wysiwyg-img-id')
+
+    await user.click(screen.getByRole('button', { name: 'Save as HTML file' }))
+
+    expect(saveHtml).toHaveBeenCalledTimes(1)
+    const saved = vi.mocked(saveHtml).mock.calls[0]?.[0] as string
+    expect(saved).toContain('data:image/')
+    expect(saved).not.toContain('blob:')
+  })
+
+  it('onSave/onOpen round trip re-externalizes when optimize is on', async () => {
+    const user = userEvent.setup()
+    let stored: string | null = null
+    const onSave = vi.fn(async (html: string) => {
+      stored = html
+    })
+    const onOpen = vi.fn(async () => stored)
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        defaultValue={imageHtml}
+        onSave={onSave}
+        onOpen={onOpen}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    visual.querySelector('img')?.removeAttribute('data-wysiwyg-img-id')
+
+    await user.click(screen.getByRole('button', { name: 'Save as HTML file' }))
+
+    expect(onSave).toHaveBeenCalledTimes(1)
+    const saved = onSave.mock.calls[0]?.[0] as string
+    expect(saved).toContain('data:image/')
+    expect(saved).not.toContain('blob:')
+
+    await user.click(screen.getByRole('button', { name: 'Open HTML file' }))
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(htmlEditor.value).toContain('data-wysiwyg-img-id')
+    expect(htmlEditor.value).not.toContain('base64')
+  })
+
+  it('loads hydrated HTML as-is when optimize is off', async () => {
+    const user = userEvent.setup()
+    vi.mocked(loadHtml).mockResolvedValueOnce(imageHtml)
+    render(<Editor defaultMode="html" defaultValue="<p>Old</p>" />)
+
+    await user.click(screen.getByRole('button', { name: 'Open HTML file' }))
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(htmlEditor.value).toContain(PNG_DATA_URL)
+    expect(htmlEditor.value).not.toContain('data-wysiwyg-img-id')
+  })
 })
 
 describe('Editor open embedded image', () => {
