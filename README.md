@@ -465,7 +465,7 @@ Set `enableMultiPages` to edit several independent HTML pages in visual mode. Pa
 
 When multi-page mode is off (default), behavior is unchanged.
 
-**HTML source mode** shows all pages in one textarea, separated by:
+**HTML source mode** edits **one page at a time**. A tab strip above the textarea shows **Page 1**, **Page 2**, and so on; the active tab matches the page selected in visual mode (or page 1 before any page is selected). With five or more pages, left/right arrows scroll the tab strip. **View → Preview** and host callbacks (`onSave`, `onOpen`, `onAutoSave`, `onPagesChange`) still use **all pages**. Join pages for storage with `joinPagesToHtml` and the separator:
 
 ```html
 <!-- wysiwyg-page-separator -->

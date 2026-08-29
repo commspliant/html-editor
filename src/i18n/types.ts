@@ -14,6 +14,10 @@ export type Messages = {
   exitFullscreenAria: string
   visualEditorAria: string
   htmlEditorAria: string
+  htmlModePageTab: string
+  htmlModePageTabsAria: string
+  htmlModePageTabsScrollLeftAria: string
+  htmlModePageTabsScrollRightAria: string
   menuFile: string
   menuFileAria: string
   menuEdit: string

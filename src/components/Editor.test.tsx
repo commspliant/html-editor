@@ -471,6 +471,25 @@ describe('Editor document preview', () => {
 
     expect(screen.queryByRole('dialog', { name: 'Document preview' })).not.toBeInTheDocument()
   })
+
+  it('previews all multi-page content after editing a non-first page', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[1].innerHTML = '<p>Two edited</p>'
+    fireEvent.input(surfaces[1])
+
+    await user.click(screen.getByRole('button', { name: 'Preview document' }))
+
+    const frame = screen.getByTitle('Document preview') as HTMLIFrameElement
+    await waitFor(() => {
+      const pages = frame.contentDocument?.querySelectorAll('.wysiwyg-preview-page')
+      expect(pages).toHaveLength(2)
+      expect(pages?.[0]?.innerHTML).toContain('One')
+      expect(pages?.[1]?.innerHTML).toContain('Two edited')
+    })
+  })
 })
 
 describe('Editor read aloud', () => {
@@ -1909,6 +1928,97 @@ describe('Editor paragraph chrome', () => {
   it('renders multiple visual surfaces when enableMultiPages is true', () => {
     render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
     expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+  })
+
+  it('keeps stable sibling page references when another page is edited', () => {
+    const onPagesChange = vi.fn()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    const baselinePages = onPagesChange.mock.calls.at(-1)?.[0] as string[] | undefined
+    const pageOneBefore = baselinePages?.[0] ?? '<p>One</p>'
+
+    surfaces[1].innerHTML = '<p>Two edited</p>'
+    fireEvent.input(surfaces[1])
+
+    expect(onPagesChange).toHaveBeenCalled()
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages[0]).toBe(pageOneBefore)
+    expect(lastPages[1]).toContain('Two edited')
+  })
+
+  it('returns all pages from save after multi-page visual edits', async () => {
+    const onSave = vi.fn(async () => undefined)
+    const user = userEvent.setup()
+    render(
+      <Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} onSave={onSave} />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[0].innerHTML = '<p>One edited</p>'
+    fireEvent.input(surfaces[0])
+
+    await user.click(screen.getByRole('button', { name: 'File menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Save' }))
+
+    expect(onSave).toHaveBeenCalledTimes(1)
+    const saved = onSave.mock.calls[0][0] as string[]
+    expect(saved).toHaveLength(2)
+    expect(saved[0]).toContain('One edited')
+    expect(saved[1]).toContain('Two')
+  })
+
+  it('loads controlled pages without disturbing unchanged slots', () => {
+    const initial = ['<p>One</p>', '<p>Two</p>']
+    const { rerender } = render(
+      <Editor enableMultiPages pages={initial} onPagesChange={vi.fn()} />,
+    )
+
+    rerender(
+      <Editor
+        enableMultiPages
+        pages={['<p>One</p>', '<p>Two updated</p>']}
+        onPagesChange={vi.fn()}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(surfaces[1].innerHTML).toContain('Two updated')
+  })
+
+  it('shows the active page in HTML mode after switching from visual', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(htmlEditor.value).toContain('Two')
+    expect(htmlEditor.value).not.toContain('wysiwyg-page-separator')
+  })
+
+  it('switches HTML source when selecting another page tab', async () => {
+    const user = userEvent.setup()
+    render(<Editor enableMultiPages defaultPages={['<p>One</p>', '<p>Two</p>']} />)
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(htmlEditor.value).toContain('One')
+
+    await user.click(screen.getByRole('tab', { name: 'Page 2' }))
+
+    expect(htmlEditor.value).toContain('Two')
+    expect(htmlEditor.value).not.toContain('One')
   })
 
   it('preserves other pages when applying print settings on page 2', async () => {

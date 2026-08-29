@@ -105,6 +105,10 @@ img {
   padding-top: 1.5rem;
   border-top: 2px dashed #ccc;
 }
+.wysiwyg-preview-page:not(:last-child) {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+}
 [data-page] > :not([data-page-bg]) {
   position: relative;
   z-index: 1;
