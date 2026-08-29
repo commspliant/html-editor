@@ -435,6 +435,13 @@ export type EditorProps = {
    */
   defaultPageProperties?: DefaultPageProperties
   /**
+   * When true, embedded `data:image/...` sources are stored in an internal registry
+   * while editing. Serialized editor state and undo history keep short image ids and
+   * `blob:` display URLs; `onChange`, `onPagesChange`, `getDocumentHtml`, and save
+   * callbacks receive full data URLs. Default `false`.
+   */
+  optimizeEmbeddedImages?: boolean
+  /**
    * When true, the editor manages multiple independent HTML pages in visual mode.
    * Default `false` (single document, unchanged behavior).
    */

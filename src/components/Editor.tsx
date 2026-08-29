@@ -54,7 +54,12 @@ import {
   queryPageProperties,
   resetPageAtRuleInDocument,
 } from '../core/pageProperties'
-import { emptyPageAtRuleApply, preservePageAtRuleInBody, queryPageAtRule } from '../core/pageAtRule'
+import {
+  emptyPageAtRuleApply,
+  preservePageAtRuleInBody,
+  queryPageAtRule,
+  stripPageAtRuleFromHtml,
+} from '../core/pageAtRule'
 import {
   buildPageHtmlWithMarginPx,
   isPageCanvasSized,
@@ -68,6 +73,7 @@ import { resolvePageZoomScale } from '../core/pageZoom'
 import {
   joinPagesToHtml,
   normalizePages,
+  pagesArraysEqual,
   PAGE_SURFACE_ATTR,
   queryPageSurface,
   queryPageSurfaceIndex,
@@ -163,6 +169,9 @@ import {
 import { createReadAloudSession, isSpeechSynthesisSupported, resolveReadAloudText } from '../core/readAloud'
 import { insertAudioInDocument } from '../core/audio'
 import { closestImage, insertImageInDocument, selectImageInDocument } from '../core/image'
+import { documentsCanonicallyEqual } from '../core/documentEquality'
+import { createImageRegistry, type ImageRegistry } from '../core/imageRegistry'
+import { syncVisualBodyHtml } from '../core/visualBodySync'
 import { insertYoutubeInDocument, insertVideoInDocument } from '../core/youtube'
 import { insertHorizontalRuleInDocument } from '../core/horizontalRule'
 import { insertPageBreakInDocument } from '../core/pageBreak'
@@ -342,6 +351,7 @@ export function Editor({
   toolbarPositionPersistence,
   enablePageProperties = false,
   defaultPageProperties,
+  optimizeEmbeddedImages = false,
   enableMultiPages = false,
   pages: pagesProp,
   defaultPages,
@@ -367,7 +377,20 @@ export function Editor({
           applyDefaultPagePropertiesToPageHtml(page, defaultPageProperties),
         )
       : rawInitialPages
-  const initialHtmlRaw = enableMultiPages ? joinPagesToHtml(initialPages) : (initialPages[0] ?? '')
+  const imageRegistryRef = useRef<ImageRegistry | null>(null)
+  if (optimizeEmbeddedImages && imageRegistryRef.current === null) {
+    imageRegistryRef.current = createImageRegistry()
+  }
+  const storedInitialPagesRef = useRef<string[] | null>(null)
+  if (storedInitialPagesRef.current === null) {
+    storedInitialPagesRef.current =
+      optimizeEmbeddedImages && imageRegistryRef.current
+        ? initialPages.map((page) => imageRegistryRef.current!.externalizeHtml(page))
+        : [...initialPages]
+  }
+  const initialHtmlRaw = enableMultiPages
+    ? joinPagesToHtml(storedInitialPagesRef.current)
+    : (storedInitialPagesRef.current[0] ?? '')
   const initialHtml = sanitizeHtml ? sanitizeDocumentHtml(initialHtmlRaw) : initialHtmlRaw
   const controlledHtmlRaw =
     enableMultiPages && pagesProp !== undefined ? joinPagesToHtml(normalizePages(pagesProp)) : value
@@ -375,11 +398,48 @@ export function Editor({
     if (controlledHtmlRaw === undefined) return undefined
     return sanitizeHtml ? sanitizeDocumentHtml(controlledHtmlRaw) : controlledHtmlRaw
   }, [controlledHtmlRaw, sanitizeHtml])
-  const [html, setHtml] = useControllableState({
-    value: controlledHtml,
-    defaultValue: initialHtml,
-    onChange: enableMultiPages ? undefined : onChange,
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+  const optimizeEmbeddedImagesRef = useRef(optimizeEmbeddedImages)
+  optimizeEmbeddedImagesRef.current = optimizeEmbeddedImages
+  const externalizeStorageHtml = useCallback((html: string) => {
+    if (!optimizeEmbeddedImagesRef.current || !imageRegistryRef.current) return html
+    return imageRegistryRef.current.externalizeHtml(html)
+  }, [])
+  const hydrateExportHtml = useCallback((html: string) => {
+    if (!optimizeEmbeddedImagesRef.current || !imageRegistryRef.current) return html
+    return imageRegistryRef.current.hydrateHtml(html)
+  }, [])
+  const hydrateExportPages = useCallback(
+    (pages: readonly string[]) => pages.map((page) => hydrateExportHtml(page)),
+    [hydrateExportHtml],
+  )
+  const resolveEmbeddedImageDataUrl = useCallback(
+    (id: string) => imageRegistryRef.current?.getDataUrl(id) ?? null,
+    [],
+  )
+  const notifyHtmlChange = useCallback(
+    (storedHtml: string) => {
+      onChangeRef.current?.(hydrateExportHtml(storedHtml))
+    },
+    [hydrateExportHtml],
+  )
+  const [storageHtml, setStorageHtml] = useState(() => {
+    if (optimizeEmbeddedImages && value !== undefined && !enableMultiPages) {
+      const raw = sanitizeHtml ? sanitizeDocumentHtml(value) : value
+      if (imageRegistryRef.current) {
+        return imageRegistryRef.current.externalizeHtml(raw)
+      }
+      return raw
+    }
+    return initialHtml
   })
+  const [html, setHtml] = useControllableState({
+    value: optimizeEmbeddedImages ? undefined : controlledHtml,
+    defaultValue: initialHtml,
+    onChange: enableMultiPages ? undefined : optimizeEmbeddedImages ? undefined : onChange,
+  })
+  const editorHtml = optimizeEmbeddedImages ? storageHtml : html
   const [mode, setMode] = useControllableState<EditorMode>({
     value: modeProp,
     defaultValue: defaultMode,
@@ -424,14 +484,21 @@ export function Editor({
   onPagesChangeRef.current = onPagesChange
   const pagesPropRef = useRef(pagesProp)
   pagesPropRef.current = pagesProp
+  const ingestedPagesProp = useMemo(() => {
+    if (!optimizeEmbeddedImages || pagesProp === undefined) return pagesProp
+    return normalizePages(pagesProp).map((page) => {
+      const sanitized = sanitizeHtml ? sanitizeDocumentHtml(page) : page
+      return imageRegistryRef.current?.externalizeHtml(sanitized) ?? sanitized
+    })
+  }, [optimizeEmbeddedImages, pagesProp, sanitizeHtml])
   const pageStore = usePageStore({
     enabled: enableMultiPages,
-    pagesProp,
-    defaultPages: initialPages,
+    pagesProp: ingestedPagesProp,
+    defaultPages: storedInitialPagesRef.current,
   })
   const [activePageIndex, setActivePageIndex] = useState(0)
   const [htmlModePageHtml, setHtmlModePageHtml] = useState(() =>
-    enableMultiPages ? (initialPages[0] ?? '') : '',
+    enableMultiPages ? (storedInitialPagesRef.current?.[0] ?? '') : '',
   )
   const activePageIndexRef = useRef(activePageIndex)
   activePageIndexRef.current = activePageIndex
@@ -442,11 +509,15 @@ export function Editor({
   hasSelectedPageRef.current = hasSelectedPage
   const historyRef = useRef<ReturnType<typeof createDocumentHistory> | null>(null)
   if (historyRef.current === null) {
-    historyRef.current = createDocumentHistory(html)
+    historyRef.current = createDocumentHistory(externalizeStorageHtml(initialHtml))
   }
   const history = historyRef.current
-  const htmlRef = useRef(html)
-  htmlRef.current = html
+  const htmlRef = useRef(optimizeEmbeddedImages ? initialHtml : html)
+  if (!optimizeEmbeddedImagesRef.current) {
+    htmlRef.current = html
+  } else if (!enableMultiPagesRef.current) {
+    htmlRef.current = storageHtml
+  }
   const pagesRef = useRef(pageStore.pages)
   if (enableMultiPages) {
     pagesRef.current = pageStore.pages
@@ -751,8 +822,8 @@ export function Editor({
       const page = pageStore.pages[activePageIndex] ?? pageStore.pages[0] ?? ''
       return collectPreviewFontStylesheets(page, fontFaces).join('\n')
     }
-    return collectPreviewFontStylesheets(html, fontFaces).join('\n')
-  }, [enableMultiPages, pageStore.pages, pageStore.revision, activePageIndex, html, fontFaces])
+    return collectPreviewFontStylesheets(editorHtml, fontFaces).join('\n')
+  }, [enableMultiPages, pageStore.pages, pageStore.revision, activePageIndex, editorHtml, fontFaces])
   const visualPageBodies = useVisualPageBodies(
     enableMultiPages ? pageStore.pages : [],
     enableMultiPages ? pageStore.revision : 0,
@@ -776,8 +847,8 @@ export function Editor({
       const rulerContextIndex = hasSelectedPage ? activePageIndex : 0
       return visualPageBodies[rulerContextIndex] ?? ''
     }
-    return extractFontStylesheets(html).body
-  }, [enableMultiPages, visualPageBodies, activePageIndex, hasSelectedPage, html])
+    return extractFontStylesheets(editorHtml).body
+  }, [enableMultiPages, visualPageBodies, activePageIndex, hasSelectedPage, editorHtml])
   const pageCanvasSized = useMemo(
     () => isPageCanvasSized(queryPageAtRule(activePageHtml)),
     [activePageHtml],
@@ -1014,7 +1085,7 @@ export function Editor({
     }
   }, [
     mode,
-    html,
+    editorHtml,
     activePageIndex,
     visualPageBodies,
     pageZoom,
@@ -1062,52 +1133,121 @@ export function Editor({
   }, [toolbarPositionPersistence, toolbarPosition])
 
   const commitHtml = useCallback(
-    (next: string) => {
+    (next: string, options?: { fullReplace?: boolean }) => {
       const sanitized = sanitizeHtmlRef.current ? sanitizeDocumentHtml(next) : next
       const transformed = transformHtmlRef.current?.(sanitized) ?? sanitized
-      if (transformed !== htmlRef.current) {
+      const canonicallyEqual = documentsCanonicallyEqual(
+        htmlRef.current,
+        transformed,
+        hydrateExportHtml,
+      )
+      if (options?.fullReplace && !canonicallyEqual && optimizeEmbeddedImagesRef.current) {
+        imageRegistryRef.current?.clear()
+      }
+      const stored = externalizeStorageHtml(transformed)
+      if (canonicallyEqual) {
+        htmlRef.current = stored
+        return { stored, stateUpdated: false }
+      }
+      if (stored !== htmlRef.current) {
         documentDirtyRef.current = true
       }
       if (enableMultiPagesRef.current) {
-        const result = pageStore.replacePages(splitPagesFromHtml(transformed))
-        htmlRef.current = transformed
-        if (modeRef.current === 'html') {
-          setHtml(transformed)
+        const result = pageStore.replacePages(splitPagesFromHtml(stored))
+        htmlRef.current = result.joined
+        if (modeRef.current === 'html' && !optimizeEmbeddedImagesRef.current) {
+          setHtml(stored)
         }
-        onPagesChangeRef.current?.(result.pages, activePageIndexRef.current)
-        return transformed
+        onPagesChangeRef.current?.(
+          hydrateExportPages(result.pages),
+          activePageIndexRef.current,
+        )
+        return { stored, stateUpdated: true }
       }
-      setHtml(transformed)
-      return transformed
+      if (optimizeEmbeddedImagesRef.current) {
+        setStorageHtml(stored)
+        htmlRef.current = stored
+        notifyHtmlChange(stored)
+        return { stored, stateUpdated: true }
+      }
+      setHtml(stored)
+      return { stored, stateUpdated: true }
     },
-    [pageStore, setHtml],
+    [externalizeStorageHtml, hydrateExportHtml, hydrateExportPages, notifyHtmlChange, pageStore, setHtml],
   )
 
   const commitPages = useCallback(
     (nextPages: readonly string[], coalesce: boolean, editedIndex?: number) => {
-      const result = pageStore.setPages(nextPages, { editedIndex })
+      const storedPages = nextPages.map((page) => externalizeStorageHtml(page))
+      const result = pageStore.setPages(storedPages, { editedIndex })
       if (!result.changed) {
         return result.joined
       }
       documentDirtyRef.current = true
       htmlRef.current = result.joined
-      if (pagesPropRef.current === undefined && modeRef.current === 'html') {
+      if (
+        pagesPropRef.current === undefined &&
+        modeRef.current === 'html' &&
+        !optimizeEmbeddedImagesRef.current
+      ) {
         setHtml(result.joined)
       }
-      onPagesChangeRef.current?.(result.pages, activePageIndexRef.current)
+      onPagesChangeRef.current?.(
+        hydrateExportPages(result.pages),
+        activePageIndexRef.current,
+      )
       history.record(result.joined, { coalesce })
       return result.joined
     },
-    [history, pageStore, setHtml],
+    [externalizeStorageHtml, hydrateExportPages, history, pageStore, setHtml],
+  )
+
+  const syncVisualDocumentFromStorage = useCallback(
+    (stored: string) => {
+      if (modeRef.current !== 'visual') return
+      const resolveDataUrl = optimizeEmbeddedImagesRef.current
+        ? (id: string) => imageRegistryRef.current?.getDataUrl(id) ?? null
+        : undefined
+      const hydrate = optimizeEmbeddedImagesRef.current ? hydrateExportHtml : undefined
+      visualPropSyncGuardRef.current?.()
+
+      if (enableMultiPagesRef.current) {
+        const container = multiPageVisualRef.current?.getContainer()
+        if (!container) return
+        const pages = splitPagesFromHtml(stored)
+        for (let index = 0; index < pages.length; index += 1) {
+          const surface = queryPageSurface(container, index)
+          if (!surface) continue
+          const body = stripPageAtRuleFromHtml(extractFontStylesheets(pages[index] ?? '').body)
+          syncVisualBodyHtml(surface, body, {
+            resolveDataUrl,
+            hydrateEmbeddedImages: hydrate,
+          })
+        }
+        return
+      }
+
+      const el = visualRootRef.current
+      if (!el) return
+      const body = stripPageAtRuleFromHtml(extractFontStylesheets(stored).body)
+      syncVisualBodyHtml(el, body, {
+        resolveDataUrl,
+        hydrateEmbeddedImages: hydrate,
+      })
+    },
+    [hydrateExportHtml],
   )
 
   const recordHtml = useCallback(
     (next: string, coalesce: boolean) => {
-      const transformed = commitHtml(next)
-      history.record(transformed, { coalesce })
-      return transformed
+      const { stored, stateUpdated } = commitHtml(next, { fullReplace: !coalesce })
+      if (!coalesce && stateUpdated) {
+        syncVisualDocumentFromStorage(stored)
+      }
+      history.record(stored, { coalesce })
+      return stored
     },
-    [commitHtml, history],
+    [commitHtml, history, syncVisualDocumentFromStorage],
   )
 
   const onHtmlFileDrop = useCallback(
@@ -1199,13 +1339,19 @@ export function Editor({
       })
 
       if (changed) {
-        const result = pageStore.setPages(nextPages)
+        const storedPages = optimizeEmbeddedImagesRef.current
+          ? nextPages.map((page) => externalizeStorageHtml(page))
+          : nextPages
+        const result = pageStore.setPages(storedPages)
         htmlRef.current = result.joined
       }
       pageStore.markPagesClean()
-      return changed ? pageStore.pages : currentPages
+      const resultPages = changed ? pageStore.pages : currentPages
+      return optimizeEmbeddedImagesRef.current
+        ? resultPages.map((page) => externalizeStorageHtml(page))
+        : [...resultPages]
     },
-    [pageStore, serializePageBody],
+    [externalizeStorageHtml, pageStore, serializePageBody],
   )
 
   const recordPageVisualHtml = useCallback(
@@ -1432,14 +1578,14 @@ export function Editor({
     const next = history.undo()
     if (next === null) return
     history.markApplying()
-    commitHtml(next)
+    commitHtml(next, { fullReplace: true })
   }, [commitHtml, history])
 
   const redo = useCallback(() => {
     const next = history.redo()
     if (next === null) return
     history.markApplying()
-    commitHtml(next)
+    commitHtml(next, { fullReplace: true })
   }, [commitHtml, history])
 
   useEffect(() => {
@@ -1447,8 +1593,8 @@ export function Editor({
       history.syncExternal(joinPagesToHtml(pageStore.pages))
       return
     }
-    history.syncExternal(html)
-  }, [enableMultiPages, pageStore.pages, pageStore.revision, html, history])
+    history.syncExternal(optimizeEmbeddedImages ? storageHtml : html)
+  }, [enableMultiPages, optimizeEmbeddedImages, pageStore.pages, pageStore.revision, html, storageHtml, history])
 
   const captureSelection = useCallback(() => {
     selectionRef.current = snapshotSelection({
@@ -1619,7 +1765,7 @@ export function Editor({
 
   useEffect(() => {
     documentDirtyRef.current = true
-  }, [html])
+  }, [editorHtml])
 
   useEffect(() => {
     if (mode === 'visual') {
@@ -1696,14 +1842,20 @@ export function Editor({
   const handleHtmlSurfaceChange = useCallback(
     (next: string) => {
       if (enableMultiPagesRef.current) {
-        htmlModePageHtmlRef.current = next
-        setHtmlModePageHtml(next)
+        if (optimizeEmbeddedImagesRef.current) {
+          const stored = externalizeStorageHtml(next)
+          htmlModePageHtmlRef.current = stored
+          setHtmlModePageHtml(stored)
+        } else {
+          htmlModePageHtmlRef.current = next
+          setHtmlModePageHtml(next)
+        }
         recordPageHtmlSource(activePageIndexRef.current, next, true)
         return
       }
       recordHtml(next, true)
     },
-    [recordHtml, recordPageHtmlSource],
+    [externalizeStorageHtml, recordHtml, recordPageHtmlSource],
   )
 
   const handleModeChange = useCallback(
@@ -1725,7 +1877,16 @@ export function Editor({
             flushed,
             collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
           )
-          if (serialized !== htmlRef.current) {
+          if (optimizeEmbeddedImagesRef.current) {
+            const stored = externalizeStorageHtml(serialized)
+            const previous = htmlRef.current
+            setStorageHtml(stored)
+            htmlRef.current = stored
+            if (stored !== previous) {
+              documentDirtyRef.current = true
+              history.record(stored, { coalesce: true })
+            }
+          } else if (serialized !== htmlRef.current) {
             recordHtml(serialized, true)
           }
         }
@@ -1738,7 +1899,7 @@ export function Editor({
         setHasSelectedPage(false)
       }
     },
-    [recordHtml, recordPageHtmlSource, setMode, flushMultiPageHtml],
+    [externalizeStorageHtml, history, recordHtml, recordPageHtmlSource, setMode, flushMultiPageHtml],
   )
 
   useEffect(() => {
@@ -1855,7 +2016,7 @@ export function Editor({
       if (prev && prev.isConnected && root.contains(prev)) return prev
       return null
     })
-  }, [html, mode, contentLocked])
+  }, [editorHtml, mode, contentLocked])
 
   const restoreVisualRange = useCallback((root: HTMLElement) => {
     const live = snapshotSelection({
@@ -2221,7 +2382,7 @@ export function Editor({
       if (!root) return
       restoreVisualRange(root)
       setImageDialog({ open: false })
-      if (!insertImageInDocument(root, draft)) {
+      if (!insertImageInDocument(root, draft, imageRegistryRef.current)) {
         captureSelection()
         refreshMarkState()
         return
@@ -2454,10 +2615,10 @@ export function Editor({
     if (enableMultiPagesRef.current) {
       const joined = joinPagesToHtml(getAllPagesHtml())
       htmlRef.current = joined
-      return joined
+      return hydrateExportHtml(joined)
     }
     if (!documentDirtyRef.current) {
-      return htmlRef.current
+      return hydrateExportHtml(htmlRef.current)
     }
     if (modeRef.current === 'visual' && visualRootRef.current) {
       const flushed = preservePageAtRuleInBody(
@@ -2469,11 +2630,11 @@ export function Editor({
         collectDocumentFontStylesheets(flushed, htmlRef.current, fontFacesRef.current),
       )
       if (serialized !== htmlRef.current) {
-        return recordHtml(serialized, true)
+        return hydrateExportHtml(recordHtml(serialized, true))
       }
     }
-    return htmlRef.current
-  }, [getAllPagesHtml, recordHtml])
+    return hydrateExportHtml(htmlRef.current)
+  }, [getAllPagesHtml, hydrateExportHtml, recordHtml])
 
   const autoSaveRevisionRef = useRef(-1)
 
@@ -2501,13 +2662,41 @@ export function Editor({
       ? async (comparisonHtml) => {
           documentDirtyRef.current = false
           const payload = enableMultiPagesRef.current
-            ? (JSON.parse(comparisonHtml) as string[])
-            : comparisonHtml
+            ? hydrateExportPages(JSON.parse(comparisonHtml) as string[])
+            : hydrateExportHtml(comparisonHtml)
           return onAutoSave(payload)
         }
       : undefined,
     getHtml: getAutoSaveComparisonHtml,
   })
+
+  useEffect(() => {
+    return () => {
+      imageRegistryRef.current?.clear()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!optimizeEmbeddedImages || value === undefined || enableMultiPages) return
+    const stored = externalizeStorageHtml(value)
+    setStorageHtml(stored)
+    htmlRef.current = stored
+    history.syncExternal(stored)
+  }, [enableMultiPages, externalizeStorageHtml, history, optimizeEmbeddedImages, value])
+
+  useEffect(() => {
+    if (!optimizeEmbeddedImages || !enableMultiPages || pagesProp === undefined) return
+    const storedPages = normalizePages(pagesProp).map((page) => externalizeStorageHtml(page))
+    if (pagesArraysEqual(storedPages, pagesRef.current)) return
+    const result = pageStore.replacePages(storedPages)
+    htmlRef.current = result.joined
+    history.syncExternal(result.joined)
+    if (modeRef.current === 'html') {
+      const pageHtml = result.pages[activePageIndexRef.current] ?? ''
+      htmlModePageHtmlRef.current = pageHtml
+      setHtmlModePageHtml(pageHtml)
+    }
+  }, [enableMultiPages, externalizeStorageHtml, history, optimizeEmbeddedImages, pageStore, pagesProp])
 
   useEffect(() => {
     return () => {
@@ -2539,7 +2728,10 @@ export function Editor({
         setCustomizeToolbarOpen(true)
       },
       openDocumentPreview: () => {
-        setDocumentPreview({ open: true, html: joinPagesToHtml(getAllPagesHtml()) })
+        setDocumentPreview({
+          open: true,
+          html: hydrateExportHtml(joinPagesToHtml(getAllPagesHtml())),
+        })
       },
       toggleReadAloud: () => {
         const session = readAloudSessionRef.current
@@ -3046,7 +3238,7 @@ export function Editor({
         return collectSelectedBlocks(root).length > 0
       },
       getActivePageHtml: () => getActivePageHtml(),
-      getAllPagesHtml: () => getAllPagesHtml(),
+      getAllPagesHtml: () => hydrateExportPages(getAllPagesHtml()),
       openTableDialog: () => {
         if (modeRef.current !== 'visual') return
         const root = visualRootRef.current
@@ -3433,7 +3625,7 @@ export function Editor({
     if (!root) return
     syncCommentAnchorsToDom(root, commentThreads)
     setCommentHighlightsVisible(root, commentsVisible)
-  }, [enableComments, mode, commentThreads, commentsVisible, html])
+  }, [enableComments, mode, commentThreads, commentsVisible, editorHtml])
 
   const handleHistoryKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -3574,16 +3766,24 @@ export function Editor({
         onMarginPreview={multiPageRulerMarginPreview}
         onMarginChange={multiPageRulerMarginChange}
         onIndentChange={multiPageRulerIndentChange}
+        resolveEmbeddedImageDataUrl={
+          optimizeEmbeddedImages ? resolveEmbeddedImageDataUrl : undefined
+        }
+        hydrateEmbeddedImages={optimizeEmbeddedImages ? hydrateExportHtml : undefined}
       />
     ) : (
       <VisualSurface
         ref={visualRootRef}
-        html={extractFontStylesheets(html).body}
-        pageHtml={html}
+        html={extractFontStylesheets(editorHtml).body}
+        pageHtml={editorHtml}
         rulerVisible={rulerVisible}
         rulerUnit={rulerUnit}
         zoomScale={pageZoomScale}
         propSyncGuardRef={visualPropSyncGuardRef}
+        resolveEmbeddedImageDataUrl={
+          optimizeEmbeddedImages ? resolveEmbeddedImageDataUrl : undefined
+        }
+        hydrateEmbeddedImages={optimizeEmbeddedImages ? hydrateExportHtml : undefined}
         onMarginPreview={singlePageRulerMarginPreview}
         onMarginChange={singlePageRulerMarginChange}
         onIndentChange={singlePageRulerIndentChange}
@@ -3613,7 +3813,7 @@ export function Editor({
       ) : null}
       <HtmlSurface
         ref={htmlAreaRef}
-        html={enableMultiPages ? htmlModePageHtml : html}
+        html={enableMultiPages ? htmlModePageHtml : editorHtml}
         onChange={handleHtmlSurfaceChange}
         placeholder={placeholder}
         disabled={contentLocked}

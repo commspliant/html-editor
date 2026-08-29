@@ -2469,6 +2469,166 @@ describe('Editor custom actions', () => {
   })
 })
 
+describe('Editor optimizeEmbeddedImages', () => {
+  const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgo='
+  const imageHtml = `<p><img src="${PNG_DATA_URL}" alt="Chart"></p>`
+
+  it('hydrates onChange while storing externalized HTML in HTML mode', () => {
+    const onChange = vi.fn()
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        defaultMode="html"
+        defaultValue={imageHtml}
+        onChange={onChange}
+      />,
+    )
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' })
+    expect(htmlEditor).not.toHaveValue(expect.stringContaining('base64'))
+
+    fireEvent.change(htmlEditor, {
+      target: { value: `<p><img src="${PNG_DATA_URL}" alt="Updated"></p>` },
+    })
+
+    expect(onChange).toHaveBeenCalled()
+    const lastHtml = onChange.mock.calls.at(-1)?.[0] as string
+    expect(lastHtml).toContain(PNG_DATA_URL)
+    expect(lastHtml).not.toContain('data-wysiwyg-img-id')
+  })
+
+  it('shows externalized HTML in HTML mode when value is controlled', () => {
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        defaultMode="html"
+        value={imageHtml}
+        onChange={() => {}}
+      />,
+    )
+
+    expect(screen.getByRole('textbox', { name: 'HTML editor' })).not.toHaveValue(
+      expect.stringContaining('base64'),
+    )
+  })
+
+  it('keeps textarea externalized while onChange receives hydrated HTML', () => {
+    let latestValue = imageHtml
+    const onChange = vi.fn((next: string) => {
+      latestValue = next
+    })
+
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        defaultMode="html"
+        value={imageHtml}
+        onChange={onChange}
+      />,
+    )
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' })
+    expect(htmlEditor).not.toHaveValue(expect.stringContaining('base64'))
+
+    fireEvent.change(htmlEditor, {
+      target: { value: `<p><img src="${PNG_DATA_URL}" alt="Updated"></p>` },
+    })
+
+    expect(htmlEditor).not.toHaveValue(expect.stringContaining('base64'))
+    expect(onChange).toHaveBeenCalled()
+    expect(latestValue).toContain(PNG_DATA_URL)
+    expect(latestValue).not.toContain('data-wysiwyg-img-id')
+  })
+
+  it('shows externalized HTML after switching from visual to HTML mode', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor
+        optimizeEmbeddedImages
+        value={imageHtml}
+        onChange={() => {}}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    expect(screen.getByRole('textbox', { name: 'HTML editor' })).not.toHaveValue(
+      expect.stringContaining('base64'),
+    )
+  })
+
+  it('externalizes defaultValue image after switching from visual to HTML mode', async () => {
+    const user = userEvent.setup()
+    render(<Editor optimizeEmbeddedImages defaultValue={imageHtml} />)
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' })
+    expect(htmlEditor).not.toHaveValue(expect.stringContaining('base64'))
+    expect(htmlEditor).toHaveProperty('value', expect.stringContaining('data-wysiwyg-img-id'))
+  })
+
+  it('externalizes multi-page defaultPages after switching from visual to HTML mode', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor optimizeEmbeddedImages enableMultiPages defaultPages={[imageHtml]} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+
+    const htmlEditor = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(htmlEditor.value).not.toContain('base64')
+    expect(htmlEditor.value).toContain('data-wysiwyg-img-id')
+  })
+})
+
+describe('Editor open embedded image', () => {
+  const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgo='
+  const imageHtml = `<p><img src="${PNG_DATA_URL}" alt="Chart"></p>`
+
+  it('keeps the same image node when reopening the same document (optimize on)', async () => {
+    const user = userEvent.setup()
+    vi.mocked(loadHtml).mockResolvedValueOnce(imageHtml)
+    render(<Editor optimizeEmbeddedImages defaultValue={imageHtml} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const imgBefore = visual.querySelector('img')
+    expect(imgBefore).not.toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Open HTML file' }))
+
+    expect(visual.querySelector('img')).toBe(imgBefore)
+  })
+
+  it('keeps the same image node when reopening the same document (optimize off)', async () => {
+    const user = userEvent.setup()
+    vi.mocked(loadHtml).mockResolvedValueOnce(imageHtml)
+    render(<Editor defaultValue={imageHtml} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const imgBefore = visual.querySelector('img')
+    expect(imgBefore).not.toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Open HTML file' }))
+
+    expect(visual.querySelector('img')).toBe(imgBefore)
+  })
+
+  it('replaces content when opening a different document', async () => {
+    const user = userEvent.setup()
+    vi.mocked(loadHtml).mockResolvedValueOnce('<p>Other</p>')
+    render(<Editor defaultValue={imageHtml} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual.querySelector('img')).not.toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Open HTML file' }))
+
+    expect(visual).toContainHTML('<p>Other</p>')
+    expect(visual.querySelector('img')).toBeNull()
+  })
+})
+
 describe('Editor transformHtml', () => {
   const cleanDirty = (html: string) => html.replace(/dirty/g, 'clean')
 

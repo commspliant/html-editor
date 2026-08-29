@@ -52,6 +52,9 @@ const PLAYGROUND_HOST_OPEN_SAMPLE = '<p>Sample document from mock host storage</
 
 const DEFAULT_EDITOR_HTML = '<p>Hello <strong>world</strong></p>'
 
+const EMBEDDED_IMAGE_DEMO_HTML =
+  '<p>Embedded image demo</p><p><img src="data:image/png;base64,iVBORw0KGgo=" alt="Chart"></p>'
+
 const COMMENTS_DEMO_HTML =
   '<p>Price was <strong>£150</strong> last week. Select text or the image below, then use <strong>Add comment</strong>.</p><p><img src="https://picsum.photos/seed/wysiwyg-comments/320/180" alt="Sample diagram" width="320" height="180"></p>'
 
@@ -276,6 +279,7 @@ export function App() {
   const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
   const [fileCallbacksMode, setFileCallbacksMode] = useState<FileCallbacksMode>('local')
   const [multiPagesEnabled, setMultiPagesEnabled] = useState(false)
+  const [optimizeEmbeddedImagesEnabled, setOptimizeEmbeddedImagesEnabled] = useState(false)
   const [initialContentEmpty, setInitialContentEmpty] = useState(false)
   const [pagePropertiesEnabled, setPagePropertiesEnabled] = useState(false)
   const [rulerVisible, setRulerVisible] = useState(true)
@@ -693,6 +697,38 @@ export function App() {
                       {t.multiPagesOn}
                     </button>
                   </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.optimizeEmbeddedImagesAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('optimizeEmbeddedImages')}
+                  />
+                  <div
+                    className="locale-toggle"
+                    role="group"
+                    aria-label={t.optimizeEmbeddedImagesAria}
+                  >
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!optimizeEmbeddedImagesEnabled}
+                      onClick={() => setOptimizeEmbeddedImagesEnabled(false)}
+                    >
+                      {t.optimizeEmbeddedImagesOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={optimizeEmbeddedImagesEnabled}
+                      onClick={() => setOptimizeEmbeddedImagesEnabled(true)}
+                    >
+                      {t.optimizeEmbeddedImagesOn}
+                    </button>
+                  </div>
+                  {optimizeEmbeddedImagesEnabled ? (
+                    <p className="control-group-status">{t.optimizeEmbeddedImagesHint}</p>
+                  ) : null}
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
@@ -1308,7 +1344,7 @@ export function App() {
               key={
                 commentsEnabled
                   ? 'comments-demo'
-                  : `${initialContentEmpty ? 'empty' : 'hello'}-${defaultPagePropertiesMode}`
+                  : `${initialContentEmpty ? 'empty' : 'hello'}-${defaultPagePropertiesMode}-opt${optimizeEmbeddedImagesEnabled}`
               }
               locale={locale}
               menuVisible={menuVisible}
@@ -1319,6 +1355,7 @@ export function App() {
               readOnly={readOnly}
               disableHtmlFileDrop={disableHtmlFileDrop}
               enableMultiPages={multiPagesEnabled}
+              optimizeEmbeddedImages={optimizeEmbeddedImagesEnabled}
               enablePageProperties={pagePropertiesEnabled}
               defaultRulerVisible={rulerVisible}
               defaultPageProperties={defaultPageProperties}
@@ -1344,7 +1381,9 @@ export function App() {
                   ? COMMENTS_DEMO_HTML
                   : initialContentEmpty
                     ? ''
-                    : DEFAULT_EDITOR_HTML
+                    : optimizeEmbeddedImagesEnabled
+                      ? EMBEDDED_IMAGE_DEMO_HTML
+                      : DEFAULT_EDITOR_HTML
               }
               placeholder={t.placeholder}
               customActions={customActionsEnabled ? customActions : undefined}

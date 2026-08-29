@@ -23,6 +23,8 @@ import { syncPageCanvasLayout } from '../core/pageCanvasLayout'
 import type { PageMarginSidesPx } from '../core/pageCanvasLayout'
 import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
+import type { HydrateEmbeddedImages } from '../core/documentEquality'
+import { syncVisualBodyHtml } from '../core/visualBodySync'
 import type { RulerUnit } from '../core/rulerUnits'
 import { useT } from '../i18n/LocaleProvider'
 import { useMultiPageRulerMetrics } from './useMultiPageRulerMetrics'
@@ -53,6 +55,8 @@ type MultiPageVisualSurfaceProps = {
   onMarginPreview?: (pageIndex: number, margins: PageMarginSidesPx) => void
   onIndentChange?: (indent: { firstLineIndentPx?: number; leftIndentPx?: number; rightIndentPx?: number }) => void
   onBeforeInput?: (event: InputEvent) => void
+  resolveEmbeddedImageDataUrl?: (id: string) => string | null
+  hydrateEmbeddedImages?: HydrateEmbeddedImages
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onMouseUp?: (event: ReactMouseEvent<HTMLDivElement>) => void
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
@@ -185,6 +189,8 @@ export const MultiPageVisualSurface = forwardRef<
     onMarginPreview,
     onIndentChange,
     onBeforeInput,
+    resolveEmbeddedImageDataUrl,
+    hydrateEmbeddedImages,
     onPointerDown,
     onMouseUp,
     onContextMenu,
@@ -258,8 +264,11 @@ export const MultiPageVisualSurface = forwardRef<
   const syncSurfaceHtml = useCallback((surface: HTMLElement, html: string) => {
     const body = stripPageAtRuleFromHtml(extractFontStylesheets(html).body)
     const isFocused = surface === document.activeElement
-    if (!isFocused && surface.innerHTML !== body) {
-      surface.innerHTML = body
+    if (!isFocused) {
+      syncVisualBodyHtml(surface, body, {
+        resolveDataUrl: resolveEmbeddedImageDataUrl,
+        hydrateEmbeddedImages,
+      })
     }
     ensurePageShell(surface)
     absorbLooseBlocksIntoPageShell(surface)
@@ -267,7 +276,7 @@ export const MultiPageVisualSurface = forwardRef<
     syncPageCanvasLayout(surface, html)
     const shell = queryPageShell(surface)
     if (shell) ensureSizedPageShellLayout(surface, shell)
-  }, [])
+  }, [hydrateEmbeddedImages, resolveEmbeddedImageDataUrl])
 
   useLayoutEffect(() => {
     const container = containerRef.current

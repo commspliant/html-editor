@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'pageProperties' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'optimizeEmbeddedImages' | 'pageProperties' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -135,6 +135,21 @@ export function MultiPageEditor() {
     />
   )
 }`,
+    ],
+  },
+  optimizeEmbeddedImages: {
+    titleKey: 'optimizeEmbeddedImagesAria',
+    bodyKey: 'optimizeEmbeddedImagesExampleBody',
+    snippets: [
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor
+  optimizeEmbeddedImages
+  defaultValue={\`<p><img src="data:image/png;base64,..." alt="Chart"></p>\`}
+  onChange={(html) => {
+    // html still contains full data URLs for save
+  }}
+/>`,
     ],
   },
   pageProperties: {
