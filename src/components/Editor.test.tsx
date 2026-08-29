@@ -1456,6 +1456,31 @@ describe('Editor paragraph chrome', () => {
     expect(visual.style.minHeight).toBe('297mm')
   })
 
+  it('keeps the selection after bold on an A4 page', async () => {
+    const user = userEvent.setup()
+    render(<Editor enablePageProperties defaultValue="<p>Hello</p>" />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Print' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Page size' }), 'A4')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    await selectVisualText(visual, 0, 5)
+    await user.click(screen.getByRole('button', { name: 'Bold' }))
+
+    expect(window.getSelection()?.toString()).toBe('Hello')
+    const anchor = window.getSelection()?.anchorNode
+    expect(anchor).not.toBeNull()
+    expect(visual.contains(anchor ?? null)).toBe(true)
+    expect(anchor).not.toBe(visual)
+    const formatted = visual.querySelector('span')
+    expect(formatted).not.toBeNull()
+    expect(formatted?.contains(anchor ?? null)).toBe(true)
+  })
+
   it('sizes the visual canvas from preloaded @page HTML when innerHTML strips style tags', () => {
     const { rerender } = render(<Editor defaultValue={preloadedPageHtml} />)
     const visual = screen.getByRole('textbox', { name: 'Visual editor' }) as HTMLDivElement
@@ -1720,6 +1745,97 @@ describe('Editor paragraph chrome', () => {
     }
   })
 
+  it('does not jump the caret to the first line after Enter on a middle paragraph', async () => {
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>Line one</p><p>Line two</p><p>Line three</p></div>'
+    render(<Editor defaultValue={pageHtml} />)
+
+    const surface = screen.getByRole('textbox', { name: 'Visual editor' })
+    const shell = surface.querySelector('[data-page]') as HTMLElement
+    const paragraphs = shell.querySelectorAll('p')
+    const secondParagraph = paragraphs[1] as HTMLElement
+    const secondText = secondParagraph.firstChild as Text
+    const range = document.createRange()
+    range.setStart(secondText, secondText.length)
+    range.collapse(true)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+
+    const looseParagraph = document.createElement('p')
+    looseParagraph.appendChild(document.createElement('br'))
+    surface.appendChild(looseParagraph)
+
+    await act(async () => {
+      fireEvent.input(surface)
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+    })
+
+    const liveParagraphs = shell.querySelectorAll('p')
+    expect(liveParagraphs.length).toBeGreaterThanOrEqual(4)
+    const firstParagraph = liveParagraphs[0] as HTMLElement
+    expect(firstParagraph.contains(window.getSelection()?.anchorNode ?? null)).toBe(false)
+  })
+
+  it('does not jump the caret to the first line when typing on a middle paragraph', async () => {
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>Line one</p><p>Line two</p><p>Line three</p></div>'
+    render(<Editor defaultValue={pageHtml} />)
+
+    const surface = screen.getByRole('textbox', { name: 'Visual editor' })
+    surface.focus()
+    const shell = surface.querySelector('[data-page]') as HTMLElement
+    const paragraphs = shell.querySelectorAll('p')
+    const secondParagraph = paragraphs[1] as HTMLElement
+    const secondText = secondParagraph.firstChild as Text
+    const range = document.createRange()
+    range.setStart(secondText, secondText.length)
+    range.collapse(true)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+
+    act(() => {
+      secondText.insertData(secondText.length, 'x')
+      fireEvent.input(surface)
+    })
+
+    const liveParagraphs = shell.querySelectorAll('p')
+    const liveSecondParagraph = liveParagraphs[1] as HTMLElement
+    expect(liveSecondParagraph.textContent).toBe('Line twox')
+    expect(liveSecondParagraph.contains(window.getSelection()?.anchorNode ?? null)).toBe(true)
+    const firstParagraph = liveParagraphs[0] as HTMLElement
+    expect(firstParagraph.contains(window.getSelection()?.anchorNode ?? null)).toBe(false)
+  })
+
+  it('moves the caret to an absorbed paragraph after Enter in multi-page A4 mode', async () => {
+    const pageOne =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
+    const pageTwo =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>Hello</p></div>'
+    render(<Editor enableMultiPages defaultPages={[pageOne, pageTwo]} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    const surface = surfaces[1]
+    await selectVisualText(surface, 5, 5)
+
+    const looseParagraph = document.createElement('p')
+    looseParagraph.appendChild(document.createElement('br'))
+    surface.appendChild(looseParagraph)
+
+    await act(async () => {
+      fireEvent.input(surface)
+    })
+    await waitFor(() => {
+      const liveShell = surface.querySelector('[data-page]')
+      const paragraphs = liveShell?.querySelectorAll('p') ?? []
+      const lastParagraph = paragraphs[paragraphs.length - 1]
+      expect(lastParagraph?.contains(window.getSelection()?.anchorNode ?? null)).toBe(true)
+    })
+  })
+
   it('keeps Enter-created paragraphs inside page 2 shell in multi-page A4 mode', async () => {
     const user = userEvent.setup()
     const pageOne =
@@ -1737,6 +1853,29 @@ describe('Editor paragraph chrome', () => {
     expect(shell?.textContent).toContain('World')
     expect(surfaces[1].children).toHaveLength(1)
     expect(surfaces[1].firstElementChild).toBe(shell)
+  })
+
+  it('moves the caret to an absorbed paragraph after Enter in single-page A4 mode', async () => {
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>Hello</p></div>'
+    render(<Editor defaultValue={pageHtml} />)
+
+    const surface = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(surface, 5, 5)
+
+    const looseParagraph = document.createElement('p')
+    looseParagraph.appendChild(document.createElement('br'))
+    surface.appendChild(looseParagraph)
+
+    await act(async () => {
+      fireEvent.input(surface)
+    })
+    await waitFor(() => {
+      const liveShell = surface.querySelector('[data-page]')
+      const paragraphs = liveShell?.querySelectorAll('p') ?? []
+      const lastParagraph = paragraphs[paragraphs.length - 1]
+      expect(lastParagraph?.contains(window.getSelection()?.anchorNode ?? null)).toBe(true)
+    })
   })
 
   it('keeps typed text inside page 2 shell with fit-width zoom', () => {

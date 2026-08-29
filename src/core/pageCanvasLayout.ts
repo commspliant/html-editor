@@ -16,6 +16,18 @@ export type PageMarginSidesPx = {
 
 export const PAGE_SIZED_ATTR = 'data-page-sized'
 
+export const PAGE_MARGIN_VAR = {
+  top: '--wysiwyg-page-margin-top',
+  right: '--wysiwyg-page-margin-right',
+  bottom: '--wysiwyg-page-margin-bottom',
+  left: '--wysiwyg-page-margin-left',
+} as const
+
+/** Default `.visual` padding on unsized pages; used to bleed bg into the gutter. */
+export const FLUID_PAGE_MARGIN = '0.75rem'
+
+const PAGE_MARGIN_VAR_SIDES = ['top', 'right', 'bottom', 'left'] as const
+
 export type PageCanvasSize = {
   width: string
   height: string
@@ -126,11 +138,51 @@ const PAGE_CANVAS_STYLE_PROPS = [
   'padding-left',
 ] as const
 
+function clearPageBackgroundBleedVars(visualRoot: HTMLElement): void {
+  for (const side of PAGE_MARGIN_VAR_SIDES) {
+    visualRoot.style.removeProperty(PAGE_MARGIN_VAR[side])
+  }
+}
+
+function hasPageBackgroundImageLayer(visualRoot: HTMLElement): boolean {
+  const layer = visualRoot.querySelector('[data-page-bg]')
+  if (!(layer instanceof HTMLElement)) return false
+  const bg = layer.style.backgroundImage.trim()
+  if (bg && bg !== 'none') return true
+  const style = layer.getAttribute('style') ?? ''
+  return /background-image\s*:\s*(?!none\b)/i.test(style)
+}
+
+/** Set holder CSS vars for editor bg bleed; does not change document HTML. */
+export function syncPageBackgroundBleedVars(visualRoot: HTMLElement, pageHtml: string): void {
+  if (!hasPageBackgroundImageLayer(visualRoot)) {
+    clearPageBackgroundBleedVars(visualRoot)
+    return
+  }
+
+  const atRule = queryPageAtRule(pageHtml)
+  const size = resolvePageCanvasSize(atRule)
+
+  if (size) {
+    const padding = resolvePageCanvasMarginPadding(atRule)
+    for (const side of PAGE_MARGIN_VAR_SIDES) {
+      const value = padding[side] ?? '0px'
+      visualRoot.style.setProperty(PAGE_MARGIN_VAR[side], value)
+    }
+    return
+  }
+
+  for (const side of PAGE_MARGIN_VAR_SIDES) {
+    visualRoot.style.setProperty(PAGE_MARGIN_VAR[side], FLUID_PAGE_MARGIN)
+  }
+}
+
 function clearPageCanvasLayout(visualRoot: HTMLElement): void {
   visualRoot.removeAttribute(PAGE_SIZED_ATTR)
   for (const prop of PAGE_CANVAS_STYLE_PROPS) {
     visualRoot.style.removeProperty(prop)
   }
+  clearPageBackgroundBleedVars(visualRoot)
 }
 
 /** Merge dragged margin sides (document px) into page HTML @page rule. */
@@ -179,4 +231,6 @@ export function syncPageCanvasLayout(visualRoot: HTMLElement, pageHtml: string):
     if (value) visualRoot.style.setProperty(prop, value)
     else visualRoot.style.removeProperty(prop)
   }
+
+  syncPageBackgroundBleedVars(visualRoot, pageHtml)
 }

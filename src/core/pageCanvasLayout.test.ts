@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  FLUID_PAGE_MARGIN,
+  PAGE_MARGIN_VAR,
   PAGE_SIZED_ATTR,
   PAGE_SIZE_PRESETS,
   buildPageHtmlWithMarginPx,
@@ -8,6 +10,7 @@ import {
   probePageCanvasDimensions,
   resolvePageCanvasMarginPadding,
   resolvePageCanvasSize,
+  syncPageBackgroundBleedVars,
   syncPageCanvasLayout,
 } from './pageCanvasLayout'
 import { emptyPageAtRuleApply } from './pageAtRule'
@@ -157,5 +160,41 @@ describe('pageCanvasLayout', () => {
     expect(
       probePageCanvasDimensions({ ...emptyPageAtRuleApply(), sizePreset: 'A4' }),
     ).not.toBeNull()
+  })
+
+  it('syncPageBackgroundBleedVars sets holder margin vars when a background layer exists', () => {
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
+      '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><p>Hello</p></div>'
+    const el = document.createElement('div')
+    el.innerHTML =
+      '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><p>Hello</p></div>'
+
+    syncPageCanvasLayout(el, pageHtml)
+
+    expect(el.style.getPropertyValue(PAGE_MARGIN_VAR.top)).toBe('20pt')
+    expect(el.style.getPropertyValue(PAGE_MARGIN_VAR.left)).toBe('20pt')
+  })
+
+  it('syncPageBackgroundBleedVars clears holder margin vars when no background layer exists', () => {
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>Hello</p></div>'
+    const el = document.createElement('div')
+    el.innerHTML = '<div data-page><p>Hello</p></div>'
+    el.style.setProperty(PAGE_MARGIN_VAR.top, '20pt')
+
+    syncPageCanvasLayout(el, pageHtml)
+
+    expect(el.style.getPropertyValue(PAGE_MARGIN_VAR.top)).toBe('')
+  })
+
+  it('syncPageBackgroundBleedVars uses fluid margin on unsized pages with a background layer', () => {
+    const el = document.createElement('div')
+    el.innerHTML =
+      '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><p>Hello</p></div>'
+
+    syncPageBackgroundBleedVars(el, '<div data-page><p>Hello</p></div>')
+
+    expect(el.style.getPropertyValue(PAGE_MARGIN_VAR.top)).toBe(FLUID_PAGE_MARGIN)
   })
 })

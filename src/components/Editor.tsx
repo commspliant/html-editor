@@ -397,6 +397,7 @@ export function Editor({
     onChange: onCommentsChange,
   })
   const visualRootRef = useRef<HTMLDivElement | null>(null)
+  const visualPropSyncGuardRef = useRef<(() => void) | null>(null)
   const commentPanelRef = useRef<HTMLDivElement | null>(null)
   const workspaceRef = useRef<HTMLDivElement | null>(null)
   const multiPageVisualRef = useRef<MultiPageVisualSurfaceHandle>(null)
@@ -822,7 +823,7 @@ export function Editor({
     const surface = getActiveVisualRoot()
     if (!surface || surface !== document.activeElement) return
     normalizeCaretInPageShell(surface)
-  }, [mode, pageCanvasSized, activePageIndex, visualPageBodies, getActiveVisualRoot])
+  }, [mode, pageCanvasSized, activePageIndex, getActiveVisualRoot])
 
   useEffect(() => {
     const hrefs = previewFontKey ? previewFontKey.split('\n') : []
@@ -1086,6 +1087,7 @@ export function Editor({
 
   const recordVisualHtml = useCallback(
     (body: string, coalesce: boolean) => {
+      visualPropSyncGuardRef.current?.()
       return recordHtml(
         prependFontStylesheets(
           body,
@@ -3459,6 +3461,7 @@ export function Editor({
         rulerVisible={rulerVisible}
         rulerUnit={rulerUnit}
         zoomScale={pageZoomScale}
+        propSyncGuardRef={visualPropSyncGuardRef}
         onMarginPreview={singlePageRulerMarginPreview}
         onMarginChange={singlePageRulerMarginChange}
         onIndentChange={singlePageRulerIndentChange}

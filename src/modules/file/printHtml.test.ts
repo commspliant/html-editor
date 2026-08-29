@@ -62,6 +62,8 @@ describe('printHtml', () => {
     expect(iframe.getAttribute('data-wysiwyg-print')).toBe('')
     expect(fakeDoc?.querySelector('style')?.textContent).toContain('@page')
     expect(fakeDoc?.querySelector('style')?.textContent).toContain('blockquote')
+    expect(fakeDoc?.querySelector('style')?.textContent).toContain('print-color-adjust')
+    expect(fakeDoc?.querySelector('style')?.textContent).toContain('[data-page-bg]')
     expect(fakeDoc?.title).toBe('\u200B')
     expect(fakeDoc?.body.innerHTML).toBe('<p>Hello</p>')
     expect(print).toHaveBeenCalledTimes(1)
@@ -115,6 +117,23 @@ describe('printHtml', () => {
     expect(print).not.toHaveBeenCalled()
   })
 
+  it('applies bleed styles and shell padding when a page background image is present', () => {
+    const { fakeDoc } = mockPrintIframe()
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
+      '<div data-page style="position:relative;isolation:isolate">' +
+      '<div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div>' +
+      '<p>Hello</p></div>'
+
+    printHtml(pageHtml)
+
+    const styleText = fakeDoc?.querySelector('style')?.textContent ?? ''
+    expect(styleText).toContain('body:has([data-page-bg])')
+    expect(styleText).toContain('margin: 0 !important')
+    const shell = fakeDoc?.querySelector('[data-page]') as HTMLElement
+    expect(shell.style.paddingTop).toBe('20pt')
+  })
+
   it('prints multiple pages with per-page fragmentation wrappers and break-after rules', () => {
     const { fakeDoc, print } = mockPrintIframe()
 
@@ -129,5 +148,22 @@ describe('printHtml', () => {
     expect(pages?.[1]?.getAttribute('style')).toContain('page-break-after: always')
     expect(pages?.[2]?.getAttribute('style')).not.toContain('break-after: page')
     expect(pages?.[2]?.getAttribute('style')).toContain('break-inside: avoid')
+  })
+
+  it('preprocesses multi-page bodies with bleed and zeroes @page margins', () => {
+    const { fakeDoc } = mockPrintIframe()
+    const pageWithBg =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
+      '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><p>One</p></div>'
+    const pagePlain = '<div data-page><p>Two</p></div>'
+
+    printPagesHtml([pageWithBg, pagePlain])
+
+    const bleedStyles = [...(fakeDoc?.querySelectorAll('style') ?? [])]
+      .map((node) => node.textContent ?? '')
+      .join('\n')
+    expect(bleedStyles).toContain('margin: 0 !important')
+    const firstShell = fakeDoc?.querySelector('[data-wysiwyg-print-page] [data-page]') as HTMLElement
+    expect(firstShell.style.paddingTop).toBe('20pt')
   })
 })

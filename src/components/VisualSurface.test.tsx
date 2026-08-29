@@ -33,6 +33,15 @@ describe('VisualSurface', () => {
     expect(visual.querySelector('style[data-page-at-rule]')).toBeNull()
   })
 
+  it('styles sized holders as flex columns so page shells fill the canvas height', () => {
+    expect(editorModuleCss).toMatch(
+      /\.root \.visual\[data-page-sized\]\s*\{[^}]*display:\s*flex/s,
+    )
+    expect(editorModuleCss).toMatch(
+      /\.root \.visual\[data-page-sized\] > \[data-page\]\s*\{[^}]*flex:\s*1 1 auto/s,
+    )
+  })
+
   it('sizes the canvas when innerHTML read strips style tags like real browsers', () => {
     const { rerender } = render(
       <LocaleProvider>

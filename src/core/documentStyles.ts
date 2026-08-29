@@ -1,4 +1,5 @@
 import { extractFontStylesheets } from './fontFamily'
+import { prepareDocumentHtmlForOutput } from './pagePrintBleed'
 
 export const DOCUMENT_STYLES = `
 @page {
@@ -104,6 +105,15 @@ img {
   padding-top: 1.5rem;
   border-top: 2px dashed #ccc;
 }
+[data-page] > :not([data-page-bg]) {
+  position: relative;
+  z-index: 1;
+}
+[data-page],
+[data-page-bg] {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 @media print {
   [data-wysiwyg-page-break] {
     display: block !important;
@@ -123,16 +133,40 @@ img {
 }
 `.trim()
 
+export const DOCUMENT_BLEED_STYLES = `
+body:has([data-page-bg]) {
+  padding: 0;
+}
+[data-page] {
+  box-sizing: border-box;
+  min-height: 100%;
+}
+[data-wysiwyg-print-page] {
+  min-height: 100vh;
+  position: relative;
+}
+@media print {
+  @page {
+    margin: 0 !important;
+  }
+}
+`.trim()
+
+export function buildDocumentStyles(hasBleed: boolean): string {
+  return hasBleed ? `${DOCUMENT_STYLES}\n${DOCUMENT_BLEED_STYLES}` : DOCUMENT_STYLES
+}
+
 /** Writes document HTML into an iframe document. Empty title is a zero-width space so Chromium print headers do not fall back to the host page title. */
 export function writeDocumentHtml(doc: Document, html: string, title = '\u200B'): void {
-  const { hrefs, body } = extractFontStylesheets(html)
+  const prepared = prepareDocumentHtmlForOutput(html)
+  const { hrefs, body } = extractFontStylesheets(prepared.html)
 
   const charset = doc.createElement('meta')
   charset.setAttribute('charset', 'utf-8')
   const titleEl = doc.createElement('title')
   titleEl.textContent = title
   const style = doc.createElement('style')
-  style.textContent = DOCUMENT_STYLES
+  style.textContent = buildDocumentStyles(prepared.hasBleed)
   const fontLinks = hrefs.map((href) => {
     const link = doc.createElement('link')
     link.rel = 'stylesheet'

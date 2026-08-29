@@ -1,5 +1,6 @@
 import { writeDocumentHtml } from '../../core/documentStyles'
 import { extractFontStylesheets } from '../../core/fontFamily'
+import { prepareDocumentHtmlForOutput } from '../../core/pagePrintBleed'
 import { collectPageAtRulesForPrint } from '../../core/pageAtRule'
 
 const CLEANUP_MS = 1000
@@ -52,10 +53,13 @@ export function printPagesHtml(pages: readonly string[]): void {
   const mounted = mountPrintIframe()
   if (!mounted) return
 
+  const preparedPages = pages.map(prepareDocumentHtmlForOutput)
+  const hasBleed = preparedPages.some((page) => page.hasBleed)
+
   const hrefs: string[] = []
   const bodies: string[] = []
-  for (const page of pages) {
-    const extracted = extractFontStylesheets(page)
+  for (const prepared of preparedPages) {
+    const extracted = extractFontStylesheets(prepared.html)
     hrefs.push(...extracted.hrefs)
     bodies.push(extracted.body)
   }
@@ -71,8 +75,10 @@ export function printPagesHtml(pages: readonly string[]): void {
     .join('')
 
   const atRuleCss = collectPageAtRulesForPrint(pages)
+  const bleedMarginOverride = hasBleed ? '@page { margin: 0 !important; }' : ''
   const combinedHtml = [
     atRuleCss ? `<style>${atRuleCss}</style>` : '',
+    bleedMarginOverride ? `<style>${bleedMarginOverride}</style>` : '',
     ...Array.from(new Set(hrefs)).map((href) => `<link rel="stylesheet" href="${href}" />`),
     bodyHtml,
   ]

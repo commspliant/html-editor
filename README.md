@@ -143,17 +143,19 @@ import { Editor } from 'commspliant-html-editor'
 
 The first time page properties are applied, content is wrapped in a single `<div data-page>` shell with `width: 100%` and `height: 100%`. Background **color** is written on that shell. Background **image** uses the same file, URL, or custom picker as Insert → Image, plus independent width and height (default width `100%`, height unset), and opacity, fit, and position controls (the same options as Image properties → Advanced). Rotation is not supported for page backgrounds. Width and height write `background-size`; keyword fit values (`cover`, `contain`) replace those dimensions. File uploads for background images follow the same WebP embedding rules as Insert → Image (see [Custom image picker](#custom-image-picker)).
 
-When a background image is set, a single managed first child `<div id="commspliant-background" data-page-bg contenteditable="false">` holds the image layer so image opacity does not fade page text. If that id already exists in the editor, it is reused and extras are removed. The layer sits behind content (`z-index: -1`) so the document stays editable:
+When a background image is set, a single managed first child `<div id="commspliant-background" data-page-bg contenteditable="false">` holds the image layer so image opacity does not fade page text. If that id already exists in the editor, it is reused and extras are removed. The layer sits behind content (`z-index: 0` with siblings stacked above) so the document stays editable and the image prints in **File → Print** and **View → Preview**:
 
 ```html
 <div data-page style="width:100%;height:100%;position:relative;isolation:isolate;background-color:#fff">
   <div id="commspliant-background" data-page-bg contenteditable="false"
-       style="position:absolute;inset:0;z-index:-1;pointer-events:none;user-select:none;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.9"></div>
+       style="position:absolute;inset:0;z-index:0;pointer-events:none;user-select:none;print-color-adjust:exact;-webkit-print-color-adjust:exact;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.9"></div>
   <p>Hello</p>
 </div>
 ```
 
-The visual editor holder mirrors the shell fill and background image for display only; serialized `value` HTML is unchanged by that paint step.
+The visual editor holder mirrors the shell **fill color** for display only; serialized `value` HTML is unchanged by that paint step.
+
+The background image **bleeds edge-to-edge** on the page canvas in the editor (including the margin preview band) and to the physical paper edge in **File → Print** and **View → Preview**. On sized pages (`@page` size set), the background also fills the **full page height** in the editor—not only behind existing text. Text stays inset by print margins. In multi-page mode each page applies bleed from its own `@page` rule. At print/preview time, `@page` margins are moved onto the `[data-page]` shell as padding so the background layer can fill the sheet; this does not change normal `value` HTML during editing.
 
 ```tsx
 import { Editor } from 'commspliant-html-editor'
