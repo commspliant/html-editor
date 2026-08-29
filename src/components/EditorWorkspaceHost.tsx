@@ -156,27 +156,13 @@ function workspaceHostPropsAreEqual(
   prev: EditorWorkspaceHostProps,
   next: EditorWorkspaceHostProps,
 ): boolean {
-  return (
-    prev.pageStore === next.pageStore &&
-    prev.mode === next.mode &&
-    prev.enableMultiPages === next.enableMultiPages &&
-    prev.contentLocked === next.contentLocked &&
-    prev.activePageIndex === next.activePageIndex &&
-    prev.hasSelectedPage === next.hasSelectedPage &&
-    prev.pageZoomScale === next.pageZoomScale &&
-    prev.rulerVisible === next.rulerVisible &&
-    prev.rulerUnit === next.rulerUnit &&
-    prev.optimizeEmbeddedImages === next.optimizeEmbeddedImages &&
-    prev.placeholder === next.placeholder &&
-    prev.value === next.value &&
-    prev.pagesProp === next.pagesProp &&
-    prev.activeThreadId === next.activeThreadId &&
-    prev.contextMenu === next.contextMenu &&
-    prev.commentThreads === next.commentThreads &&
-    prev.commands === next.commands &&
-    prev.htmlFileDropDragging === next.htmlFileDropDragging &&
-    prev.selectedImage === next.selectedImage
-  )
+  for (const key of Object.keys(prev) as (keyof EditorWorkspaceHostProps)[]) {
+    const prevValue = prev[key]
+    const nextValue = next[key]
+    if (typeof prevValue === 'function' && typeof nextValue === 'function') continue
+    if (prevValue !== nextValue) return false
+  }
+  return true
 }
 
 function HtmlFileDropOverlay() {

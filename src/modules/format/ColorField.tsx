@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
+import { useViewportAnchoredPosition } from '../../hooks/useViewportAnchoredPosition'
 import { ColorPicker } from './ColorPicker'
 import styles from './ColorSelect.module.css'
 import fieldStyles from './ColorField.module.css'
-
-const VIEWPORT_PAD_PX = 4
 
 export type ColorFieldProps = {
   label: string
@@ -30,37 +29,8 @@ export function ColorField({
   const buttonRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, left: 0 })
 
-  const updatePosition = useCallback(() => {
-    const button = buttonRef.current
-    const popover = popoverRef.current
-    if (!button) return
-    const rect = button.getBoundingClientRect()
-    const height = popover?.offsetHeight ?? 0
-    const width = popover?.offsetWidth ?? 240
-    let top = rect.bottom
-    if (top + height > window.innerHeight - VIEWPORT_PAD_PX) {
-      top = Math.max(VIEWPORT_PAD_PX, rect.top - height)
-    }
-    const left = Math.min(
-      Math.max(rect.left, VIEWPORT_PAD_PX),
-      window.innerWidth - width - VIEWPORT_PAD_PX,
-    )
-    setCoords({ top, left })
-  }, [])
-
-  useLayoutEffect(() => {
-    if (!open) return
-    updatePosition()
-    const onReposition = () => updatePosition()
-    window.addEventListener('scroll', onReposition, true)
-    window.addEventListener('resize', onReposition)
-    return () => {
-      window.removeEventListener('scroll', onReposition, true)
-      window.removeEventListener('resize', onReposition)
-    }
-  }, [open, updatePosition])
+  const coords = useViewportAnchoredPosition(open, buttonRef, popoverRef)
 
   useEffect(() => {
     if (!open) return

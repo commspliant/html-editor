@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
+import { useDialogFocusTrap } from '../../hooks/useDialogFocusTrap'
 import type { ParagraphDialogTab, ParagraphPropertiesApply } from '../../core/commandTypes'
 import {
   emptyPageBackgroundImageApply,
@@ -9,9 +10,6 @@ import { useT } from '../../i18n/LocaleProvider'
 import type { CustomImagePicker } from '../../types'
 import { ParagraphPropertiesFields } from './ParagraphPropertiesFields'
 import styles from './FontPropertiesDialog.module.css'
-
-const FOCUSABLE =
-  'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), select:not([disabled])'
 
 export type ParagraphPropertiesApplyResult = {
   value: ParagraphPropertiesApply
@@ -55,37 +53,12 @@ export function ParagraphPropertiesDialog({
     setBackgroundImageDraft(backgroundImage ?? emptyPageBackgroundImageApply())
   }, [open, value, backgroundImage])
 
-  useEffect(() => {
-    if (!open) return
-    const node = dialogRef.current
-    const focusable = node?.querySelector<HTMLElement>(FOCUSABLE)
-    focusable?.focus()
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (document.querySelector('[role="listbox"], [data-color-picker]')) return
-        event.preventDefault()
-        event.stopPropagation()
-        onClose()
-        return
-      }
-      if (event.key !== 'Tab' || !node) return
-      const items = [...node.querySelectorAll<HTMLElement>(FOCUSABLE)]
-      if (items.length === 0) return
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown, true)
-    return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [open, onClose])
+  useDialogFocusTrap(dialogRef, {
+    open,
+    onClose,
+    focusableSelector:
+      'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), select:not([disabled])',
+  })
 
   if (!open) return null
 

@@ -1,11 +1,7 @@
 import { createContext, useContext, type MutableRefObject } from 'react'
 import type { EditorDocumentBridgeRef } from './editorDocumentBridgeTypes'
 
-/** Latest shell API; updated each Editor render without re-rendering the document bridge. */
-export type EditorShellApi = Record<string, unknown>
-
 export type EditorShellContextValue = {
-  shellRef: MutableRefObject<EditorShellApi>
   documentBridgeRef: EditorDocumentBridgeRef
   htmlRef: MutableRefObject<string>
   pagesRef: MutableRefObject<readonly string[]>
