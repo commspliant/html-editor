@@ -450,3 +450,15 @@ export const CustomImagePickerDirect: Story = {
     customImagePicker: storyImagePicker,
   },
 }
+
+const multiPageDocument = Array.from(
+  { length: 30 },
+  (_, index) => `<div data-page><p>Page ${index + 1}. Scroll to verify only nearby pages mount.</p></div>`,
+)
+
+export const MultiPageVirtualized: Story = {
+  args: {
+    enableMultiPages: true,
+    defaultPages: multiPageDocument,
+  },
+}

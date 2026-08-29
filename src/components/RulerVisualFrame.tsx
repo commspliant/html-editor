@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, ReactNode, Ref } from 'react'
 import type { PageMarginSidesPx } from '../core/pageCanvasLayout'
 import type { ParagraphIndentState } from '../core/paragraphIndent'
 import {
@@ -77,6 +77,7 @@ export function RulerHorizontalHeader({
 type RulerPageRowProps = RulerVerticalChromeProps & {
   children: ReactNode
   pageBlockStyle?: CSSProperties
+  pageBlockRef?: Ref<HTMLDivElement>
   /** When true, show the vertical ruler gutter and ruler for this page row. */
   showVerticalRuler?: boolean
   /** When true, the page has a fixed @page size; when false, use full-width / full-height fluid layout. */
@@ -93,12 +94,14 @@ export function RulerPageRow({
   onMarginPreview,
   children,
   pageBlockStyle,
+  pageBlockRef,
 }: RulerPageRowProps) {
   const layoutScale = zoomScale > 0 ? zoomScale : 1
   const gutterWidth = showVerticalRuler ? RULER_GUTTER_WIDTH_PX / layoutScale : 0
 
   return (
     <div
+      ref={pageBlockRef}
       className={`${styles.pageBlock} ${!pageSized ? styles.pageBlockFluid : ''}`}
       style={pageBlockStyle}
     >

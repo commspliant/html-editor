@@ -31,6 +31,7 @@ function pageGeometriesEqual(
 export function useMultiPageRulerMetrics(
   containerRef: RefObject<HTMLElement | null>,
   pages: readonly string[],
+  mountedIndices: readonly number[],
   getActiveIndex: () => number,
   enabled = true,
   zoomScale = 1,
@@ -53,36 +54,39 @@ export function useMultiPageRulerMetrics(
     if (!enabled || !container) return
     const measured: Record<number, PageGeometry> = {}
 
-    for (let index = 0; index < pages.length; index += 1) {
+    for (const index of mountedIndices) {
       const surface = queryPageSurface(container, index)
       if (!surface) continue
       const pageHtml = pages[index] ?? pages[0] ?? ''
       measured[index] = measurePageGeometry(surface, pageHtml)
     }
 
-    setPageGeometries((previous) => (pageGeometriesEqual(previous, measured) ? previous : measured))
+    setPageGeometries((previous) => {
+      const merged = { ...previous, ...measured }
+      return pageGeometriesEqual(previous, merged) ? previous : merged
+    })
 
     const activeSurface = queryPageSurface(container, getActiveIndex())
     if (activeSurface) setIndentState(queryParagraphIndent(activeSurface))
-  }, [enabled, containerRef, pages, getActiveIndex])
+  }, [containerRef, enabled, getActiveIndex, mountedIndices, pages])
 
   useLayoutEffect(() => {
     if (!enabled) return
     const frame = requestAnimationFrame(refresh)
     return () => cancelAnimationFrame(frame)
-  }, [enabled, getActiveIndex, pages, zoomScale, refresh])
+  }, [enabled, getActiveIndex, mountedIndices, pages, zoomScale, refresh])
 
   useLayoutEffect(() => {
     if (!enabled || typeof ResizeObserver === 'undefined') return
     const container = containerRef.current
     if (!container) return
     const observer = new ResizeObserver(() => refresh())
-    for (let index = 0; index < pages.length; index += 1) {
+    for (const index of mountedIndices) {
       const surface = queryPageSurface(container, index)
       if (surface) observer.observe(surface)
     }
     return () => observer.disconnect()
-  }, [enabled, containerRef, pages.length, refresh])
+  }, [containerRef, enabled, mountedIndices, refresh])
 
   useLayoutEffect(() => {
     if (!enabled) return
@@ -94,7 +98,7 @@ export function useMultiPageRulerMetrics(
     }
     document.addEventListener('selectionchange', handleSelection)
     return () => document.removeEventListener('selectionchange', handleSelection)
-  }, [enabled, containerRef, getActiveIndex])
+  }, [containerRef, enabled, getActiveIndex])
 
   return { pageGeometries, geometryForPage, indentState, refresh }
 }

@@ -5,15 +5,34 @@ import { collectPageAtRulesForPrint } from '../../core/pageAtRule'
 
 const CLEANUP_MS = 1000
 
+function waitForImage(img: HTMLImageElement): Promise<void> {
+  if (img.complete && img.naturalWidth > 0) {
+    return Promise.resolve(img.decode?.()).catch(() => undefined)
+  }
+  return new Promise<void>((resolve) => {
+    const done = () => {
+      void Promise.resolve(img.decode?.()).catch(() => undefined).then(() => resolve())
+    }
+    img.addEventListener('load', done, { once: true })
+    img.addEventListener('error', done, { once: true })
+  })
+}
+
+export function waitForDocumentImages(doc: Document): Promise<void> {
+  const images = [...doc.images]
+  if (images.length === 0) return Promise.resolve()
+  return Promise.all(images.map(waitForImage)).then(() => undefined)
+}
+
 function mountPrintIframe(): { iframe: HTMLIFrameElement; doc: Document; win: Window } | null {
   const iframe = document.createElement('iframe')
   iframe.setAttribute('aria-hidden', 'true')
   iframe.setAttribute('data-wysiwyg-print', '')
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-9999px'
+  iframe.style.top = '0'
+  iframe.style.width = '1px'
+  iframe.style.height = '1px'
   iframe.style.border = '0'
   document.body.append(iframe)
 
@@ -26,7 +45,7 @@ function mountPrintIframe(): { iframe: HTMLIFrameElement; doc: Document; win: Wi
   return { iframe, doc, win }
 }
 
-function runPrint(doc: Document, win: Window, iframe: HTMLIFrameElement, html: string): void {
+async function runPrint(doc: Document, win: Window, iframe: HTMLIFrameElement, html: string): Promise<void> {
   writeDocumentHtml(doc, html)
 
   let cleaned = false
@@ -38,6 +57,8 @@ function runPrint(doc: Document, win: Window, iframe: HTMLIFrameElement, html: s
 
   win.addEventListener('afterprint', cleanup)
 
+  await waitForDocumentImages(doc)
+
   win.focus()
   win.print()
   window.setTimeout(cleanup, CLEANUP_MS)
@@ -46,7 +67,7 @@ function runPrint(doc: Document, win: Window, iframe: HTMLIFrameElement, html: s
 export function printHtml(html: string): void {
   const mounted = mountPrintIframe()
   if (!mounted) return
-  runPrint(mounted.doc, mounted.win, mounted.iframe, html)
+  void runPrint(mounted.doc, mounted.win, mounted.iframe, html)
 }
 
 export function printPagesHtml(pages: readonly string[]): void {
@@ -85,5 +106,5 @@ export function printPagesHtml(pages: readonly string[]): void {
     .filter(Boolean)
     .join('')
 
-  runPrint(mounted.doc, mounted.win, mounted.iframe, combinedHtml)
+  void runPrint(mounted.doc, mounted.win, mounted.iframe, combinedHtml)
 }

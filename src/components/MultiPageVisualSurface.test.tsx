@@ -1,8 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ComponentProps } from 'react'
+import { useRef, type ComponentProps } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { PAGE_MARGIN_VAR } from '../core/pageCanvasLayout'
+import { estimatePageRowHeight } from '../core/pageRowHeight'
 import { LocaleProvider } from '../i18n/LocaleProvider'
 import { MultiPageVisualSurface } from './MultiPageVisualSurface'
 
@@ -22,20 +23,93 @@ function renderMultiPage(
   props: Partial<ComponentProps<typeof MultiPageVisualSurface>> = {},
 ) {
   const pages = props.pages ?? [pageA4, pageLetter]
+
+  function Harness() {
+    const scrollRef = useRef<HTMLDivElement>(null)
+    return (
+      <div ref={scrollRef} style={{ height: 300, overflow: 'auto' }}>
+        <MultiPageVisualSurface
+          pages={pages}
+          activePageIndex={props.activePageIndex ?? 0}
+          hasSelectedPage={props.hasSelectedPage ?? true}
+          scrollRootRef={scrollRef}
+          onActivePageIndexChange={props.onActivePageIndexChange ?? (() => undefined)}
+          onPageChange={props.onPageChange ?? (() => undefined)}
+          onPageFlush={props.onPageFlush}
+          rulerVisible={props.rulerVisible ?? true}
+          {...props}
+        />
+      </div>
+    )
+  }
+
   return render(
     <LocaleProvider>
-      <MultiPageVisualSurface
-        pages={pages}
-        activePageIndex={props.activePageIndex ?? 0}
-        hasSelectedPage={props.hasSelectedPage ?? true}
-        onActivePageIndexChange={props.onActivePageIndexChange ?? (() => undefined)}
-        onPageChange={props.onPageChange ?? (() => undefined)}
-        rulerVisible={props.rulerVisible ?? true}
-        {...props}
-      />
+      <Harness />
     </LocaleProvider>,
   )
 }
+
+describe('MultiPageVisualSurface virtualization', () => {
+  it('mounts only a window of page surfaces for large documents', () => {
+    const pages = Array.from({ length: 30 }, (_, index) => `<div data-page><p>Page ${index + 1}</p></div>`)
+    renderMultiPage({ pages, rulerVisible: false })
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(surfaces.length).toBeGreaterThan(0)
+    expect(surfaces.length).toBeLessThan(15)
+  })
+
+  it('flushes page html on unmount', async () => {
+    const onPageFlush = vi.fn()
+    const onPageChange = vi.fn()
+    const user = userEvent.setup()
+    const pages = Array.from(
+      { length: 12 },
+      (_, index) =>
+        `<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>Page ${index + 1}</p></div>`,
+    )
+    const { container } = renderMultiPage({
+      pages,
+      rulerVisible: false,
+      onPageFlush,
+      onPageChange,
+      hasSelectedPage: false,
+    })
+
+    const scrollHost = container.querySelector('div[style*="overflow: auto"]') as HTMLDivElement
+    Object.defineProperty(scrollHost, 'clientHeight', { configurable: true, value: 300 })
+    Object.defineProperty(scrollHost, 'scrollHeight', { configurable: true, value: 50_000 })
+
+    const firstSurface = screen.getByText('Page 1').closest('[role="textbox"]') as HTMLDivElement
+    await user.click(firstSurface)
+    const paragraph = firstSurface.querySelector('[data-page] p') as HTMLParagraphElement
+    await act(async () => {
+      paragraph.textContent = 'Edited page 1'
+      fireEvent.input(firstSurface)
+    })
+
+    expect(onPageChange).toHaveBeenCalledWith(0, expect.stringContaining('Edited page 1'))
+
+    let scrollTop = 0
+    for (let pageIndex = 0; pageIndex < 11; pageIndex += 1) {
+      scrollTop += estimatePageRowHeight(pages[pageIndex] ?? '', pageIndex)
+    }
+    scrollHost.scrollTop = scrollTop
+    await act(async () => {
+      fireEvent.scroll(scrollHost)
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText(/^Page 1$/)).not.toBeInTheDocument()
+      expect(document.querySelector('[data-page-index="0"]')).not.toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      expect(onPageFlush).toHaveBeenCalledWith(0, expect.stringContaining('Edited page 1'))
+    })
+  })
+})
 
 describe('MultiPageVisualSurface rulers', () => {
   it('shows horizontal ruler for the active sized page and vertical rulers only on sized rows', async () => {

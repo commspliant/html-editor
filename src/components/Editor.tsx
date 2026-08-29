@@ -1561,6 +1561,7 @@ export function Editor({
       activePageIndexRef.current = clampedInsertAt
       setActivePageIndex(clampedInsertAt)
       setHasSelectedPage(true)
+      multiPageVisualRef.current?.ensurePageMounted(clampedInsertAt)
     },
     [flushMultiPageHtml, commitPages, history, externalizeStorageHtml],
   )
@@ -1607,6 +1608,7 @@ export function Editor({
     activePageIndexRef.current = nextIndex
     setActivePageIndex(nextIndex)
     setHasSelectedPage(true)
+    multiPageVisualRef.current?.ensurePageMounted(nextIndex)
   }, [flushMultiPageHtml, commitPages, history, resolveSelectedPageIndex, externalizeStorageHtml])
 
   useEffect(() => {
@@ -3828,6 +3830,7 @@ export function Editor({
         pages={visualPageBodies}
         activePageIndex={activePageIndex}
         hasSelectedPage={hasSelectedPage}
+        scrollRootRef={workspaceRef}
         onActivePageIndexChange={(index) => {
           activePageIndexRef.current = index
           setActivePageIndex(index)
@@ -3846,6 +3849,14 @@ export function Editor({
             index,
             preservePageAtRuleInBody(next, extractFontStylesheets(previous).body),
             true,
+          )
+        }}
+        onPageFlush={(index, next) => {
+          const previous = pagesRef.current[index] ?? ''
+          recordPageVisualHtml(
+            index,
+            preservePageAtRuleInBody(next, extractFontStylesheets(previous).body),
+            false,
           )
         }}
         onBeforeInput={handleVisualBeforeInput}

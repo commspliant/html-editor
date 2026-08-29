@@ -16,14 +16,11 @@ Last updated: 2026-08-29. Use this file when chat context is full.
 | **Image registry** | Opt-in `optimizeEmbeddedImages`; `imageRegistry.ts`, externalize on store, hydrate on export |
 | **Open image flash** | Canonical document equality + image-preserving visual sync on File → Open |
 | **Page-scoped undo** | `multiPageHistory.ts` — per-page edit entries + structural insert/delete/replace-all ops |
+| **Multi-page virtualization** | Always-on virtual page list in visual mode — flush on unmount, `useVirtualPageRange`, height spacers, mounted-only ruler metrics |
 
 ## Remaining — high impact
 
-### Virtualized page list
-
-Mount only visible pages ± buffer; flush DOM before unmount. For 20+ pages.
-
-**Touches:** `MultiPageVisualSurface.tsx`, ruler metrics hooks
+_(none — virtualization shipped)_
 
 ## Remaining — medium / polish
 
@@ -51,6 +48,5 @@ Split `Editor.tsx` document surface vs chrome so typing does not re-render toolb
 
 ## Suggested priority
 
-1. Virtualization
-2. Stability leftovers + low-hanging
-3. Editor chrome split
+1. Stability leftovers + low-hanging
+2. Editor chrome split
