@@ -423,7 +423,7 @@ Large base64 images inflate React state, undo history, and `onPagesChange` paylo
 
 While editing, the **HTML source view** also shows this compact form (`data-wysiwyg-img-id` and `blob:` URLs), not base64 — including when `value` / `pages` are controlled. Host props remain full data URLs; the editor externalizes on ingest.
 
-Outbound writes (`onChange`, `onPagesChange`, `onSave`, `onAutoSave`, `getDocumentHtml`, preview, and custom-action `getHtml`) are **hydrated** back to full `data:image/...` sources so host persistence stays unchanged. Opt in only when documents contain many embedded images.
+Outbound writes (`onChange`, `onPagesChange`, `onSave`, `onAutoSave`, `getDocumentHtml`, preview, print, and custom-action `getHtml`) are **hydrated** back to full `data:image/...` sources so host persistence stays unchanged. Opt in only when documents contain many embedded images.
 
 ```tsx
 <Editor

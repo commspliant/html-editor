@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CommandContext } from '../../core/commandTypes'
 import { createFileCommands } from './commands'
 import { loadHtml, saveHtml } from './fileDialogs'
-import { printHtml } from './printHtml'
+import { printHtml, printPagesHtml } from './printHtml'
 
 vi.mock('./fileDialogs', () => ({
   saveHtml: vi.fn(async () => undefined),
@@ -143,6 +143,7 @@ describe('createFileCommands', () => {
     vi.mocked(saveHtml).mockClear()
     vi.mocked(loadHtml).mockClear()
     vi.mocked(printHtml).mockClear()
+    vi.mocked(printPagesHtml).mockClear()
   })
 
   it('saves the current html', async () => {
@@ -651,6 +652,21 @@ describe('createFileCommands', () => {
 
     expect(printHtml).toHaveBeenCalledWith('<p>Doc</p>')
     expect(setHtml).not.toHaveBeenCalled()
+  })
+
+  it('prints hydrated multi-page html split from getHtml', () => {
+    const joined = '<p>One</p>\n<!-- wysiwyg-page-separator -->\n<p>Two</p>'
+    const commands = createFileCommands(
+      fileContext({
+        getHtml: () => joined,
+        isMultiPagesEnabled: () => true,
+      }),
+    )
+
+    commands.print()
+
+    expect(printPagesHtml).toHaveBeenCalledWith(['<p>One</p>', '<p>Two</p>'])
+    expect(printHtml).not.toHaveBeenCalled()
   })
 
   it('calls onSave instead of saveHtml when set', async () => {

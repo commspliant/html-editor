@@ -4,12 +4,15 @@ import {
   useCallback,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
 } from 'react'
 import { extractFontStylesheets } from '../core/fontFamily'
 import { PAGE_SURFACE_ATTR, queryPageSurface } from '../core/multiPage'
+import { createPageHeightCache, estimatePageRowHeight } from '../core/pageRowHeight'
 import {
   absorbLooseBlocksIntoPageShell,
   ensurePageShell,
@@ -26,6 +29,7 @@ import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import type { HydrateEmbeddedImages } from '../core/documentEquality'
 import { syncVisualBodyHtml } from '../core/visualBodySync'
 import type { RulerUnit } from '../core/rulerUnits'
+import { useVirtualPageRange } from '../hooks/useVirtualPageRange'
 import { useT } from '../i18n/LocaleProvider'
 import { useMultiPageRulerMetrics } from './useMultiPageRulerMetrics'
 import { RulerHorizontalHeader, RulerPageRow, buildPageZoomContentStyle } from './RulerVisualFrame'
@@ -36,15 +40,18 @@ export type MultiPageVisualSurfaceHandle = {
   getActivePageRoot: () => HTMLElement | null
   getActivePageIndex: () => number
   flushPageHtml: (index: number) => string | null
+  ensurePageMounted: (index: number) => void
 }
 
 type MultiPageVisualSurfaceProps = {
   pages: readonly string[]
   activePageIndex: number
   hasSelectedPage?: boolean
+  scrollRootRef?: RefObject<HTMLElement | null>
   onActivePageIndexChange: (index: number) => void
   onPageSelected?: (index: number) => void
   onPageChange: (index: number, html: string) => void
+  onPageFlush?: (index: number, html: string) => void
   placeholder?: string
   disabled?: boolean
   rulerVisible?: boolean
@@ -80,6 +87,8 @@ type MemoizedPageRowProps = {
   onActivate: (index: number) => void
   onPointerDown: (index: number, event: ReactPointerEvent<HTMLDivElement>) => void
   onPageChange: (index: number, html: string) => void
+  onPageFlush?: (index: number, html: string) => void
+  onMeasured?: (index: number, height: number) => void
   onMarginChange?: (index: number, sides: PageMarginSidesPx) => void
   onMarginPreview?: (index: number, sides: PageMarginSidesPx) => void
   onMouseUp?: (event: ReactMouseEvent<HTMLDivElement>) => void
@@ -101,14 +110,51 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
   onActivate,
   onPointerDown,
   onPageChange,
+  onPageFlush,
+  onMeasured,
   onMarginChange,
   onMarginPreview,
   onMouseUp,
   onContextMenu,
   onRulerRefresh,
 }: MemoizedPageRowProps) {
+  const surfaceRef = useRef<HTMLDivElement | null>(null)
+  const pageBlockRef = useRef<HTMLDivElement>(null)
+  const htmlSnapshotRef = useRef('')
+  const dirtyRef = useRef(false)
+  const onPageFlushRef = useRef(onPageFlush)
+  onPageFlushRef.current = onPageFlush
+  const onMeasuredRef = useRef(onMeasured)
+  onMeasuredRef.current = onMeasured
+
+  useLayoutEffect(() => {
+    const block = pageBlockRef.current
+    if (!block || !onMeasuredRef.current) return
+    const report = () => onMeasuredRef.current?.(index, block.offsetHeight)
+    report()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(report)
+    observer.observe(block)
+    return () => observer.disconnect()
+  }, [index, pageHtml, pageSized, showVerticalRuler])
+
+  const assignSurfaceRef = useCallback((node: HTMLDivElement | null) => {
+    surfaceRef.current = node
+    if (node) {
+      htmlSnapshotRef.current = node.innerHTML
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    return () => {
+      if (!dirtyRef.current || !onPageFlushRef.current) return
+      onPageFlushRef.current(index, htmlSnapshotRef.current)
+    }
+  }, [index])
+
   return (
     <RulerPageRow
+      pageBlockRef={pageBlockRef}
       showVerticalRuler={showVerticalRuler}
       pageSized={pageSized}
       geometry={geometry}
@@ -125,6 +171,7 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
       }}
     >
       <div
+        ref={assignSurfaceRef}
         className={`${styles.surface} ${styles.visual} ${pageSized ? styles.pageSurface : ''}`}
         {...{ [PAGE_SURFACE_ATTR]: '' }}
         data-page-index={index}
@@ -141,7 +188,10 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
         onContextMenu={onContextMenu}
         onInput={(event) => {
           const surface = event.currentTarget
+          dirtyRef.current = true
+          htmlSnapshotRef.current = surface.innerHTML
           const { absorbedBlocks } = absorbLooseBlocksIntoPageShell(surface)
+          htmlSnapshotRef.current = surface.innerHTML
           onPageChange(index, surface.innerHTML)
           if (absorbedBlocks.length > 0) {
             const count = absorbedBlocks.length
@@ -177,9 +227,11 @@ export const MultiPageVisualSurface = forwardRef<
     pages,
     activePageIndex,
     hasSelectedPage = false,
+    scrollRootRef,
     onActivePageIndexChange,
     onPageSelected,
     onPageChange,
+    onPageFlush,
     placeholder,
     disabled,
     rulerVisible = true,
@@ -205,6 +257,8 @@ export const MultiPageVisualSurface = forwardRef<
   onBeforeInputRef.current = onBeforeInput
   const onPageChangeRef = useRef(onPageChange)
   onPageChangeRef.current = onPageChange
+  const onPageFlushRef = useRef(onPageFlush)
+  onPageFlushRef.current = onPageFlush
   const onPageSelectedRef = useRef(onPageSelected)
   onPageSelectedRef.current = onPageSelected
   const onPointerDownRef = useRef(onPointerDown)
@@ -214,12 +268,33 @@ export const MultiPageVisualSurface = forwardRef<
   const onMarginPreviewRef = useRef(onMarginPreview)
   onMarginPreviewRef.current = onMarginPreview
   const prevPagesRef = useRef<readonly string[] | null>(null)
+  const heightCacheRef = useRef(createPageHeightCache())
 
   const getActiveIndex = useCallback(() => activeIndexRef.current, [])
+
+  const getRowHeight = useCallback(
+    (index: number) => heightCacheRef.current.get(index, pages[index] ?? ''),
+    [pages],
+  )
+
+  const {
+    visibleIndices,
+    topSpacerHeight,
+    bottomSpacerHeight,
+    scrollToIndex,
+    notifyRowMeasured,
+  } = useVirtualPageRange({
+    scrollElementRef: scrollRootRef ?? containerRef,
+    pageCount: pages.length,
+    getRowHeight,
+    activePageIndex,
+    pinActivePage: hasSelectedPage,
+  })
 
   const { geometryForPage, indentState, refresh: refreshRulerMetrics } = useMultiPageRulerMetrics(
     containerRef,
     pages,
+    visibleIndices,
     getActiveIndex,
     true,
     zoomScale,
@@ -227,14 +302,38 @@ export const MultiPageVisualSurface = forwardRef<
 
   const rulerContextIndex = hasSelectedPage ? activePageIndex : 0
   const rulerContextHtml = pages[rulerContextIndex] ?? ''
-  const pageHasPrintLayout = (index: number) => hasPrintLayout(pages[index] ?? '')
+  const pageHasPrintLayout = useCallback((index: number) => hasPrintLayout(pages[index] ?? ''), [pages])
   const showHorizontalRulers = rulerVisible && hasPrintLayout(rulerContextHtml)
+
+  const scrollToPage = useCallback(
+    (index: number) => {
+      scrollToIndex(index)
+      requestAnimationFrame(() => {
+        const container = containerRef.current
+        if (!container) return
+        const surface = queryPageSurface(container, index)
+        if (surface) normalizeCaretInPageShell(surface)
+      })
+    },
+    [scrollToIndex],
+  )
+
+  const scrollToIndexRef = useRef(scrollToIndex)
+  scrollToIndexRef.current = scrollToIndex
+
+  useLayoutEffect(() => {
+    scrollToIndexRef.current(activePageIndex)
+  }, [activePageIndex])
 
   const activatePage = useCallback(
     (index: number) => {
       activeIndexRef.current = index
       if (index !== activePageIndex) onActivePageIndexChange(index)
       onPageSelectedRef.current?.(index)
+      if (!visibleIndices.includes(index)) {
+        scrollToPage(index)
+        return
+      }
       refreshRulerMetrics()
       const container = containerRef.current
       if (!container) return
@@ -243,7 +342,7 @@ export const MultiPageVisualSurface = forwardRef<
         requestAnimationFrame(() => normalizeCaretInPageShell(surface))
       }
     },
-    [activePageIndex, onActivePageIndexChange, refreshRulerMetrics],
+    [activePageIndex, onActivePageIndexChange, refreshRulerMetrics, scrollToPage, visibleIndices],
   )
 
   useImperativeHandle(ref, () => ({
@@ -258,6 +357,9 @@ export const MultiPageVisualSurface = forwardRef<
       const container = containerRef.current
       if (!container) return null
       return queryPageSurface(container, index)?.innerHTML ?? null
+    },
+    ensurePageMounted: (index: number) => {
+      scrollToPage(index)
     },
   }))
 
@@ -279,19 +381,23 @@ export const MultiPageVisualSurface = forwardRef<
   }, [hydrateEmbeddedImages, resolveEmbeddedImageDataUrl])
 
   useLayoutEffect(() => {
+    heightCacheRef.current.clear()
+  }, [pages.length])
+
+  useLayoutEffect(() => {
     const container = containerRef.current
     if (!container) return
     const prev = prevPagesRef.current
     const lengthChanged = prev === null || prev.length !== pages.length
-    for (let index = 0; index < pages.length; index += 1) {
-      if (!lengthChanged && pages[index] === prev![index]) continue
+    for (const index of visibleIndices) {
+      if (!lengthChanged && pages[index] === prev?.[index]) continue
       const surface = queryPageSurface(container, index)
       if (surface) syncSurfaceHtml(surface, pages[index] ?? '')
     }
     prevPagesRef.current = pages
     const frame = requestAnimationFrame(refreshRulerMetrics)
     return () => cancelAnimationFrame(frame)
-  }, [pages, syncSurfaceHtml, refreshRulerMetrics])
+  }, [pages, syncSurfaceHtml, refreshRulerMetrics, visibleIndices])
 
   useLayoutEffect(() => {
     const container = containerRef.current
@@ -312,6 +418,20 @@ export const MultiPageVisualSurface = forwardRef<
     onPageChangeRef.current(index, html)
   }, [])
 
+  const handlePageFlush = useCallback((index: number, html: string) => {
+    onPageFlushRef.current?.(index, html)
+  }, [])
+
+  const handleRowMeasured = useCallback(
+    (index: number, height: number) => {
+      const estimate = estimatePageRowHeight(pages[index] ?? '', index)
+      const stableHeight = Math.max(height, estimate)
+      heightCacheRef.current.set(index, stableHeight)
+      notifyRowMeasured(index, stableHeight)
+    },
+    [notifyRowMeasured, pages],
+  )
+
   const handleMarginChange = useCallback((index: number, sides: PageMarginSidesPx) => {
     onMarginChangeRef.current?.(index, sides)
   }, [])
@@ -319,6 +439,59 @@ export const MultiPageVisualSurface = forwardRef<
   const handleMarginPreview = useCallback((index: number, sides: PageMarginSidesPx) => {
     onMarginPreviewRef.current?.(index, sides)
   }, [])
+
+  const visualEditorAria = t('visualEditorAria')
+
+  const pageRows = useMemo(
+    () =>
+      visibleIndices.map((index) => (
+        <MemoizedPageRow
+          key={index}
+          index={index}
+          pageHtml={pages[index] ?? ''}
+          showVerticalRuler={showHorizontalRulers && pageHasPrintLayout(index)}
+          pageSized={pageHasPrintLayout(index)}
+          geometry={geometryForPage(index)}
+          rulerUnit={rulerUnit}
+          zoomScale={zoomScale}
+          placeholder={placeholder}
+          disabled={disabled}
+          visualEditorAria={visualEditorAria}
+          onActivate={activatePage}
+          onPointerDown={handlePointerDown}
+          onPageChange={handlePageChange}
+          onPageFlush={handlePageFlush}
+          onMeasured={handleRowMeasured}
+          onMarginChange={handleMarginChange}
+          onMarginPreview={handleMarginPreview}
+          onMouseUp={onMouseUp}
+          onContextMenu={onContextMenu}
+          onRulerRefresh={refreshRulerMetrics}
+        />
+      )),
+    [
+      activatePage,
+      disabled,
+      geometryForPage,
+      handleMarginChange,
+      handleMarginPreview,
+      handlePageChange,
+      handlePageFlush,
+      handlePointerDown,
+      handleRowMeasured,
+      onContextMenu,
+      onMouseUp,
+      pageHasPrintLayout,
+      pages,
+      placeholder,
+      refreshRulerMetrics,
+      rulerUnit,
+      showHorizontalRulers,
+      visibleIndices,
+      visualEditorAria,
+      zoomScale,
+    ],
+  )
 
   return (
     <div
@@ -365,29 +538,13 @@ export const MultiPageVisualSurface = forwardRef<
             position: 'relative',
           }}
         >
-          {pages.map((pageHtml, index) => (
-            <MemoizedPageRow
-              key={index}
-              index={index}
-              pageHtml={pageHtml}
-              showVerticalRuler={showHorizontalRulers && pageHasPrintLayout(index)}
-              pageSized={pageHasPrintLayout(index)}
-              geometry={geometryForPage(index)}
-              rulerUnit={rulerUnit}
-              zoomScale={zoomScale}
-              placeholder={placeholder}
-              disabled={disabled}
-              visualEditorAria={t('visualEditorAria')}
-              onActivate={activatePage}
-              onPointerDown={handlePointerDown}
-              onPageChange={handlePageChange}
-              onMarginChange={handleMarginChange}
-              onMarginPreview={handleMarginPreview}
-              onMouseUp={onMouseUp}
-              onContextMenu={onContextMenu}
-              onRulerRefresh={refreshRulerMetrics}
-            />
-          ))}
+          {topSpacerHeight > 0 ? (
+            <div aria-hidden style={{ height: topSpacerHeight, flexShrink: 0 }} />
+          ) : null}
+          {pageRows}
+          {bottomSpacerHeight > 0 ? (
+            <div aria-hidden style={{ height: bottomSpacerHeight, flexShrink: 0 }} />
+          ) : null}
         </div>
       </div>
     </div>

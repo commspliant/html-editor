@@ -1,5 +1,5 @@
 import type { CommandContext, EditorCommands } from '../../core/commandTypes'
-import { joinPagesToHtml } from '../../core/multiPage'
+import { joinPagesToHtml, splitPagesFromHtml } from '../../core/multiPage'
 import { loadHtml, saveHtml } from './fileDialogs'
 import { printHtml, printPagesHtml } from './printHtml'
 
@@ -29,7 +29,7 @@ export function createFileCommands(ctx: CommandContext): Pick<EditorCommands, 's
     },
     print: () => {
       if (ctx.isMultiPagesEnabled()) {
-        printPagesHtml(ctx.getAllPagesHtml())
+        printPagesHtml(splitPagesFromHtml(ctx.getHtml()))
         return
       }
       printHtml(ctx.getHtml())

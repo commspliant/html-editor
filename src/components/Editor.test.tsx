@@ -15,6 +15,7 @@ import { PAGE_ZOOM_STORAGE_KEY } from '../modules/view/pageZoomPersistence'
 import { TOOLBAR_POSITION_STORAGE_KEY } from '../modules/view/toolbarPositionPersistence'
 import { Editor } from './Editor'
 import styles from './Editor.module.css'
+import { estimatePageRowHeight } from '../core/pageRowHeight'
 
 vi.mock('../modules/file/fileDialogs', () => ({
   saveHtml: vi.fn(async () => undefined),
@@ -66,6 +67,66 @@ async function selectVisualText(visual: HTMLElement, start: number, end: number)
   sel?.addRange(range)
   document.dispatchEvent(new Event('selectionchange'))
   await flushSelectionRefresh()
+}
+
+function getMultiPageWorkspace(): HTMLElement {
+  const workspace = document.querySelector(`.${styles.workspace}`) as HTMLElement | null
+  if (!workspace) {
+    throw new Error('Multi-page workspace not found')
+  }
+  return workspace
+}
+
+async function scrollMultiPageToIndex(index: number, pageHtml = ''): Promise<void> {
+  if (index <= 0) return
+  const workspace = getMultiPageWorkspace()
+  Object.defineProperty(workspace, 'clientHeight', { configurable: true, value: 400 })
+  Object.defineProperty(workspace, 'scrollHeight', { configurable: true, value: 50_000 })
+  let scrollTop = 0
+  for (let pageIndex = 0; pageIndex < index; pageIndex += 1) {
+    scrollTop += estimatePageRowHeight(pageHtml, pageIndex)
+  }
+  workspace.scrollTop = scrollTop
+  fireEvent.scroll(workspace)
+  await waitFor(() => {
+    expect(document.querySelector(`[data-page-index="${index}"]`)).toBeInTheDocument()
+  })
+}
+
+async function focusMultiPageSurface(
+  user: ReturnType<typeof userEvent.setup>,
+  index = 0,
+  pageHtml = '',
+): Promise<HTMLDivElement> {
+  await scrollMultiPageToIndex(index, pageHtml)
+  const surface = document.querySelector(`[data-page-index="${index}"]`) as HTMLDivElement | null
+  if (!surface) {
+    throw new Error(`Multi-page surface ${index} not mounted`)
+  }
+  await user.click(surface)
+  return surface
+}
+
+async function insertPageAfterSelected(
+  user: ReturnType<typeof userEvent.setup>,
+  pageIndex = 0,
+) {
+  const surface = await focusMultiPageSurface(user, pageIndex)
+  await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+  await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Page after' }))
+  return surface
+}
+
+async function insertPageBeforeSelected(
+  user: ReturnType<typeof userEvent.setup>,
+  pageIndex = 0,
+) {
+  const surface = await focusMultiPageSurface(user, pageIndex)
+  await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+  await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Page before' }))
+  return surface
 }
 
 describe('Editor', () => {
@@ -995,6 +1056,45 @@ describe('Editor multi-page history', () => {
   })
 })
 
+describe('Editor multi-page virtualization', () => {
+  it('mounts only a visible window for large documents', () => {
+    const pages = Array.from(
+      { length: 30 },
+      (_, index) => `<div data-page><p>Page ${index + 1}</p></div>`,
+    )
+    render(<Editor enableMultiPages defaultPages={pages} />)
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(surfaces.length).toBeGreaterThan(0)
+    expect(surfaces.length).toBeLessThan(15)
+  })
+
+  it('preserves off-screen page edits after scroll', async () => {
+    const user = userEvent.setup()
+    const onPagesChange = vi.fn()
+    const pageHtml = '<div data-page><p>Page</p></div>'
+    const pages = Array.from({ length: 30 }, (_, index) =>
+      pageHtml.replace('Page', `Page ${index + 1}`),
+    )
+    render(<Editor enableMultiPages defaultPages={pages} onPagesChange={onPagesChange} />)
+
+    const targetIndex = 14
+    const surface = await focusMultiPageSurface(user, targetIndex, pageHtml)
+    surface.innerHTML = '<div data-page><p>Page 15 edited</p></div>'
+    fireEvent.input(surface)
+
+    const workspace = getMultiPageWorkspace()
+    Object.defineProperty(workspace, 'clientHeight', { configurable: true, value: 400 })
+    workspace.scrollTop = 0
+    fireEvent.scroll(workspace)
+
+    await waitFor(() => {
+      const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+      expect(lastPages[targetIndex]).toContain('Page 15 edited')
+    })
+  })
+})
+
 describe('Editor font marks', () => {
   it('applies bold from the toolbar as an inline style', async () => {
     const user = userEvent.setup()
@@ -1799,28 +1899,6 @@ describe('Editor paragraph chrome', () => {
     return values
   }
 
-  async function insertPageAfterSelected(
-    user: ReturnType<typeof userEvent.setup>,
-    pageIndex = 0,
-  ) {
-    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
-    await user.click(surfaces[pageIndex])
-    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Page after' }))
-  }
-
-  async function insertPageBeforeSelected(
-    user: ReturnType<typeof userEvent.setup>,
-    pageIndex = 0,
-  ) {
-    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
-    await user.click(surfaces[pageIndex])
-    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Page before' }))
-  }
-
   it('stabilizes fit-page zoom when focused on an unsized page', async () => {
     localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitPage"')
     const user = userEvent.setup()
@@ -1861,13 +1939,12 @@ describe('Editor paragraph chrome', () => {
       '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p></p></div>'
     render(<Editor enableMultiPages defaultPages={[pageOne, pageTwo]} />)
 
-    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
-    await user.click(surfaces[1])
-    await user.type(surfaces[1], 'Hello')
+    const surface = await focusMultiPageSurface(user, 1)
+    await user.type(surface, 'Hello')
 
-    const shell = surfaces[1].querySelector('[data-page]')
+    const shell = surface.querySelector('[data-page]')
     expect(shell?.textContent).toContain('Hello')
-    for (const child of surfaces[1].childNodes) {
+    for (const child of surface.childNodes) {
       if (child.nodeType === Node.TEXT_NODE) {
         expect(child.textContent?.trim()).toBe('')
       }
@@ -1973,15 +2050,14 @@ describe('Editor paragraph chrome', () => {
       '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p></p></div>'
     render(<Editor enableMultiPages defaultPages={[pageOne, pageTwo]} />)
 
-    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
-    await user.click(surfaces[1])
-    await user.type(surfaces[1], 'Hello{Enter}World')
+    const surface = await focusMultiPageSurface(user, 1)
+    await user.type(surface, 'Hello{Enter}World')
 
-    const shell = surfaces[1].querySelector('[data-page]')
+    const shell = surface.querySelector('[data-page]')
     expect(shell?.textContent).toContain('Hello')
     expect(shell?.textContent).toContain('World')
-    expect(surfaces[1].children).toHaveLength(1)
-    expect(surfaces[1].firstElementChild).toBe(shell)
+    expect(surface.children).toHaveLength(1)
+    expect(surface.firstElementChild).toBe(shell)
   })
 
   it('moves the caret to an absorbed paragraph after Enter in single-page A4 mode', async () => {
@@ -2007,8 +2083,9 @@ describe('Editor paragraph chrome', () => {
     })
   })
 
-  it('keeps typed text inside page 2 shell with fit-width zoom', () => {
+  it('keeps typed text inside page 2 shell with fit-width zoom', async () => {
     localStorage.setItem(PAGE_ZOOM_STORAGE_KEY, '"fitWidth"')
+    const user = userEvent.setup()
     const pageOne =
       '<style data-page-at-rule>@page { size: A4; }</style><div data-page><p>One</p></div>'
     const pageTwo =
@@ -2020,14 +2097,13 @@ describe('Editor paragraph chrome', () => {
     expect(zoomLayer?.style.zoom).not.toBe('')
     expect(viewport?.style.zoom).toBeFalsy()
 
-    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
-    const shellParagraph = surfaces[1].querySelector('[data-page] p') as HTMLElement
-    surfaces[1].focus()
+    const surface = await focusMultiPageSurface(user, 1)
+    const shellParagraph = surface.querySelector('[data-page] p') as HTMLElement
     shellParagraph.textContent = 'Zoomed'
-    fireEvent.input(surfaces[1])
+    fireEvent.input(surface)
 
     expect(shellParagraph.textContent).toBe('Zoomed')
-    for (const child of surfaces[1].childNodes) {
+    for (const child of surface.childNodes) {
       if (child.nodeType === Node.TEXT_NODE) {
         expect(child.textContent?.trim()).toBe('')
       }
@@ -2168,10 +2244,9 @@ describe('Editor paragraph chrome', () => {
       <Editor enableMultiPages enablePageProperties defaultPages={['<p>One</p>']} onPagesChange={onPagesChange} />,
     )
 
-    await user.click(screen.getByRole('textbox', { name: 'Visual editor' }))
+    await focusMultiPageSurface(user, 0)
     await insertPageAfterSelected(user)
-
-    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
+    await focusMultiPageSurface(user, 1)
 
     await user.click(screen.getByRole('button', { name: 'Edit menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
@@ -2180,7 +2255,6 @@ describe('Editor paragraph chrome', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Page size' }), 'A4')
     await user.click(screen.getByRole('button', { name: 'OK' }))
 
-    expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(2)
     const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
     expect(lastPages).toHaveLength(2)
     expect(lastPages[0]).toContain('One')
