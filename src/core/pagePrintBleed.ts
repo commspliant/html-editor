@@ -41,10 +41,16 @@ function applyShellBleedPadding(shell: HTMLElement, pageHtml: string): void {
   shell.style.boxSizing = 'border-box'
   if (shell.style.position !== 'relative') shell.style.position = 'relative'
   if (shell.style.isolation !== 'isolate') shell.style.isolation = 'isolate'
-  shell.style.minHeight = '100%'
 
   const size = resolvePageCanvasSize(atRule)
-  if (size && !shell.style.width) shell.style.width = '100%'
+  if (size) {
+    shell.style.width = size.width
+    shell.style.minHeight = size.height
+  } else {
+    if (!shell.style.width) shell.style.width = '100%'
+    shell.style.minHeight = '100vh'
+  }
+  shell.style.height = 'auto'
 
   for (const side of BOX_SIDES) {
     const prop = `padding-${side}` as const

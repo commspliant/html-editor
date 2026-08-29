@@ -471,6 +471,7 @@ export function Editor({
   const commentPanelRef = useRef<HTMLDivElement | null>(null)
   const workspaceRef = useRef<HTMLDivElement | null>(null)
   const multiPageVisualRef = useRef<MultiPageVisualSurfaceHandle>(null)
+  const suppressPageFlushRef = useRef(false)
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null)
   const enableMultiPagesRef = useRef(enableMultiPages)
   enableMultiPagesRef.current = enableMultiPages
@@ -748,6 +749,7 @@ export function Editor({
     canMergeCells: boolean
     canUnmergeCells: boolean
     canDeletePage: boolean
+    canAddComment: boolean
   }>({
     open: false,
     x: 0,
@@ -757,6 +759,7 @@ export function Editor({
     canMergeCells: false,
     canUnmergeCells: false,
     canDeletePage: false,
+    canAddComment: false,
   })
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null)
   const selectedImageRef = useRef(selectedImage)
@@ -1546,6 +1549,7 @@ export function Editor({
     (insertAt: number) => {
       if (!enableMultiPagesRef.current || modeRef.current !== 'visual') return
       if (!hasSelectedPageRef.current) return
+      suppressPageFlushRef.current = true
       const currentPages = flushMultiPageHtml()
       const clampedInsertAt = Math.max(0, Math.min(insertAt, currentPages.length))
       const nextPages = [...currentPages]
@@ -1561,7 +1565,6 @@ export function Editor({
       activePageIndexRef.current = clampedInsertAt
       setActivePageIndex(clampedInsertAt)
       setHasSelectedPage(true)
-      multiPageVisualRef.current?.ensurePageMounted(clampedInsertAt)
     },
     [flushMultiPageHtml, commitPages, history, externalizeStorageHtml],
   )
@@ -1592,10 +1595,17 @@ export function Editor({
   const runDeleteSelectedPage = useCallback(() => {
     if (!enableMultiPagesRef.current || modeRef.current !== 'visual') return
     if (!hasSelectedPageRef.current) return
+    suppressPageFlushRef.current = true
     const currentPages = flushMultiPageHtml()
-    if (currentPages.length <= 1) return
+    if (currentPages.length <= 1) {
+      suppressPageFlushRef.current = false
+      return
+    }
     const index = resolveSelectedPageIndex()
-    if (index === null) return
+    if (index === null) {
+      suppressPageFlushRef.current = false
+      return
+    }
     const deletedPage = currentPages[index] ?? ''
     const nextPages = currentPages.filter((_, i) => i !== index)
     const storedDeletedPage = externalizeStorageHtml(deletedPage)
@@ -1608,7 +1618,6 @@ export function Editor({
     activePageIndexRef.current = nextIndex
     setActivePageIndex(nextIndex)
     setHasSelectedPage(true)
-    multiPageVisualRef.current?.ensurePageMounted(nextIndex)
   }, [flushMultiPageHtml, commitPages, history, resolveSelectedPageIndex, externalizeStorageHtml])
 
   useEffect(() => {
@@ -3660,6 +3669,9 @@ export function Editor({
           hasSelectedPageRef.current &&
           flushMultiPageHtml().length > 1,
       }
+      const commentFlags = {
+        canAddComment: enableCommentsRef.current && !disabled,
+      }
       if (img) {
         selectImageInDocument(root, img)
         captureSelection()
@@ -3671,6 +3683,7 @@ export function Editor({
           kind: 'image',
           ...tableFlags,
           ...pageFlags,
+          ...commentFlags,
           inTable: closestTable(root, img) !== null,
         })
         return
@@ -3688,9 +3701,10 @@ export function Editor({
         kind: snapshot.collapsed ? 'caret' : 'text',
         ...tableFlags,
         ...pageFlags,
+        canAddComment: commentFlags.canAddComment && !snapshot.collapsed,
       })
     },
-    [contentLocked, captureSelection, restoreVisualRange, flushMultiPageHtml],
+    [contentLocked, captureSelection, restoreVisualRange, flushMultiPageHtml, disabled],
   )
 
   const handleVisualPointerDown = useCallback(
@@ -3831,6 +3845,7 @@ export function Editor({
         activePageIndex={activePageIndex}
         hasSelectedPage={hasSelectedPage}
         scrollRootRef={workspaceRef}
+        suppressPageFlushRef={suppressPageFlushRef}
         onActivePageIndexChange={(index) => {
           activePageIndexRef.current = index
           setActivePageIndex(index)
@@ -4320,6 +4335,7 @@ export function Editor({
           canMergeCells={contextMenu.canMergeCells}
           canUnmergeCells={contextMenu.canUnmergeCells}
           canDeletePage={contextMenu.canDeletePage}
+          canAddComment={contextMenu.canAddComment}
           commands={commands}
           onClose={() => setContextMenu((prev) => ({ ...prev, open: false }))}
         />

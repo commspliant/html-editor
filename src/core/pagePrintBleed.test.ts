@@ -58,4 +58,34 @@ describe('prepareDocumentHtmlForOutput', () => {
     expect(shell.style.paddingTop).toBe('24pt')
     expect(shell.style.paddingLeft).toBe('20pt')
   })
+
+  it('sets explicit page dimensions and height auto when a background image is set', () => {
+    const html =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
+      '<div data-page style="width:100%;height:100%;position:relative;isolation:isolate">' +
+      '<div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;);background-size:contain"></div>' +
+      '<p>Hello</p></div>'
+
+    const prepared = prepareDocumentHtmlForOutput(html)
+    const shell = new DOMParser()
+      .parseFromString(`<body>${prepared.html}</body>`, 'text/html')
+      .querySelector('[data-page]') as HTMLElement
+
+    expect(shell.style.width).toBe('210mm')
+    expect(shell.style.minHeight).toBe('297mm')
+    expect(shell.style.height).toBe('auto')
+  })
+
+  it('uses viewport height when no page size is set', () => {
+    const html =
+      '<div data-page><div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><p>Hello</p></div>'
+
+    const prepared = prepareDocumentHtmlForOutput(html)
+    const shell = new DOMParser()
+      .parseFromString(`<body>${prepared.html}</body>`, 'text/html')
+      .querySelector('[data-page]') as HTMLElement
+
+    expect(shell.style.minHeight).toBe('100vh')
+    expect(shell.style.height).toBe('auto')
+  })
 })

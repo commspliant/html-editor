@@ -103,7 +103,13 @@ function renderMenu(
   kind: ContextMenuKind,
   commands: EditorCommands = stubCommands(),
   onClose = vi.fn(),
-  flags: { inTable?: boolean; canMergeCells?: boolean; canUnmergeCells?: boolean; canDeletePage?: boolean } = {},
+  flags: {
+    inTable?: boolean
+    canMergeCells?: boolean
+    canUnmergeCells?: boolean
+    canDeletePage?: boolean
+    canAddComment?: boolean
+  } = {},
 ) {
   render(
     <LocaleProvider>
@@ -116,6 +122,7 @@ function renderMenu(
         canMergeCells={flags.canMergeCells}
         canUnmergeCells={flags.canUnmergeCells}
         canDeletePage={flags.canDeletePage}
+        canAddComment={flags.canAddComment}
         commands={commands}
         onClose={onClose}
       />
@@ -238,5 +245,40 @@ describe('ContextMenu', () => {
     const onClose = renderMenu('text')
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows comment when allowed for a text selection', () => {
+    renderMenu('text', stubCommands(), vi.fn(), { canAddComment: true })
+
+    expect(screen.getByRole('menuitem', { name: 'Insert comment on selection' })).toBeEnabled()
+  })
+
+  it('shows comment when allowed for an image', () => {
+    renderMenu('image', stubCommands(), vi.fn(), { canAddComment: true })
+
+    expect(screen.getByRole('menuitem', { name: 'Insert comment on selection' })).toBeEnabled()
+  })
+
+  it('hides comment when not allowed', () => {
+    renderMenu('text')
+
+    expect(screen.queryByRole('menuitem', { name: 'Comment' })).not.toBeInTheDocument()
+  })
+
+  it('hides comment at the caret even when comments are enabled', () => {
+    renderMenu('caret', stubCommands(), vi.fn(), { canAddComment: true })
+
+    expect(screen.queryByRole('menuitem', { name: 'Comment' })).not.toBeInTheDocument()
+  })
+
+  it('runs addComment and closes on click', async () => {
+    const user = userEvent.setup()
+    const addComment = vi.fn()
+    const onClose = renderMenu('text', stubCommands({ addComment }), vi.fn(), { canAddComment: true })
+
+    await user.click(screen.getByRole('menuitem', { name: 'Insert comment on selection' }))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(addComment).toHaveBeenCalledTimes(1)
   })
 })

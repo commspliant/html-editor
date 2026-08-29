@@ -87,6 +87,8 @@ const commands: EditorCommands = {
   deleteSelection: noop,
   clearFormatting: noop,
   toggleFormatBrush: noop,
+  addComment: noop,
+  toggleCommentsVisible: noop,
 }
 
 const meta = {
@@ -113,6 +115,12 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const SelectedText: Story = {}
+
+export const WithComment: Story = {
+  args: {
+    canAddComment: true,
+  },
+}
 
 export const Image: Story = {
   args: {

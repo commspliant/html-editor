@@ -1,3 +1,4 @@
+import { extractEditorFragmentFromHtml } from '../../core/documentStyles'
 import { readFileText } from './htmlFile'
 
 const HTML_FILE_TYPE = {
@@ -75,7 +76,7 @@ function pickHtmlFile(): Promise<string | null> {
         return
       }
       void readFileText(file).then(
-        (text) => finish(text),
+        (text) => finish(extractEditorFragmentFromHtml(text)),
         () => finish(null),
       )
     })
@@ -119,7 +120,7 @@ export async function loadHtml(): Promise<string | null> {
         types: [HTML_FILE_TYPE],
       })
       const file = await handle.getFile()
-      return await readFileText(file)
+      return extractEditorFragmentFromHtml(await readFileText(file))
     } catch (error) {
       if (isAbortError(error)) return null
       throw error

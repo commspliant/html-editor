@@ -52,6 +52,7 @@ type MultiPageVisualSurfaceProps = {
   onPageSelected?: (index: number) => void
   onPageChange: (index: number, html: string) => void
   onPageFlush?: (index: number, html: string) => void
+  suppressPageFlushRef?: RefObject<boolean>
   placeholder?: string
   disabled?: boolean
   rulerVisible?: boolean
@@ -88,6 +89,7 @@ type MemoizedPageRowProps = {
   onPointerDown: (index: number, event: ReactPointerEvent<HTMLDivElement>) => void
   onPageChange: (index: number, html: string) => void
   onPageFlush?: (index: number, html: string) => void
+  suppressPageFlushRef?: RefObject<boolean>
   onMeasured?: (index: number, height: number) => void
   onMarginChange?: (index: number, sides: PageMarginSidesPx) => void
   onMarginPreview?: (index: number, sides: PageMarginSidesPx) => void
@@ -111,6 +113,7 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
   onPointerDown,
   onPageChange,
   onPageFlush,
+  suppressPageFlushRef,
   onMeasured,
   onMarginChange,
   onMarginPreview,
@@ -147,10 +150,11 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
 
   useLayoutEffect(() => {
     return () => {
+      if (suppressPageFlushRef?.current) return
       if (!dirtyRef.current || !onPageFlushRef.current) return
       onPageFlushRef.current(index, htmlSnapshotRef.current)
     }
-  }, [index])
+  }, [index, suppressPageFlushRef])
 
   return (
     <RulerPageRow
@@ -232,6 +236,7 @@ export const MultiPageVisualSurface = forwardRef<
     onPageSelected,
     onPageChange,
     onPageFlush,
+    suppressPageFlushRef,
     placeholder,
     disabled,
     rulerVisible = true,
@@ -268,7 +273,9 @@ export const MultiPageVisualSurface = forwardRef<
   const onMarginPreviewRef = useRef(onMarginPreview)
   onMarginPreviewRef.current = onMarginPreview
   const prevPagesRef = useRef<readonly string[] | null>(null)
+  const prevVisibleIndicesRef = useRef<readonly number[]>([])
   const heightCacheRef = useRef(createPageHeightCache())
+  const suppressPageFlushRefProp = suppressPageFlushRef
 
   const getActiveIndex = useCallback(() => activeIndexRef.current, [])
 
@@ -323,7 +330,7 @@ export const MultiPageVisualSurface = forwardRef<
 
   useLayoutEffect(() => {
     scrollToIndexRef.current(activePageIndex)
-  }, [activePageIndex])
+  }, [activePageIndex, pages.length])
 
   const activatePage = useCallback(
     (index: number) => {
@@ -363,10 +370,10 @@ export const MultiPageVisualSurface = forwardRef<
     },
   }))
 
-  const syncSurfaceHtml = useCallback((surface: HTMLElement, html: string) => {
+  const syncSurfaceHtml = useCallback((surface: HTMLElement, html: string, options?: { forceBodySync?: boolean }) => {
     const body = stripPageAtRuleFromHtml(extractFontStylesheets(html).body)
     const isFocused = surface === document.activeElement
-    if (!isFocused) {
+    if (options?.forceBodySync || !isFocused) {
       syncVisualBodyHtml(surface, body, {
         resolveDataUrl: resolveEmbeddedImageDataUrl,
         hydrateEmbeddedImages,
@@ -389,15 +396,31 @@ export const MultiPageVisualSurface = forwardRef<
     if (!container) return
     const prev = prevPagesRef.current
     const lengthChanged = prev === null || prev.length !== pages.length
-    for (const index of visibleIndices) {
-      if (!lengthChanged && pages[index] === prev?.[index]) continue
+    if (lengthChanged) {
+      scrollToIndexRef.current(activePageIndex)
+    }
+    const prevVisible = new Set(prevVisibleIndicesRef.current)
+    const indicesToSync = new Set<number>(visibleIndices)
+    if (lengthChanged) {
+      indicesToSync.add(activePageIndex)
+    }
+    for (const index of indicesToSync) {
+      const newlyVisible = !prevVisible.has(index)
+      const pageChanged = pages[index] !== prev?.[index]
+      if (!lengthChanged && !newlyVisible && !pageChanged) continue
       const surface = queryPageSurface(container, index)
-      if (surface) syncSurfaceHtml(surface, pages[index] ?? '')
+      if (surface) {
+        syncSurfaceHtml(surface, pages[index] ?? '', { forceBodySync: lengthChanged })
+      }
     }
     prevPagesRef.current = pages
+    prevVisibleIndicesRef.current = visibleIndices
+    if (lengthChanged && suppressPageFlushRefProp?.current) {
+      suppressPageFlushRefProp.current = false
+    }
     const frame = requestAnimationFrame(refreshRulerMetrics)
     return () => cancelAnimationFrame(frame)
-  }, [pages, syncSurfaceHtml, refreshRulerMetrics, visibleIndices])
+  }, [activePageIndex, pages, suppressPageFlushRefProp, syncSurfaceHtml, refreshRulerMetrics, visibleIndices])
 
   useLayoutEffect(() => {
     const container = containerRef.current
@@ -461,6 +484,7 @@ export const MultiPageVisualSurface = forwardRef<
           onPointerDown={handlePointerDown}
           onPageChange={handlePageChange}
           onPageFlush={handlePageFlush}
+          suppressPageFlushRef={suppressPageFlushRefProp}
           onMeasured={handleRowMeasured}
           onMarginChange={handleMarginChange}
           onMarginPreview={handleMarginPreview}
