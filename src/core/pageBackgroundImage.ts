@@ -297,6 +297,15 @@ export function normalizePageBackgroundLayerInHolder(holder: HTMLElement): boole
   return changed
 }
 
+/** Repair stored page body HTML: consolidate orphan layers and normalize stacking. */
+export function repairPageBackgroundHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html')
+  consolidateHolderBackgroundLayersIntoShell(doc.body)
+  const shell = queryPageShell(doc.body)
+  if (shell) normalizePageBackgroundLayer(shell)
+  return doc.body.innerHTML
+}
+
 export function readBackgroundImageStyles(el: HTMLElement): PageBackgroundImageApply {
   const size = readBackgroundSize(el)
   return {

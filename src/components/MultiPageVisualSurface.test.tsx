@@ -270,4 +270,29 @@ describe('MultiPageVisualSurface rulers', () => {
     expect(layer?.style.pointerEvents).toBe('none')
     expect(surfaces[1].querySelector('p')?.textContent).toBe('Page two')
   })
+
+  it('persists normalized markup while the page surface is focused', async () => {
+    const onPageChange = vi.fn()
+    const user = userEvent.setup()
+    renderMultiPage({
+      pages: [pagePlain, pageWithOrphanBg, pagePlain],
+      activePageIndex: 1,
+      onPageChange,
+    })
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox', { name: 'Visual editor' })).toHaveLength(3)
+    })
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    await user.click(surfaces[1])
+    expect(document.activeElement).toBe(surfaces[1])
+
+    await waitFor(() => {
+      expect(onPageChange).toHaveBeenCalledWith(
+        1,
+        expect.stringMatching(/data-page-bg[\s\S]*Page two|Page two[\s\S]*data-page-bg/),
+      )
+    })
+  })
 })

@@ -6,7 +6,105 @@
 
 [![WYSIWYG editor screenshot](screenshot.png)](https://htmleditor.commspliant.com/)
 
-Reusable React + TypeScript editor with two base modes: **Visual** (`contenteditable`) and **HTML** (plain-text source). Downstream apps import the package; they do not copy source.
+## What problem does this solve?
+
+If you are searching for a **free React WYSIWYG editor**, a **React HTML editor** on npm, or a **react-quill alternative**, you usually need more than bold and italic. You need to ship a formatted content field, CMS block, email template editor, or internal documentation tool — and store **real HTML** in your database.
+
+Common pain points:
+
+- **GPL licensing** — [TinyMCE](https://www.tiny.cloud/docs/tinymce/latest/license-key/) and [CKEditor 5](https://ckeditor.com/docs/ckeditor5/latest/getting-started/licensing/license-and-legal.html) offer free tiers under **GPL 2+**. Closed-source commercial apps often need a paid license or must comply with copyleft. An **MIT license** avoids that friction.
+- **Weeks of UI work** — [Tiptap](https://tiptap.dev/open-source-to-cloud), [Lexical](https://lexical.dev/docs/packages/lexical), and [Slate](https://docs.slatejs.org/) are **headless frameworks**. You build the toolbar, menus, and dialogs yourself.
+- **react-quill fragility** — the original React wrapper is unmaintained; Next.js SSR issues are common; Quill’s primary model is **Delta**, not HTML.
+- **HTML portability** — many editors store JSON internally. Getting **clean HTML output** with **inline styles** often means extra plugins and wiring.
+- **Security** — rich text is an XSS surface. Sanitization is usually your job on headless stacks.
+- **Paywalled extras** — real-time collaboration, AI, Word import, and PowerPaste live on [paid Tiptap Platform](https://tiptap.dev/feature-comparison), [CKEditor commercial](https://ckeditor.com/wysiwyg-editor-open-source/), or [TinyMCE premium](https://www.tiny.cloud/docs/tinymce/latest/bundling-plugins/) plans.
+- **Heavy documents** — **embedded base64 images** inflate React state, undo history, and autosave payloads; long **multi-page** documents slow the DOM if every page mounts at once.
+
+**commspliant-html-editor** is a **drop-in React + TypeScript editor** with **Visual** (`contenteditable`) and **HTML source** modes, **MIT-licensed**, self-hosted, and without a cloud subscription for core editing — including optimizations for **large embedded images** and **many pages**.
+
+## What makes this editor different?
+
+Unlike headless frameworks, this is a **complete product editor** — menus, icon toolbar, dialogs, fullscreen, preview, and in-editor Help (F1) — that you embed with one component.
+
+- **MIT license** — use in proprietary SaaS without GPL copyleft (unlike free TinyMCE/CKEditor cores).
+- **HTML-native** — `value` / `onChange` work on HTML strings; formatting serializes as **inline `style` attributes**, not editor CSS classes.
+- **Visual ↔ HTML** — toggle source mode without extra plugins.
+- **Built-in sanitization** — `sanitizeHtml` strips `<script>` tags and `javascript:` URLs on load and write.
+- **Print-aware editing** — optional `@page` preview, ruler, margins, page breaks, and **multi-page** surfaces (`enableMultiPages`).
+- **Optional comments** — thread metadata separate from document HTML (`enableComments`); not a paid cloud collab platform.
+- **Host hooks** — custom actions, media pickers, toolbar layout, and chrome allowlists without forking internals.
+
+### Built for heavy documents
+
+Documents with pasted screenshots, charts, or long print layouts need more than a short blog field:
+
+- **`optimizeEmbeddedImages`** — externalizes `data:image/...` base64 into a registry while editing so undo, in-memory HTML, and `onPagesChange` stay lean. Save, print, preview, and `onChange` still receive **full data URLs**.
+- **`enableMultiPages`** — **virtualized** page scrolling mounts only nearby pages (not the full stack). **Per-page undo/redo** avoids replaying the entire document on every keystroke. Bounded undo history caps memory growth on long sessions.
+
+## Why choose commspliant-html-editor?
+
+- **MIT** — commercial-friendly licensing for closed-source apps.
+- **`npm install` + `<Editor />` + CSS** — full chrome included; not a headless build-your-own-UI project.
+- **HTML in, clean inline-style HTML out** — store HTML in MongoDB, Postgres, or any backend.
+- **Visual and HTML source** in one component.
+- **Sanitization, print layout, multi-page editing, and comments** without a vendor cloud plan.
+- **Optimized for large embedded images and many-page documents** — image registry, virtualized pages, bounded undo.
+- **Localised chrome** (`en` / `es`) and searchable in-editor Help.
+
+## What we don't claim
+
+To set expectations before the comparison below:
+
+- **Not production-stable yet** — this package is **beta**; APIs and behaviour may change.
+- **Not React 19–tested** — peer dependencies are **React ^18** only until documented otherwise.
+- **Not real-time collaboration** — no multi-user cursors, shared sessions, or cloud document sync. Optional `enableComments` is **local thread metadata**, not [Tiptap Platform](https://tiptap.dev/open-source-to-cloud) or CKEditor premium collab.
+- **Not AI-assisted writing** — no built-in AI commands, suggestions, or tone tools.
+- **Not Word / PDF import or export** — no PowerPaste-style Office cleanup or document conversion pipelines.
+- **Not the largest plugin ecosystem** — no spell-check or 37-language chrome; library chrome is **`en` / `es`** today.
+- **Not a headless document framework** — if you need a custom ProseMirror/Lexical node model from scratch, Tiptap, Lexical, or Slate may fit better.
+- **Not benchmark-winning on every workload** — image registry and virtualized multi-page mode target **heavy embedded images** and **many pages**; we do not claim to outperform Lexical or Tiptap on every large single-page scenario without measurements.
+- **Not a full HTML sanitizer** — built-in `sanitizeHtml` is a **minimal XSS guard**; it is not DOMPurify. Untrusted content still needs host-side validation.
+- **Not “competitors aren’t free”** — TinyMCE and CKEditor **do** have free GPL tiers; we claim **MIT fits proprietary apps more easily**, not that others cost money to download.
+- **Not Froala-style commercial polish** — we are an MIT library, not a paid drop-in with enterprise SLAs.
+
+If you need any of the above, a paid editor or a headless framework plus custom work may be the better fit.
+
+## How it compares (free tiers only)
+
+Each column below describes that product’s **free or open-source tier**. Paid commercial plans exist for TinyMCE, CKEditor, Tiptap Platform, and Froala.
+
+| Capability | commspliant-html-editor | TinyMCE **free core** (GPLv2+) | CKEditor 5 **free** (GPL self-hosted) | Tiptap **OSS** (MIT) | Lexical (MIT) | Quill (BSD-3) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Permissive license for closed-source apps | ✓ MIT | ✗ GPL copyleft | ✗ GPL copyleft (+ “Powered by CKEditor” logo) | ✓ | ✓ | ✓ |
+| Complete drop-in UI (menus, toolbar, dialogs) | ✓ | ✓ | ✓ | ✗ build UI | ✗ build UI | ~ Snow theme; React wrapper separate |
+| Visual + HTML source in one component | ✓ | ✓ (`code` plugin) | ✓ | via extensions | build yourself | limited |
+| HTML string as primary save format | ✓ | ✓ | ✓ | JSON-first; HTML via extensions | JSON-first; `@lexical/html` | Delta-first |
+| Inline-style HTML serialization (no editor classes) | ✓ by design | varies / content CSS | varies | DIY | DIY | DIY |
+| Built-in XSS sanitization hook | ✓ `sanitizeHtml` | partial / DIY | partial / DIY | DIY | DIY | DIY |
+| No cloud subscription for core editing | ✓ | ✓ self-host GPL | ✓ self-host GPL | ✓ OSS | ✓ | ✓ |
+| Multi-page document editing | ✓ `enableMultiPages` | ✗ (page break only) | page break (GPL feature) | build yourself | build yourself | ✗ |
+| Virtualized scrolling for many pages | ✓ built-in | ✗ | ✗ | build yourself | build yourself | ✗ |
+| Large base64 image optimization (lean undo/state) | ✓ `optimizeEmbeddedImages` | DIY / inflates history | DIY | DIY | DIY | DIY |
+| Print layout preview (`@page`, ruler) | ✓ | page break plugin only | page break | build yourself | build yourself | ✗ |
+| Real-time collaboration | ✗ | ✗ (Premium) | ✗ (Premium) | ✗ ([Platform](https://tiptap.dev/feature-comparison) paid) | Yjs DIY | community modules |
+| Word / PDF import-export | ✗ | ✗ Premium | ✗ Premium | ✗ Platform / paid extensions | ✗ | ✗ |
+| AI writing assistance | ✗ | ✗ Premium | ✗ Premium | ✗ Platform | ✗ | ✗ |
+| Mature plugin ecosystem / i18n | ✗ (beta, en/es) | ✓ (37+ langs) | ✓ (many langs) | ✓ extensions | growing | moderate |
+
+**Legend:** **✓** = available in that free tier as described · **✗** = not in free tier or requires substantial custom build · **~** = partial / depends on community wrapper
+
+**License notes (free tier shown above):**
+
+- **TinyMCE** — free **GPLv2+ core**; [Premium plugins](https://www.tiny.cloud/docs/tinymce/latest/bundling-plugins/) and commercial license for proprietary use.
+- **CKEditor 5** — free **GPL self-hosted**; [commercial plans](https://ckeditor.com/docs/ckeditor5/latest/getting-started/licensing/license-and-legal.html) for non-GPL use and premium features.
+- **Tiptap** — **MIT editor OSS** is free; [Tiptap Platform](https://tiptap.dev/open-source-to-cloud) (collab, cloud comments, AI) is paid.
+- **Lexical** — **MIT**, always free; no vendor cloud.
+- **Quill** — **BSD-3** core free; no official maintained React component ([Quill React playground](https://quilljs.com/playground/react) shows DIY integration).
+- **Froala** — not in the table: no free production license ([license requires purchase](https://github.com/froala/wysiwyg-editor/blob/master/License.txt)); trial/dev only.
+
+> **About this comparison:** The table reflects **free and open-source tiers only** — TinyMCE and CKEditor **GPL cores**, Tiptap **MIT editor**, Lexical **MIT**, Quill **BSD**. It does **not** reflect paid commercial plans, premium plugins, or cloud platforms (TinyMCE Premium, CKEditor commercial, Tiptap Platform, Froala licenses, etc.), which add collaboration, AI, Word/PDF conversion, spell-check, PowerPaste, and other advanced features. Where we mark ✗ for others, a paid upgrade may exist.
+
+Install and integrate in minutes — technical reference below.
 
 ## Install
 

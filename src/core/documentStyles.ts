@@ -111,7 +111,7 @@ img {
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
 }
-[data-page] > :not([data-page-bg]) {
+[data-page] :not([data-page-bg]) {
   position: relative;
   z-index: 1;
 }

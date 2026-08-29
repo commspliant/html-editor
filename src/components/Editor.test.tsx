@@ -2341,6 +2341,43 @@ describe('Editor paragraph chrome', () => {
     expect(lastPages[1]).not.toContain('data-page-at-rule')
   })
 
+  it('stores normalized page background inside page 2 shell after apply', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        enablePageProperties
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    await focusMultiPageSurface(user, 1)
+
+    await user.click(screen.getByRole('button', { name: 'Edit menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page properties…' }))
+    await user.click(screen.getByRole('tab', { name: 'Paragraph' }))
+    await user.click(screen.getByRole('tab', { name: 'Background Image' }))
+    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
+    await user.type(screen.getByLabelText('Image URL'), 'https://example.com/page2.png')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    const surface = screen.getAllByRole('textbox', { name: 'Visual editor' })[1]
+    const shell = surface.querySelector('[data-page]')
+    const layer = shell?.querySelector('[data-page-bg]') as HTMLElement | null
+    expect(layer?.parentElement).toBe(shell)
+    expect(layer?.style.zIndex).toBe('0')
+    expect(layer?.style.pointerEvents).toBe('none')
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages[1]).toContain('data-page-bg')
+    expect(lastPages[1]).toContain('https://example.com/page2.png')
+    expect(lastPages[1]).toContain('z-index: 0')
+    expect(lastPages[1]).toContain('<p>Two</p>')
+  })
+
   it('hides the Print tab when enablePageProperties is false', async () => {
     const user = userEvent.setup()
     render(<Editor defaultValue="<p>Hello</p>" />)

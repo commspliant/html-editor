@@ -13,6 +13,7 @@ import {
   normalizePageBackgroundLayer,
   normalizePageBackgroundLayerInHolder,
   readPageBackgroundImage,
+  repairPageBackgroundHtml,
   writePageBackgroundImage,
 } from './pageBackgroundImage'
 import { applyPagePropertiesInDocument, emptyPagePropertiesApply } from './pageProperties'
@@ -264,6 +265,17 @@ describe('normalizePageBackgroundLayer', () => {
     expect(layer.style.pointerEvents).toBe('none')
     expect(shell.querySelector('p')?.textContent).toBe('Hello')
   })
+
+  it('keeps nested content inside the shell after normalization', () => {
+    const { shell } = mountShell(
+      `<div ${PAGE_BG_LAYER_ATTR} style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div><div><p>Nested</p></div>`,
+    )
+    expect(normalizePageBackgroundLayer(shell)).toBe(true)
+    const layer = shell.querySelector(`[${PAGE_BG_LAYER_ATTR}]`) as HTMLElement
+    expect(layer).toBe(shell.firstChild)
+    expect(shell.querySelector('div p')?.textContent).toBe('Nested')
+    expect(layer.style.zIndex).toBe('0')
+  })
 })
 
 describe('applyPagePropertiesInDocument background image', () => {
@@ -287,5 +299,22 @@ describe('applyPagePropertiesInDocument background image', () => {
     expect(shell.style.width).toBe('100%')
     expect(shell.style.height).toBe('100%')
     expect(readPageBackgroundImage(shell)).toEqual(draft.backgroundImage)
+  })
+})
+
+describe('repairPageBackgroundHtml', () => {
+  it('consolidates orphan layers and normalizes stacking in stored HTML', () => {
+    const html =
+      '<div data-page><div><p>text</p></div></div>' +
+      '<div data-page-bg style="background-image:url(&quot;https://example.com/bg.png&quot;)"></div>'
+    const repaired = repairPageBackgroundHtml(html)
+    const doc = new DOMParser().parseFromString(`<body>${repaired}</body>`, 'text/html')
+    const shell = doc.querySelector('[data-page]') as HTMLElement
+    const layer = shell.querySelector(`[${PAGE_BG_LAYER_ATTR}]`) as HTMLElement
+
+    expect(layer).toBe(shell.firstChild)
+    expect(layer.style.zIndex).toBe('0')
+    expect(layer.style.pointerEvents).toBe('none')
+    expect(shell.querySelector('p')?.textContent).toBe('text')
   })
 })

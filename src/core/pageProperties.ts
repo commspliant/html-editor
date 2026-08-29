@@ -18,6 +18,7 @@ import { syncPageCanvasLayout } from './pageCanvasLayout'
 import { ensurePageShell, ensurePageShellLayout, queryPageShell, syncPageHolderBackground } from './page'
 import {
   emptyPageBackgroundImageApply,
+  normalizePageBackgroundLayerInHolder,
   readPageBackgroundImage,
   writePageBackgroundImage,
 } from './pageBackgroundImage'
@@ -317,8 +318,11 @@ export function applyPagePropertiesInDocument(
     restoreOffsets(root, Math.min(start, end), Math.max(start, end))
   }
 
+  normalizePageBackgroundLayerInHolder(root)
+  const repairedPageHtml = applyPageAtRule(root.innerHTML, draft.atRule)
+
   const changed = !existed || wroteFont || wroteBox || wroteBackgroundImage || wroteAtRule
-  return { changed, pageHtml: nextHtml }
+  return { changed, pageHtml: repairedPageHtml }
 }
 
 export function resetPageAtRuleInDocument(

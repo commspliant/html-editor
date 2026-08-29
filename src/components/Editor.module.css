@@ -418,7 +418,7 @@
   margin: 0 0 0.75em;
 }
 
-.visual [data-page] > :not([data-page-bg]) {
+.visual [data-page] :not([data-page-bg]) {
   position: relative;
   z-index: 1;
 }

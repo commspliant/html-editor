@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildStandalonePrintDocument,
+  DOCUMENT_STYLES,
   extractEditorFragmentFromHtml,
 } from './documentStyles'
 
@@ -9,6 +10,13 @@ const pageWithContainBg =
   '<div data-page style="width:100%;height:100%;position:relative;isolation:isolate">' +
   '<div data-page-bg style="position:absolute;inset:0;background-image:url(&quot;https://example.com/bg.png&quot;);background-size:contain;background-position:center;background-repeat:no-repeat"></div>' +
   '<p>Hello</p></div>'
+
+describe('DOCUMENT_STYLES page background stacking', () => {
+  it('raises nested page content above the background layer', () => {
+    expect(DOCUMENT_STYLES).toContain('[data-page] :not([data-page-bg])')
+    expect(DOCUMENT_STYLES).not.toContain('[data-page] > :not([data-page-bg])')
+  })
+})
 
 describe('buildStandalonePrintDocument', () => {
   it('wraps content in a full html document with embedded styles and no script', () => {
