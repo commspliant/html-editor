@@ -1,11 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
+import { useDialogFocusTrap } from '../../hooks/useDialogFocusTrap'
 import { CloseIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
 import styles from './FontPropertiesDialog.module.css'
-
-const FOCUSABLE =
-  'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
 
 export type CustomCssDialogProps = {
   open: boolean
@@ -34,35 +32,18 @@ export function CustomCssDialog({
     setDraft(value)
   }, [open, value])
 
+  useDialogFocusTrap(dialogRef, {
+    open,
+    onClose,
+    escapeIgnoreSelectors: false,
+    focusableSelector:
+      'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])',
+  })
+
   useEffect(() => {
     if (!open) return
     textareaRef.current?.focus()
-
-    const node = dialogRef.current
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        event.stopPropagation()
-        onClose()
-        return
-      }
-      if (event.key !== 'Tab' || !node) return
-      const items = [...node.querySelectorAll<HTMLElement>(FOCUSABLE)]
-      if (items.length === 0) return
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown, true)
-    return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

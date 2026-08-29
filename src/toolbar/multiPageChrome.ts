@@ -30,8 +30,3 @@ export function filterMultiPageLayout(layout: ToolbarLayout, visible: boolean): 
     }),
   }
 }
-
-/** @deprecated Use {@link filterMultiPageLayout} */
-export function filterInsertPageLayout(layout: ToolbarLayout, visible: boolean): ToolbarLayout {
-  return filterMultiPageLayout(layout, visible)
-}

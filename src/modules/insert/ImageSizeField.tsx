@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
+import { useViewportAnchoredPosition } from '../../hooks/useViewportAnchoredPosition'
 import {
   DEFAULT_IMAGE_SIZE_UNIT,
   IMAGE_SIZE_PRESETS,
@@ -13,8 +14,6 @@ import { useT } from '../../i18n/LocaleProvider'
 import type { MessageKey } from '../../i18n/types'
 import styles from '../format/FontSizeSelect.module.css'
 import dialogStyles from '../format/FontPropertiesDialog.module.css'
-
-const VIEWPORT_PAD_PX = 4
 
 const UNIT_KEYS: Record<ImageSizeUnit, MessageKey> = {
   pt: 'fontSizeUnitPt',
@@ -50,42 +49,17 @@ export function ImageSizeField({
   const [draft, setDraft] = useState(() => (value ? formatFontSizeNumber(value.value) : ''))
   const [focused, setFocused] = useState(false)
   const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 })
+
+  const coords = useViewportAnchoredPosition(open, fieldRef, listRef, {
+    matchAnchorWidth: true,
+    minWidth: 72,
+  })
 
   useEffect(() => {
     if (!focused) {
       setDraft(value ? formatFontSizeNumber(value.value) : '')
     }
   }, [value, focused])
-
-  const updatePosition = useCallback(() => {
-    const field = fieldRef.current
-    const list = listRef.current
-    if (!field) return
-    const rect = field.getBoundingClientRect()
-    const listHeight = list?.offsetHeight ?? 0
-    let top = rect.bottom
-    if (top + listHeight > window.innerHeight - VIEWPORT_PAD_PX) {
-      top = Math.max(VIEWPORT_PAD_PX, rect.top - listHeight)
-    }
-    const left = Math.min(
-      Math.max(rect.left, VIEWPORT_PAD_PX),
-      window.innerWidth - Math.max(rect.width, 72) - VIEWPORT_PAD_PX,
-    )
-    setCoords({ top, left, width: rect.width })
-  }, [])
-
-  useLayoutEffect(() => {
-    if (!open) return
-    updatePosition()
-    const onReposition = () => updatePosition()
-    window.addEventListener('scroll', onReposition, true)
-    window.addEventListener('resize', onReposition)
-    return () => {
-      window.removeEventListener('scroll', onReposition, true)
-      window.removeEventListener('resize', onReposition)
-    }
-  }, [open, updatePosition])
 
   useEffect(() => {
     if (!open) return

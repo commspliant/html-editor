@@ -49,6 +49,7 @@ import { EditorToolbar } from '../toolbar'
 import type { ChromeLockOptions } from '../toolbar/commentsChrome'
 import type { ToolbarCatalog, ToolbarLayout } from '../toolbar/types'
 import type { ToolbarQueryRevisions } from '../toolbar/toolbarQueryRevisions'
+import { buildToolbarShellProps } from '../toolbar/toolbarShellProps'
 import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
 import type {
   CustomAudioPicker,
@@ -365,7 +366,7 @@ export const EditorChrome = memo(function EditorChrome({
   onRowPropertiesClose,
   onApplyRowProperties,
 }: EditorChromeProps) {
-  const toolbarShellProps = {
+  const toolbarShellProps = buildToolbarShellProps({
     catalog: displayCatalog,
     layout: displayLayout,
     commands,
@@ -373,7 +374,7 @@ export const EditorChrome = memo(function EditorChrome({
     queryRevisions,
     disabled: chromeDisabled,
     chromeLock,
-  }
+  })
 
   return (
     <>

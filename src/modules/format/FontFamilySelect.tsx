@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
+import { useViewportAnchoredPosition } from '../../hooks/useViewportAnchoredPosition'
 import type { FontFace } from '../../core/fontFamily'
 import { useT } from '../../i18n/LocaleProvider'
 import type { ToolbarWidgetProps } from '../../toolbar/types'
 import { Tooltip } from '../../toolbar/Tooltip'
 import { FontFamilyList, fontFamilyTriggerLabel } from './FontFamilyList'
 import styles from './FontFamilySelect.module.css'
-
-const VIEWPORT_PAD_PX = 4
 
 export type FontFamilyComboboxProps = {
   family: string | null
@@ -36,38 +35,12 @@ export function FontFamilyCombobox({
   const fieldRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 })
   const label = fontFamilyTriggerLabel(family, mixed, fonts, t('fontFamilyDefault'))
 
-  const updatePosition = useCallback(() => {
-    const field = fieldRef.current
-    const list = listRef.current
-    if (!field) return
-    const rect = field.getBoundingClientRect()
-    const listHeight = list?.offsetHeight ?? 0
-    const listWidth = Math.max(rect.width, list?.offsetWidth ?? 0)
-    let top = rect.bottom
-    if (top + listHeight > window.innerHeight - VIEWPORT_PAD_PX) {
-      top = Math.max(VIEWPORT_PAD_PX, rect.top - listHeight)
-    }
-    const left = Math.min(
-      Math.max(rect.left, VIEWPORT_PAD_PX),
-      window.innerWidth - listWidth - VIEWPORT_PAD_PX,
-    )
-    setCoords({ top, left, width: listWidth })
-  }, [])
-
-  useLayoutEffect(() => {
-    if (!open) return
-    updatePosition()
-    const onReposition = () => updatePosition()
-    window.addEventListener('scroll', onReposition, true)
-    window.addEventListener('resize', onReposition)
-    return () => {
-      window.removeEventListener('scroll', onReposition, true)
-      window.removeEventListener('resize', onReposition)
-    }
-  }, [open, updatePosition, fonts.length])
+  const coords = useViewportAnchoredPosition(open, fieldRef, listRef, {
+    matchAnchorWidth: true,
+    deps: [fonts.length],
+  })
 
   useEffect(() => {
     if (!open) return
