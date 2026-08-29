@@ -457,6 +457,30 @@ export function Editor({
   commentThreadsRef.current = commentThreads
   const onPagesChangeRef = useRef(onPagesChange)
   onPagesChangeRef.current = onPagesChange
+  const pendingPagesNotifyRef = useRef<{
+    pages: string[]
+    activePageIndex: number
+  } | null>(null)
+  const pagesNotifyScheduledRef = useRef(false)
+  const flushPagesChangeNotify = useCallback(() => {
+    pagesNotifyScheduledRef.current = false
+    const pending = pendingPagesNotifyRef.current
+    pendingPagesNotifyRef.current = null
+    if (!pending) return
+    onPagesChangeRef.current?.(pending.pages, pending.activePageIndex)
+  }, [])
+  const schedulePagesChange = useCallback(
+    (pages: readonly string[], activePageIndex: number) => {
+      pendingPagesNotifyRef.current = {
+        pages: [...pages],
+        activePageIndex,
+      }
+      if (pagesNotifyScheduledRef.current) return
+      pagesNotifyScheduledRef.current = true
+      queueMicrotask(flushPagesChangeNotify)
+    },
+    [flushPagesChangeNotify],
+  )
   const pagesPropRef = useRef(pagesProp)
   pagesPropRef.current = pagesProp
   const ingestedPagesProp = useMemo(() => {
@@ -1102,7 +1126,7 @@ export function Editor({
         if (modeRef.current === 'html' && !optimizeEmbeddedImagesRef.current) {
           bridge?.setHtml(stored)
         }
-        onPagesChangeRef.current?.(
+        schedulePagesChange(
           hydrateExportPages(result.pages),
           activePageIndexRef.current,
         )
@@ -1118,7 +1142,7 @@ export function Editor({
       bridge?.setHtml(stored)
       return { stored, stateUpdated: true }
     },
-    [externalizeStorageHtml, hydrateExportHtml, hydrateExportPages, notifyHtmlChange],
+    [externalizeStorageHtml, hydrateExportHtml, hydrateExportPages, notifyHtmlChange, schedulePagesChange],
   )
 
   const commitPages = useCallback(
@@ -1145,7 +1169,7 @@ export function Editor({
       ) {
         documentBridgeRef.current?.setHtml(result.joined)
       }
-      onPagesChangeRef.current?.(
+      schedulePagesChange(
         hydrateExportPages(result.pages),
         activePageIndexRef.current,
       )
@@ -1165,7 +1189,7 @@ export function Editor({
       bumpHistoryChromeIfNeeded()
       return result.joined
     },
-    [bumpHistoryChromeIfNeeded, externalizeStorageHtml, hydrateExportPages, history, pageStore],
+    [bumpHistoryChromeIfNeeded, externalizeStorageHtml, hydrateExportPages, history, pageStore, schedulePagesChange],
   )
 
   const syncVisualDocumentFromStorage = useCallback(
@@ -1574,13 +1598,21 @@ export function Editor({
     }
   }, [enableMultiPages])
 
+  useEffect(() => {
+    return () => {
+      if (!pendingPagesNotifyRef.current) return
+      pagesNotifyScheduledRef.current = false
+      flushPagesChangeNotify()
+    }
+  }, [flushPagesChangeNotify])
+
   const applyPagesFromHistory = useCallback(
     (pages: readonly string[]) => {
       const result = pageStore.replacePages([...pages])
       htmlRef.current = result.joined
       pagesRef.current = result.pages
       documentDirtyRef.current = true
-      onPagesChangeRef.current?.(
+      schedulePagesChange(
         hydrateExportPages(result.pages),
         activePageIndexRef.current,
       )
@@ -1602,7 +1634,7 @@ export function Editor({
         history.applyPresent(result.pages)
       }
     },
-    [hydrateExportPages, history, pageStore, syncVisualDocumentFromStorage],
+    [hydrateExportPages, history, pageStore, schedulePagesChange, syncVisualDocumentFromStorage],
   )
 
   const syncSelectedImageFromSelection = useCallback(() => {
