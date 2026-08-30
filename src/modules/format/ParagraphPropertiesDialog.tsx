@@ -23,7 +23,7 @@ export type ParagraphPropertiesDialogProps = {
   backgroundImage: PageBackgroundImageApply
   disabled?: boolean
   customImagePicker?: CustomImagePicker
-  disableBuiltinImageInsert?: boolean
+  disableBuiltinBackgroundImageSources?: boolean
   onCustomImagePick?: () => void
   onTabChange: (tab: ParagraphDialogTab) => void
   onApply: (draft: ParagraphPropertiesApplyResult) => void
@@ -37,7 +37,7 @@ export function ParagraphPropertiesDialog({
   backgroundImage,
   disabled,
   customImagePicker,
-  disableBuiltinImageInsert,
+  disableBuiltinBackgroundImageSources,
   onCustomImagePick,
   onTabChange,
   onApply,
@@ -85,7 +85,7 @@ export function ParagraphPropertiesDialog({
           disabled={disabled}
           backgroundImage={backgroundImageDraft}
           customImagePicker={customImagePicker}
-          disableBuiltinImageInsert={disableBuiltinImageInsert}
+          disableBuiltinBackgroundImageSources={disableBuiltinBackgroundImageSources}
           onCustomImagePick={onCustomImagePick}
           onBackgroundImageChange={setBackgroundImageDraft}
           onTabChange={onTabChange}

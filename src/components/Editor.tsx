@@ -77,6 +77,7 @@ import {
   joinPagesToHtml,
   normalizePages,
   pagesArraysEqual,
+  closestPageSurface,
   PAGE_SURFACE_ATTR,
   queryPageSurface,
   queryPageSurfaceIndex,
@@ -319,6 +320,9 @@ export function Editor({
   onDeleteCustomParagraphStyle,
   customImagePicker,
   disableBuiltinImageInsert,
+  customBackgroundImagePicker,
+  disableBuiltinBackgroundImageInsert,
+  disableBuiltinBackgroundImageSources,
   customAudioPicker,
   disableBuiltinAudioInsert,
   customVideoPicker,
@@ -737,6 +741,22 @@ export function Editor({
   onOpenRef.current = onOpen
   const customImagePickerRef = useRef(customImagePicker)
   customImagePickerRef.current = customImagePicker
+  const resolvedBackgroundImagePicker =
+    customBackgroundImagePicker ?? customImagePicker
+  const resolvedDisableBuiltinBackgroundImageInsert =
+    disableBuiltinBackgroundImageInsert ?? disableBuiltinImageInsert ?? false
+  const resolvedDisableBuiltinBackgroundImageSources =
+    disableBuiltinBackgroundImageSources ?? disableBuiltinImageInsert ?? false
+  const customBackgroundImagePickerRef = useRef(resolvedBackgroundImagePicker)
+  customBackgroundImagePickerRef.current = resolvedBackgroundImagePicker
+  const disableBuiltinBackgroundImageInsertRef = useRef(
+    resolvedDisableBuiltinBackgroundImageInsert,
+  )
+  disableBuiltinBackgroundImageInsertRef.current = resolvedDisableBuiltinBackgroundImageInsert
+  const disableBuiltinBackgroundImageSourcesRef = useRef(
+    resolvedDisableBuiltinBackgroundImageSources,
+  )
+  disableBuiltinBackgroundImageSourcesRef.current = resolvedDisableBuiltinBackgroundImageSources
   const customAudioPickerRef = useRef(customAudioPicker)
   customAudioPickerRef.current = customAudioPicker
   const customVideoPickerRef = useRef(customVideoPicker)
@@ -778,15 +798,25 @@ export function Editor({
     }
     return visualRootRef.current
   }, [])
+  const resolveSelectedPageIndex = useCallback((): number | null => {
+    const surface = visualRootRef.current
+    if (surface?.hasAttribute(PAGE_SURFACE_ATTR)) {
+      const index = queryPageSurfaceIndex(surface)
+      if (index !== null) return index
+    }
+    const fromMulti = multiPageVisualRef.current?.getActivePageIndex()
+    if (typeof fromMulti === 'number') return fromMulti
+    return activePageIndexRef.current
+  }, [])
   const resolveActiveVisualRoot = useCallback((): HTMLElement | null => {
     if (enableMultiPagesRef.current) {
       const multi = multiPageVisualRef.current
       if (!multi) return null
-      multi.ensurePageMounted(activePageIndexRef.current)
+      const index = resolveSelectedPageIndex()
+      if (index === null) return null
+      multi.ensurePageMounted(index)
       const container = multi.getContainer()
-      const surface = container
-        ? queryPageSurface(container, activePageIndexRef.current)
-        : null
+      const surface = container ? queryPageSurface(container, index) : null
       if (surface instanceof HTMLDivElement) {
         visualRootRef.current = surface
         return surface
@@ -794,7 +824,12 @@ export function Editor({
       return null
     }
     return visualRootRef.current
-  }, [])
+  }, [resolveSelectedPageIndex])
+  const resolveActivePageHtml = useCallback((): string => {
+    if (!enableMultiPagesRef.current) return htmlRef.current
+    const index = resolveSelectedPageIndex() ?? activePageIndexRef.current
+    return pagesRef.current[index] ?? ''
+  }, [resolveSelectedPageIndex])
   useLayoutEffect(() => {
     if (!enableMultiPages) return
     const surface = multiPageVisualRef.current?.getActivePageRoot()
@@ -1525,17 +1560,6 @@ export function Editor({
     },
     [flushMultiPageHtml, commitPages, history, externalizeStorageHtml],
   )
-
-  const resolveSelectedPageIndex = useCallback((): number | null => {
-    const surface = visualRootRef.current
-    if (surface?.hasAttribute(PAGE_SURFACE_ATTR)) {
-      const index = queryPageSurfaceIndex(surface)
-      if (index !== null) return index
-    }
-    const fromMulti = multiPageVisualRef.current?.getActivePageIndex()
-    if (typeof fromMulti === 'number') return fromMulti
-    return activePageIndexRef.current
-  }, [])
 
   const runInsertPageBefore = useCallback(() => {
     const sourceIndex = resolveSelectedPageIndex()
@@ -2365,9 +2389,7 @@ export function Editor({
       if (!root) return
       restoreVisualRange(root)
       setPageDialog((prev) => ({ ...prev, open: false }))
-      const currentPageHtml = enableMultiPagesRef.current
-        ? (pagesRef.current[activePageIndexRef.current] ?? '')
-        : htmlRef.current
+      const currentPageHtml = resolveActivePageHtml()
       const atRuleChanged =
         JSON.stringify(draft.atRule) !==
         JSON.stringify(queryPageAtRule(extractFontStylesheets(currentPageHtml).body))
@@ -2384,7 +2406,7 @@ export function Editor({
       captureSelection()
       refreshMarkState()
     },
-    [restoreVisualRange, recordVisualHtmlFromRoot, captureSelection, refreshMarkState, resolveActiveVisualRoot],
+    [restoreVisualRange, recordVisualHtmlFromRoot, captureSelection, refreshMarkState, resolveActiveVisualRoot, resolveActivePageHtml],
   )
 
   const applyLink = useCallback(
@@ -3068,9 +3090,7 @@ export function Editor({
         if (modeRef.current !== 'visual') return
         const root = resolveActiveVisualRoot()
         if (root) restoreVisualRange(root)
-        const pageHtml = enableMultiPagesRef.current
-          ? (pagesRef.current[activePageIndexRef.current] ?? '')
-          : htmlRef.current
+        const pageHtml = resolveActivePageHtml()
         const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
         const nextTab =
           tab === 'print' && !enablePageProperties ? 'font' : (tab ?? 'font')
@@ -3091,12 +3111,10 @@ export function Editor({
         if (modeRef.current !== 'visual') return
         const root = resolveActiveVisualRoot()
         if (root) restoreVisualRange(root)
-        const picker = customImagePickerRef.current
-        if (disableBuiltinImageInsertRef.current && picker) {
+        const picker = customBackgroundImagePickerRef.current
+        if (disableBuiltinBackgroundImageInsertRef.current && picker) {
           picker.onPick((image) => {
-            const pageHtml = enableMultiPagesRef.current
-              ? (pagesRef.current[activePageIndexRef.current] ?? '')
-              : htmlRef.current
+            const pageHtml = resolveActivePageHtml()
             const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
             applyPageProperties({
               ...fromDom,
@@ -3109,9 +3127,7 @@ export function Editor({
           })
           return
         }
-        const pageHtml = enableMultiPagesRef.current
-          ? (pagesRef.current[activePageIndexRef.current] ?? '')
-          : htmlRef.current
+        const pageHtml = resolveActivePageHtml()
         const fromDom = root ? queryPageProperties(root) : emptyPagePropertiesApply()
         setPageDialog({
           open: true,
@@ -3127,8 +3143,8 @@ export function Editor({
         if (modeRef.current !== 'visual') return
         const root = visualRootRef.current
         if (root) restoreVisualRange(root)
-        const picker = customImagePickerRef.current
-        if (disableBuiltinImageInsertRef.current && picker) {
+        const picker = customBackgroundImagePickerRef.current
+        if (disableBuiltinBackgroundImageInsertRef.current && picker) {
           picker.onPick((image) => {
             const paragraph = root
               ? queryParagraphProperties(root)
@@ -3694,7 +3710,29 @@ export function Editor({
       if (!shouldOpenEditorContextMenu(event, lastVisualPointerTypeRef.current)) return
       event.preventDefault()
       event.stopPropagation()
-      const root = visualRootRef.current
+
+      let root: HTMLElement | null = visualRootRef.current
+      if (enableMultiPagesRef.current) {
+        const surface =
+          event.currentTarget instanceof HTMLElement &&
+          event.currentTarget.hasAttribute(PAGE_SURFACE_ATTR)
+            ? event.currentTarget
+            : closestPageSurface(event.target as Node)
+        if (surface instanceof HTMLElement) {
+          const index = queryPageSurfaceIndex(surface)
+          if (index !== null) {
+            multiPageVisualRef.current?.activatePageAt(index)
+            visualRootRef.current = surface
+            root = surface
+            hasSelectedPageRef.current = true
+            setHasSelectedPage(true)
+          }
+        }
+      } else if (event.currentTarget instanceof HTMLDivElement) {
+        visualRootRef.current = event.currentTarget
+        root = event.currentTarget
+      }
+
       if (!root) return
       restoreVisualRange(root)
       const img = closestImage(root, event.target as Node)
@@ -3746,7 +3784,7 @@ export function Editor({
         canAddComment: commentFlags.canAddComment && !snapshot.collapsed,
       })
     },
-    [contentLocked, captureSelection, restoreVisualRange, flushMultiPageHtml, disabled],
+    [contentLocked, captureSelection, restoreVisualRange, flushMultiPageHtml, disabled, setHasSelectedPage],
   )
 
   const handleVisualPointerDown = useCallback(
@@ -4003,10 +4041,10 @@ export function Editor({
               onFontDialogClose={() => setFontDialog({ open: false, tab: fontDialog.tab })}
               onApplyFontProperties={(draft) => commandContext.applyFontProperties(draft)}
               paragraphDialog={paragraphDialog}
-              customImagePicker={customImagePicker}
-              disableBuiltinImageInsert={disableBuiltinImageInsert}
+              customBackgroundImagePicker={resolvedBackgroundImagePicker}
+              disableBuiltinBackgroundImageSources={resolvedDisableBuiltinBackgroundImageSources}
               onParagraphCustomImagePick={() => {
-                customImagePicker?.onPick((image) => {
+                resolvedBackgroundImagePicker?.onPick((image) => {
                   setParagraphDialog((prev) => ({
                     ...prev,
                     tab: 'backgroundImage',
@@ -4034,7 +4072,7 @@ export function Editor({
               pageDialog={pageDialog}
               enablePageProperties={enablePageProperties}
               onPageCustomImagePick={() => {
-                customImagePicker?.onPick((image) => {
+                resolvedBackgroundImagePicker?.onPick((image) => {
                   setPageDialog((prev) => ({
                     ...prev,
                     tab: 'paragraph',
@@ -4056,7 +4094,7 @@ export function Editor({
                 const root = resolveActiveVisualRoot()
                 if (!root || modeRef.current !== 'visual') return
                 const pageHtml = enableMultiPagesRef.current
-                  ? (pagesRef.current[activePageIndexRef.current] ?? '')
+                  ? resolveActivePageHtml()
                   : extractFontStylesheets(htmlRef.current).body
                 const result = resetPageAtRuleInDocument(root, pageHtml)
                 if (!result.changed) return
@@ -4111,6 +4149,7 @@ export function Editor({
               onBookmarkDialogClose={() => setBookmarkDialog({ ...bookmarkDialog, open: false })}
               onApplyBookmark={(name) => commandContext.applyBookmark(name)}
               imageDialogOpen={imageDialog.open}
+              customImagePicker={customImagePicker}
               customAudioPicker={customAudioPicker}
               customVideoPicker={customVideoPicker}
               onImageDialogClose={() => setImageDialog({ open: false })}

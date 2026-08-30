@@ -20,6 +20,7 @@ export type {
   CustomActionShowIn,
   CustomAudioInsert,
   CustomAudioPicker,
+  CustomBackgroundImagePicker,
   CustomFont,
   CustomImageInsert,
   CustomImagePicker,

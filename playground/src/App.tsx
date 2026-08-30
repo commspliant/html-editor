@@ -7,6 +7,7 @@ import {
   type CustomActionApi,
   type CustomAudioInsert,
   type CustomAudioPicker,
+  type CustomBackgroundImagePicker,
   type CustomFont,
   type CustomImageInsert,
   type CustomImagePicker,
@@ -31,6 +32,7 @@ type PageView = 'playground' | 'documentation'
 type MenuAppearance = 'default' | 'example'
 type BorderAppearance = 'default' | 'none' | 'rounded'
 type ImagePickerMode = 'default' | 'custom' | 'direct'
+type BackgroundImagePickerMode = 'default' | 'custom' | 'direct'
 type AudioPickerMode = 'default' | 'custom' | 'direct'
 type VideoPickerMode = 'default' | 'custom' | 'direct'
 type ToolbarPersistMode = 'browser' | 'api'
@@ -278,13 +280,13 @@ export function App() {
   const [autoSave, setAutoSave] = useState(false)
   const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null)
   const [fileCallbacksMode, setFileCallbacksMode] = useState<FileCallbacksMode>('local')
-  const [multiPagesEnabled, setMultiPagesEnabled] = useState(false)
-  const [optimizeEmbeddedImagesEnabled, setOptimizeEmbeddedImagesEnabled] = useState(false)
-  const [initialContentEmpty, setInitialContentEmpty] = useState(false)
-  const [pagePropertiesEnabled, setPagePropertiesEnabled] = useState(false)
+  const [multiPagesEnabled, setMultiPagesEnabled] = useState(true)
+  const [optimizeEmbeddedImagesEnabled, setOptimizeEmbeddedImagesEnabled] = useState(true)
+  const [initialContentEmpty, setInitialContentEmpty] = useState(true)
+  const [pagePropertiesEnabled, setPagePropertiesEnabled] = useState(true)
   const [rulerVisible, setRulerVisible] = useState(true)
   const [defaultPagePropertiesMode, setDefaultPagePropertiesMode] =
-    useState<DefaultPagePropertiesMode>('none')
+    useState<DefaultPagePropertiesMode>('a4-margins')
   const [commentsEnabled, setCommentsEnabled] = useState(false)
   const [comments, setComments] = useState<CommentThread[]>([])
   const [lastHostSaveAt, setLastHostSaveAt] = useState<number | null>(null)
@@ -293,8 +295,10 @@ export function App() {
   const [customParagraphStylesEnabled, setCustomParagraphStylesEnabled] = useState(true)
   const [menuAppearance, setMenuAppearance] = useState<MenuAppearance>('default')
   const [borderAppearance, setBorderAppearance] = useState<BorderAppearance>('default')
-  const [googleFonts, setGoogleFonts] = useState(false)
+  const [googleFonts, setGoogleFonts] = useState(true)
   const [imagePickerMode, setImagePickerMode] = useState<ImagePickerMode>('default')
+  const [backgroundImagePickerMode, setBackgroundImagePickerMode] =
+    useState<BackgroundImagePickerMode>('default')
   const [audioPickerMode, setAudioPickerMode] = useState<AudioPickerMode>('default')
   const [videoPickerMode, setVideoPickerMode] = useState<VideoPickerMode>('default')
   const [toolbarPersistMode, setToolbarPersistMode] = useState<ToolbarPersistMode>('browser')
@@ -304,6 +308,9 @@ export function App() {
     useState<ToolbarPositionPersistMode>('browser')
   const [initialToolbarPosition, setInitialToolbarPosition] = useState<ToolbarPosition>('top')
   const [imageInsert, setImageInsert] = useState<((image: CustomImageInsert) => void) | null>(null)
+  const [backgroundImageInsert, setBackgroundImageInsert] = useState<
+    ((image: CustomImageInsert) => void) | null
+  >(null)
   const [audioInsert, setAudioInsert] = useState<((audio: CustomAudioInsert) => void) | null>(null)
   const [videoInsert, setVideoInsert] = useState<((video: CustomVideoInsert) => void) | null>(null)
   const [aiApi, setAiApi] = useState<CustomActionApi | null>(null)
@@ -412,6 +419,18 @@ export function App() {
       },
     }
   }, [imagePickerMode, t])
+
+  const customBackgroundImagePicker = useMemo<CustomBackgroundImagePicker | undefined>(() => {
+    if (backgroundImagePickerMode === 'default') return undefined
+    return {
+      text: t.backgroundImagePickerTab,
+      description: t.backgroundImagePickerDescription,
+      buttonCaption: t.backgroundImagePickerButton,
+      onPick: (insertImage) => {
+        setBackgroundImageInsert(() => insertImage)
+      },
+    }
+  }, [backgroundImagePickerMode, t])
 
   const customAudioPicker = useMemo<CustomAudioPicker | undefined>(() => {
     if (audioPickerMode === 'default') return undefined
@@ -1100,6 +1119,43 @@ export function App() {
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
+                    label={t.appearanceBackgroundImageAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('backgroundImage')}
+                  />
+                  <div
+                    className="locale-toggle"
+                    role="group"
+                    aria-label={t.appearanceBackgroundImageAria}
+                  >
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={backgroundImagePickerMode === 'default'}
+                      onClick={() => setBackgroundImagePickerMode('default')}
+                    >
+                      {t.backgroundImagePickerDefault}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={backgroundImagePickerMode === 'custom'}
+                      onClick={() => setBackgroundImagePickerMode('custom')}
+                    >
+                      {t.backgroundImagePickerCustom}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={backgroundImagePickerMode === 'direct'}
+                      onClick={() => setBackgroundImagePickerMode('direct')}
+                    >
+                      {t.backgroundImagePickerDirect}
+                    </button>
+                  </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
                     label={t.appearanceAudioAria}
                     examplesLabel={t.codeExamplesLink}
                     onOpenExamples={() => setExampleBlock('audio')}
@@ -1390,6 +1446,9 @@ export function App() {
               customFonts={googleFonts ? playgroundGoogleFonts : undefined}
               customImagePicker={customImagePicker}
               disableBuiltinImageInsert={imagePickerMode === 'direct'}
+              customBackgroundImagePicker={customBackgroundImagePicker}
+              disableBuiltinBackgroundImageInsert={backgroundImagePickerMode === 'direct'}
+              disableBuiltinBackgroundImageSources={backgroundImagePickerMode === 'custom'}
               customAudioPicker={customAudioPicker}
               disableBuiltinAudioInsert={audioPickerMode === 'direct'}
               customVideoPicker={customVideoPicker}
@@ -1511,6 +1570,52 @@ export function App() {
                 }}
               >
                 {t.videoGalleryCancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {backgroundImageInsert ? (
+        <div className="ai-dialog-backdrop">
+          <div
+            className="ai-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="background-image-gallery-title"
+          >
+            <h2 id="background-image-gallery-title" className="ai-dialog-title">
+              {t.backgroundImageGalleryTitle}
+            </h2>
+            <div className="ai-dialog-body">
+              <div className="image-gallery">
+                {PLAYGROUND_GALLERY.map((item) => {
+                  const alt = t[item.altKey]
+                  return (
+                    <button
+                      key={item.src}
+                      type="button"
+                      className="image-gallery-item"
+                      onClick={() => {
+                        backgroundImageInsert({ src: item.src })
+                        setBackgroundImageInsert(null)
+                      }}
+                    >
+                      <img src={item.src} alt={alt} />
+                      <span>{alt}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="ai-dialog-actions">
+              <button
+                type="button"
+                className="ai-dialog-button"
+                onClick={() => {
+                  setBackgroundImageInsert(null)
+                }}
+              >
+                {t.backgroundImageGalleryCancel}
               </button>
             </div>
           </div>

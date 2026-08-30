@@ -155,6 +155,8 @@ export const en: Messages = {
   commandParagraphPropertiesAria: 'Paragraph properties',
   commandPageProperties: 'Page properties…',
   commandPagePropertiesAria: 'Page properties',
+  commandBackgroundImageProperties: 'Background image properties…',
+  commandBackgroundImagePropertiesAria: 'Background image properties',
   commandDeletePage: 'Delete page',
   commandDeletePageAria: 'Delete selected page',
   deletePageDialogTitle: 'Delete page',

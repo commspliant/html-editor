@@ -155,6 +155,8 @@ export type Messages = {
   commandParagraphPropertiesAria: string
   commandPageProperties: string
   commandPagePropertiesAria: string
+  commandBackgroundImageProperties: string
+  commandBackgroundImagePropertiesAria: string
   commandDeletePage: string
   commandDeletePageAria: string
   deletePageDialogTitle: string

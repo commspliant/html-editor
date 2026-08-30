@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'optimizeEmbeddedImages' | 'pageProperties' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'optimizeEmbeddedImages' | 'pageProperties' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'backgroundImage' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -322,6 +322,27 @@ const gallery: CustomImagePicker = {
       `import { Editor } from 'commspliant-html-editor'
 
 <Editor customImagePicker={gallery} disableBuiltinImageInsert />`,
+    ],
+  },
+  backgroundImage: {
+    titleKey: 'appearanceBackgroundImageAria',
+    bodyKey: 'backgroundImageExampleBody',
+    snippets: [
+      `import { Editor, type CustomBackgroundImagePicker } from 'commspliant-html-editor'
+
+const gallery: CustomBackgroundImagePicker = {
+  text: 'Gallery',
+  description: 'Choose from your media library.',
+  buttonCaption: 'Open gallery',
+  onPick: (insertImage) => {
+    insertImage({ src: '/background.jpg' })
+  },
+}
+
+<Editor customBackgroundImagePicker={gallery} disableBuiltinBackgroundImageSources />`,
+      `import { Editor } from 'commspliant-html-editor'
+
+<Editor customBackgroundImagePicker={gallery} disableBuiltinBackgroundImageInsert />`,
     ],
   },
   audio: {

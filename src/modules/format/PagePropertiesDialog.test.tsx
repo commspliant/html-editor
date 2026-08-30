@@ -91,7 +91,7 @@ describe('PagePropertiesDialog', () => {
     expect(screen.getByRole('radio', { name: 'Image URL' })).toBeInTheDocument()
   })
 
-  it('shows only the custom picker on Background Image when builtin insert is disabled', async () => {
+  it('shows only the custom picker on Background Image when builtin sources are disabled', async () => {
     const user = userEvent.setup()
     const onCustomImagePick = vi.fn()
     render(
@@ -101,7 +101,7 @@ describe('PagePropertiesDialog', () => {
           tab="paragraph"
           initialParagraphTab="backgroundImage"
           value={emptyPagePropertiesApply()}
-          disableBuiltinImageInsert
+          disableBuiltinBackgroundImageSources
           customImagePicker={{
             text: 'Gallery',
             description: 'Choose from the media library',

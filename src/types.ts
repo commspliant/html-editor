@@ -154,6 +154,9 @@ export type CustomImagePicker = {
   onPick: (insertImage: (image: CustomImageInsert) => void) => void
 }
 
+/** Same shape as `CustomImagePicker`; only `src` is applied to background drafts. */
+export type CustomBackgroundImagePicker = CustomImagePicker
+
 export type CustomAudioInsert = {
   /** http(s), relative path, or audio data URL */
   src: string
@@ -370,10 +373,28 @@ export type EditorProps = {
   /**
    * Skip built-in File/URL image sources when `customImagePicker` is set.
    * Insert → Image and the toolbar Image button call `onPick` immediately instead of
-   * opening the insert dialog. Page and paragraph background image commands do the same.
-   * Background image fields in Page/Paragraph properties hide File and URL.
+   * opening the insert dialog. Has no effect unless `customImagePicker` is set.
    */
   disableBuiltinImageInsert?: boolean
+  /**
+   * Optional custom source for page and paragraph background images.
+   * Omit to keep File and URL only. Host copy is not translated.
+   * Falls back to `customImagePicker` when omitted.
+   */
+  customBackgroundImagePicker?: CustomBackgroundImagePicker
+  /**
+   * Skip Page/Paragraph properties dialogs and call `customBackgroundImagePicker.onPick`
+   * from Insert → Page background image and Insert → Paragraph background image.
+   * Falls back to `disableBuiltinImageInsert` when omitted.
+   */
+  disableBuiltinBackgroundImageInsert?: boolean
+  /**
+   * Hide built-in File and URL in background image source panels when
+   * `customBackgroundImagePicker` is set. Insert commands still open the properties
+   * dialog unless `disableBuiltinBackgroundImageInsert` is true.
+   * Falls back to `disableBuiltinImageInsert` when omitted.
+   */
+  disableBuiltinBackgroundImageSources?: boolean
   /**
    * Optional third Insert audio source. Omit to keep File and URL only.
    * Host copy (`text`, `description`, `buttonCaption`) is not translated.

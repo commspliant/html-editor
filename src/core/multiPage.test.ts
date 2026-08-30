@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   PAGE_SEPARATOR,
   PAGE_SURFACE_ATTR,
+  closestPageSurface,
   emptyPageHtml,
   joinPagesToHtml,
   mergePagesWithStructuralSharing,
@@ -59,6 +60,22 @@ describe('multiPage', () => {
 
     expect(queryPageSurfaceIndex(first)).toBe(0)
     expect(queryPageSurfaceIndex(second)).toBe(1)
+  })
+
+  it('closestPageSurface walks up from a nested node to the page surface', () => {
+    const container = document.createElement('div')
+    const surface = document.createElement('div')
+    surface.setAttribute(PAGE_SURFACE_ATTR, '')
+    const paragraph = document.createElement('p')
+    const text = document.createTextNode('Hello')
+    paragraph.append(text)
+    surface.append(paragraph)
+    container.append(surface)
+
+    expect(closestPageSurface(text)).toBe(surface)
+    expect(closestPageSurface(paragraph)).toBe(surface)
+    expect(closestPageSurface(surface)).toBe(surface)
+    expect(closestPageSurface(null)).toBeNull()
   })
 
   it('updatePageAt reuses the pages array when content is unchanged', () => {

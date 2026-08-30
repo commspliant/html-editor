@@ -1486,8 +1486,8 @@ describe('Editor insert chrome', () => {
     render(
       <Editor
         defaultValue="<p>Hello</p>"
-        disableBuiltinImageInsert
-        customImagePicker={{
+        disableBuiltinBackgroundImageInsert
+        customBackgroundImagePicker={{
           text: 'Gallery',
           description: 'Choose from the media library',
           buttonCaption: 'Open gallery',
@@ -1510,6 +1510,118 @@ describe('Editor insert chrome', () => {
     expect(layer).toHaveStyle({
       backgroundImage: 'url("https://example.com/bg.png")',
     })
+  })
+
+  it('opens the page background dialog with custom source only when builtin sources are disabled', async () => {
+    const user = userEvent.setup()
+    const onPick = vi.fn<(insertImage: (image: CustomImageInsert) => void) => void>()
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        disableBuiltinBackgroundImageSources
+        customBackgroundImagePicker={{
+          text: 'Gallery',
+          description: 'Choose from the media library',
+          buttonCaption: 'Open gallery',
+          onPick,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page background image' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Page properties' })
+    expect(within(dialog).queryByRole('radio', { name: 'File' })).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('radio', { name: 'Image URL' })).not.toBeInTheDocument()
+    expect(within(dialog).getByText('Choose from the media library')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Open gallery' }))
+    expect(onPick).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips the paragraph background dialog and applies from the host picker when builtin insert is disabled', async () => {
+    const user = userEvent.setup()
+    const onPick = vi.fn<(insertImage: (image: CustomImageInsert) => void) => void>()
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        disableBuiltinBackgroundImageInsert
+        customBackgroundImagePicker={{
+          text: 'Gallery',
+          description: 'Choose from the media library',
+          buttonCaption: 'Open gallery',
+          onPick,
+        }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Insert menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Paragraph background image' }))
+
+    expect(onPick).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog', { name: 'Paragraph properties' })).not.toBeInTheDocument()
+
+    onPick.mock.calls[0][0]({ src: 'https://example.com/para-bg.png' })
+
+    expect(visual.querySelector('p')).toHaveStyle({
+      backgroundImage: 'url("https://example.com/para-bg.png")',
+    })
+  })
+
+  it('opens the paragraph background dialog with custom source only when builtin sources are disabled', async () => {
+    const user = userEvent.setup()
+    const onPick = vi.fn<(insertImage: (image: CustomImageInsert) => void) => void>()
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        disableBuiltinBackgroundImageSources
+        customBackgroundImagePicker={{
+          text: 'Gallery',
+          description: 'Choose from the media library',
+          buttonCaption: 'Open gallery',
+          onPick,
+        }}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 0, 5)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Insert menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Paragraph background image' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Paragraph properties' })
+    expect(within(dialog).queryByRole('radio', { name: 'File' })).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('radio', { name: 'Image URL' })).not.toBeInTheDocument()
+    expect(within(dialog).getByText('Choose from the media library')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Open gallery' }))
+    expect(onPick).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back to disableBuiltinImageInsert for page background when background props are omitted', async () => {
+    const user = userEvent.setup()
+    const onPick = vi.fn<(insertImage: (image: CustomImageInsert) => void) => void>()
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        disableBuiltinImageInsert
+        customImagePicker={{
+          text: 'Gallery',
+          description: 'Choose from the media library',
+          buttonCaption: 'Open gallery',
+          onPick,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page background image' }))
+
+    expect(onPick).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog', { name: 'Page properties' })).not.toBeInTheDocument()
   })
 })
 
@@ -2409,6 +2521,35 @@ describe('Editor paragraph chrome', () => {
     expect(lastPages[1]).toContain('https://example.com/page2.png')
     expect(lastPages[1]).toContain('z-index: 0')
     expect(lastPages[1]).toContain('<p>Two</p>')
+  })
+
+  it('applies page background from Insert menu to the active multi-page surface', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        enablePageProperties
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    await focusMultiPageSurface(user, 1)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Page background image' }))
+    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
+    await user.type(screen.getByLabelText('Image URL'), 'https://example.com/insert-page2.png')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    expect(surfaces[1].querySelector('[data-page-bg]')).not.toBeNull()
+    expect(surfaces[0].querySelector('[data-page-bg]')).toBeNull()
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages[1]).toContain('https://example.com/insert-page2.png')
+    expect(lastPages[0]).not.toContain('insert-page2.png')
   })
 
   it('hides the Print tab when enablePageProperties is false', async () => {
@@ -4215,6 +4356,46 @@ describe('Editor context menu', () => {
 
     await user.click(screen.getByRole('menuitem', { name: 'Page properties' }))
     expect(screen.getByRole('dialog', { name: 'Page properties' })).toBeInTheDocument()
+  })
+
+  it('opens background image properties from the context menu', async () => {
+    const user = userEvent.setup()
+    render(<Editor defaultValue="<p>Hello</p>" />)
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    fireEvent.contextMenu(visual)
+
+    await user.click(screen.getByRole('menuitem', { name: 'Background image properties' }))
+    expect(screen.getByRole('dialog', { name: 'Page properties' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Background Image' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+  })
+
+  it('applies page background from context menu on the right-clicked multi-page surface', async () => {
+    const onPagesChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        enablePageProperties
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    fireEvent.contextMenu(surfaces[1])
+
+    await user.click(screen.getByRole('menuitem', { name: 'Background image properties' }))
+    await user.click(screen.getByRole('radio', { name: 'Image URL' }))
+    await user.type(screen.getByLabelText('Image URL'), 'https://example.com/context-page2.png')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages[0]).not.toContain('https://example.com/context-page2.png')
+    expect(lastPages[1]).toContain('https://example.com/context-page2.png')
+    expect(lastPages[1]).toContain('data-page-bg')
   })
 
   it('deletes a page from the context menu after confirmation', async () => {
