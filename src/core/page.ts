@@ -326,6 +326,14 @@ function placeCaretInShell(shell: HTMLElement): void {
   placeCaretAtBlockEnd(block)
 }
 
+/** Focus the page holder and place the caret inside its shell (for programmatic navigation). */
+export function focusCaretInPageShell(holder: HTMLElement): void {
+  const shell = queryPageShell(holder)
+  holder.focus()
+  if (!shell) return
+  placeCaretInShell(shell)
+}
+
 /** Move the caret into the page shell when it landed on the holder or outside the shell. */
 export function normalizeCaretInPageShell(holder: HTMLElement): void {
   const shell = queryPageShell(holder)

@@ -16,6 +16,7 @@ import { TOOLBAR_POSITION_STORAGE_KEY } from '../modules/view/toolbarPositionPer
 import { Editor } from './Editor'
 import styles from './Editor.module.css'
 import { estimatePageRowHeight } from '../core/pageRowHeight'
+import { queryPageShell } from '../core/page'
 
 vi.mock('../modules/file/fileDialogs', () => ({
   saveHtml: vi.fn(async () => undefined),
@@ -2502,6 +2503,67 @@ describe('Editor paragraph chrome', () => {
     expect(lastPages[1]).toContain('Two')
     expect(lastPages[2]).toBe('<p></p>')
     expect(lastPages[3]).toContain('Three')
+  })
+
+  it('focuses the new page and places the caret after insert page after', async () => {
+    const user = userEvent.setup()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>', '<p>Three</p>']}
+      />,
+    )
+
+    await insertPageAfterSelected(user, 0)
+
+    await waitFor(() => {
+      const newPageSurface = document.querySelector('[data-page-index="1"]') as HTMLElement | null
+      expect(newPageSurface).toBeInTheDocument()
+      expect(document.activeElement).toBe(newPageSurface)
+      const shell = queryPageShell(newPageSurface!)
+      expect(shell).not.toBeNull()
+      const sel = window.getSelection()
+      expect(sel?.rangeCount).toBe(1)
+      const anchor = sel?.getRangeAt(0).startContainer
+      expect(shell?.contains(anchor ?? null) || anchor === shell).toBe(true)
+    })
+  })
+
+  it('does not scroll when the new page is visible and scrolls when it is off-screen', async () => {
+    const user = userEvent.setup()
+    const pageHtml = '<div data-page><p>Page</p></div>'
+    const pages = Array.from({ length: 30 }, (_, index) =>
+      pageHtml.replace('Page', `Page ${index + 1}`),
+    )
+    render(<Editor enableMultiPages defaultPages={pages} />)
+
+    const workspace = getMultiPageWorkspace()
+    Object.defineProperty(workspace, 'clientHeight', { configurable: true, value: 400 })
+
+    await focusMultiPageSurface(user, 0, pageHtml)
+    const scrollTopBefore = workspace.scrollTop
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page after' }))
+
+    await waitFor(() => {
+      expect(document.activeElement).toHaveAttribute('data-page-index', '1')
+    })
+    expect(workspace.scrollTop).toBe(scrollTopBefore)
+
+    const lastIndex = 29
+    await scrollMultiPageToIndex(lastIndex, pageHtml)
+    await focusMultiPageSurface(user, lastIndex, pageHtml)
+    expect(workspace.scrollTop).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: 'Insert menu' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Insert page submenu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Page before' }))
+
+    await waitFor(() => {
+      expect(document.activeElement).toHaveAttribute('data-page-index', String(lastIndex))
+    })
+    expect(document.querySelector(`[data-page-index="${lastIndex}"]`)).toBeInTheDocument()
   })
 
   it('preserves displaced content in the store after insert page before on a sized page', async () => {

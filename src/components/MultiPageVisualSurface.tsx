@@ -12,11 +12,12 @@ import {
 } from 'react'
 import { extractFontStylesheets } from '../core/fontFamily'
 import { PAGE_SURFACE_ATTR, queryPageSurface } from '../core/multiPage'
-import { createPageHeightCache, estimatePageRowHeight } from '../core/pageRowHeight'
+import { createPageHeightCache, estimatePageRowHeight, buildPrefixSums } from '../core/pageRowHeight'
 import {
   absorbLooseBlocksIntoPageShell,
   ensurePageShell,
   ensureSizedPageShellLayout,
+  focusCaretInPageShell,
   normalizeCaretInPageShell,
   queryPageShell,
   reconcileCaretAfterBlockAbsorb,
@@ -30,7 +31,7 @@ import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import type { HydrateEmbeddedImages } from '../core/documentEquality'
 import { syncVisualBodyHtml } from '../core/visualBodySync'
 import type { RulerUnit } from '../core/rulerUnits'
-import { useVirtualPageRange } from '../hooks/useVirtualPageRange'
+import { useVirtualPageRange, findFirstVisiblePageIndex, findLastVisiblePageIndex } from '../hooks/useVirtualPageRange'
 import { useT } from '../i18n/LocaleProvider'
 import { useMultiPageRulerMetrics } from './useMultiPageRulerMetrics'
 import { RulerHorizontalHeader, RulerPageRow, buildPageZoomContentStyle } from './RulerVisualFrame'
@@ -42,6 +43,7 @@ export type MultiPageVisualSurfaceHandle = {
   getActivePageIndex: () => number
   flushPageHtml: (index: number) => string | null
   ensurePageMounted: (index: number) => void
+  focusPageAt: (index: number) => void
 }
 
 type MultiPageVisualSurfaceProps = {
@@ -54,6 +56,7 @@ type MultiPageVisualSurfaceProps = {
   onPageChange: (index: number, html: string) => void
   onPageFlush?: (index: number, html: string) => void
   suppressPageFlushRef?: RefObject<boolean>
+  pendingInsertPageFocusRef?: RefObject<number | null>
   placeholder?: string
   disabled?: boolean
   rulerVisible?: boolean
@@ -243,6 +246,7 @@ export const MultiPageVisualSurface = forwardRef<
     onPageChange,
     onPageFlush,
     suppressPageFlushRef,
+    pendingInsertPageFocusRef,
     placeholder,
     disabled,
     rulerVisible = true,
@@ -331,12 +335,48 @@ export const MultiPageVisualSurface = forwardRef<
     [scrollToIndex],
   )
 
-  const scrollToIndexRef = useRef(scrollToIndex)
-  scrollToIndexRef.current = scrollToIndex
+  const scrollPageIntoViewIfNeeded = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= pages.length) return
+      const scrollElement = scrollRootRef?.current ?? containerRef.current
+      if (!scrollElement) return
+      const prefixSums = buildPrefixSums(pages.length, getRowHeight)
+      const scrollTop = scrollElement.scrollTop
+      const viewportBottom = scrollTop + scrollElement.clientHeight
+      const firstVisible = findFirstVisiblePageIndex(scrollTop, prefixSums, pages.length)
+      const lastVisible = findLastVisiblePageIndex(viewportBottom, prefixSums, pages.length)
+      if (index >= firstVisible && index <= lastVisible) return
+      scrollToIndex(index)
+    },
+    [getRowHeight, pages.length, scrollRootRef, scrollToIndex],
+  )
+
+  const focusPageAt = useCallback(
+    (index: number) => {
+      scrollPageIntoViewIfNeeded(index)
+      requestAnimationFrame(() => {
+        const container = containerRef.current
+        if (!container) return
+        const surface = queryPageSurface(container, index)
+        if (surface) focusCaretInPageShell(surface)
+      })
+    },
+    [scrollPageIntoViewIfNeeded],
+  )
+
+  const scrollPageIntoViewIfNeededRef = useRef(scrollPageIntoViewIfNeeded)
+  scrollPageIntoViewIfNeededRef.current = scrollPageIntoViewIfNeeded
 
   useLayoutEffect(() => {
-    scrollToIndexRef.current(activePageIndex)
+    scrollPageIntoViewIfNeededRef.current(activePageIndex)
   }, [activePageIndex, pages.length])
+
+  useLayoutEffect(() => {
+    const pendingIndex = pendingInsertPageFocusRef?.current
+    if (pendingIndex === null || pendingIndex === undefined) return
+    pendingInsertPageFocusRef.current = null
+    focusPageAt(pendingIndex)
+  }, [activePageIndex, pages.length, pendingInsertPageFocusRef, focusPageAt])
 
   const activatePage = useCallback(
     (index: number) => {
@@ -374,6 +414,7 @@ export const MultiPageVisualSurface = forwardRef<
     ensurePageMounted: (index: number) => {
       scrollToPage(index)
     },
+    focusPageAt,
   }))
 
   const syncSurfaceHtml = useCallback((
@@ -415,7 +456,7 @@ export const MultiPageVisualSurface = forwardRef<
     const prev = prevPagesRef.current
     const lengthChanged = prev === null || prev.length !== pages.length
     if (lengthChanged) {
-      scrollToIndexRef.current(activePageIndex)
+      scrollPageIntoViewIfNeededRef.current(activePageIndex)
     }
     const prevVisible = new Set(prevVisibleIndicesRef.current)
     const indicesToSync = new Set<number>(visibleIndices)
