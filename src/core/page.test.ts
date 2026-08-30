@@ -8,6 +8,7 @@ import {
   absorbLooseTextInPageShell,
   ensurePageShell,
   ensureSizedPageShellLayout,
+  focusCaretInPageShell,
   normalizeCaretInPageShell,
   PAGE_BG_LAYER_ATTR,
   PAGE_SHELL_ATTR,
@@ -514,6 +515,23 @@ describe('reconcileCaretToAbsorbedBlocks', () => {
     const lastP = blocks[blocks.length - 1] as HTMLElement
     expect(lastP.contains(sel?.anchorNode ?? null)).toBe(true)
     expect(firstP.contains(sel?.anchorNode ?? null)).toBe(false)
+  })
+})
+
+describe('focusCaretInPageShell', () => {
+  it('focuses the holder and places the caret inside the page shell', () => {
+    const el = mountVisual('<div data-page><p></p></div>')
+    el.tabIndex = 0
+    focusCaretInPageShell(el)
+
+    expect(document.activeElement).toBe(el)
+    const shell = queryPageShell(el)
+    expect(shell).not.toBeNull()
+    const sel = window.getSelection()
+    expect(sel?.rangeCount).toBe(1)
+    const anchor = sel?.getRangeAt(0).startContainer
+    expect(shell?.contains(anchor ?? null) || anchor === shell).toBe(true)
+    expect(sel?.getRangeAt(0).collapsed).toBe(true)
   })
 })
 

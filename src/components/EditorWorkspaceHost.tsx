@@ -69,6 +69,7 @@ export type EditorWorkspaceHandlers = {
   multiPageVisualRef: MutableRefObject<MultiPageVisualSurfaceHandle | null>
   workspaceRef: MutableRefObject<HTMLDivElement | null>
   suppressPageFlushRef: MutableRefObject<boolean>
+  pendingInsertPageFocusRef: MutableRefObject<number | null>
   visualRootRef: MutableRefObject<HTMLDivElement | null>
   visualPropSyncGuardRef: MutableRefObject<(() => void) | null>
   htmlAreaRef: MutableRefObject<HTMLTextAreaElement | null>
@@ -370,6 +371,7 @@ function EditorWorkspaceHostInner({
           hasSelectedPage={hasSelectedPage}
           scrollRootRef={handlers.workspaceRef}
           suppressPageFlushRef={handlers.suppressPageFlushRef}
+          pendingInsertPageFocusRef={handlers.pendingInsertPageFocusRef}
           onActivePageIndexChange={(index) => {
             handlers.activePageIndexRef.current = index
             handlers.setActivePageIndex(index)

@@ -440,6 +440,7 @@ export function Editor({
   const workspaceRef = useRef<HTMLDivElement | null>(null)
   const multiPageVisualRef = useRef<MultiPageVisualSurfaceHandle>(null)
   const suppressPageFlushRef = useRef(false)
+  const pendingInsertPageFocusRef = useRef<number | null>(null)
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null)
   const enableMultiPagesRef = useRef(enableMultiPages)
   enableMultiPagesRef.current = enableMultiPages
@@ -1520,6 +1521,7 @@ export function Editor({
       activePageIndexRef.current = clampedInsertAt
       setActivePageIndex(clampedInsertAt)
       setHasSelectedPage(true)
+      pendingInsertPageFocusRef.current = clampedInsertAt
     },
     [flushMultiPageHtml, commitPages, history, externalizeStorageHtml],
   )
@@ -3878,6 +3880,7 @@ export function Editor({
     multiPageVisualRef,
     workspaceRef,
     suppressPageFlushRef,
+    pendingInsertPageFocusRef,
     visualRootRef,
     visualPropSyncGuardRef,
     htmlAreaRef,
