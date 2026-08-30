@@ -8,6 +8,7 @@ import {
   useRef,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type MutableRefObject,
   type RefObject,
 } from 'react'
 import { extractFontStylesheets } from '../core/fontFamily'
@@ -56,8 +57,8 @@ type MultiPageVisualSurfaceProps = {
   onPageSelected?: (index: number) => void
   onPageChange: (index: number, html: string) => void
   onPageFlush?: (index: number, html: string) => void
-  suppressPageFlushRef?: RefObject<boolean>
-  pendingInsertPageFocusRef?: RefObject<number | null>
+  suppressPageFlushRef?: MutableRefObject<boolean>
+  pendingInsertPageFocusRef?: MutableRefObject<number | null>
   placeholder?: string
   disabled?: boolean
   rulerVisible?: boolean
@@ -94,7 +95,7 @@ type MemoizedPageRowProps = {
   onPointerDown: (index: number, event: ReactPointerEvent<HTMLDivElement>) => void
   onPageChange: (index: number, html: string) => void
   onPageFlush?: (index: number, html: string) => void
-  suppressPageFlushRef?: RefObject<boolean>
+  suppressPageFlushRef?: MutableRefObject<boolean>
   onMeasured?: (index: number, height: number) => void
   onMarginChange?: (index: number, sides: PageMarginSidesPx) => void
   onMarginPreview?: (index: number, sides: PageMarginSidesPx) => void
@@ -373,9 +374,11 @@ export const MultiPageVisualSurface = forwardRef<
   }, [activePageIndex, pages.length])
 
   useLayoutEffect(() => {
-    const pendingIndex = pendingInsertPageFocusRef?.current
+    const ref = pendingInsertPageFocusRef
+    if (!ref) return
+    const pendingIndex = ref.current
     if (pendingIndex === null || pendingIndex === undefined) return
-    pendingInsertPageFocusRef.current = null
+    ref.current = null
     focusPageAt(pendingIndex)
   }, [activePageIndex, pages.length, pendingInsertPageFocusRef, focusPageAt])
 

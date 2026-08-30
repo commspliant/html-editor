@@ -10,6 +10,7 @@ import { normalizeCssColor } from './inlineColor'
 import {
   EMPTY_BOX_SIDES,
   boxSidesEqual,
+  emptyParagraphBoxApply,
   readParagraphBox,
   writeParagraphBox,
   type BoxSides,
@@ -61,6 +62,7 @@ export function writeRowProperties(row: HTMLTableRowElement, draft: RowPropertie
   for (const cell of Array.from(row.cells)) {
     if (
       writeParagraphBox(cell, {
+        ...emptyParagraphBoxApply(),
         margin: { ...EMPTY_BOX_SIDES },
         marginMixed: true,
         padding: draft.padding,

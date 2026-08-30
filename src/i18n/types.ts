@@ -160,6 +160,7 @@ export type Messages = {
   commandDeletePage: string
   commandDeletePageAria: string
   deletePageDialogTitle: string
+  deletePageDialogCloseAria: string
   deletePageConfirmMessage: string
   commandFontColor: string
   commandFontColorAria: string

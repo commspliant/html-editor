@@ -70,7 +70,7 @@ export type EditorWorkspaceHandlers = {
   workspaceRef: MutableRefObject<HTMLDivElement | null>
   suppressPageFlushRef: MutableRefObject<boolean>
   pendingInsertPageFocusRef: MutableRefObject<number | null>
-  visualRootRef: MutableRefObject<HTMLDivElement | null>
+  visualRootRef: MutableRefObject<HTMLElement | null>
   visualPropSyncGuardRef: MutableRefObject<(() => void) | null>
   htmlAreaRef: MutableRefObject<HTMLTextAreaElement | null>
   commentPanelRef: MutableRefObject<HTMLDivElement | null>
@@ -192,7 +192,7 @@ function EditorWorkspaceHostInner({
   initialHtml,
   initialStorageHtml,
   defaultPages,
-  ingestedPagesProp,
+  ingestedPagesProp: _ingestedPagesProp,
   onChange,
   fontFaces,
   enableComments,
@@ -204,7 +204,7 @@ function EditorWorkspaceHostInner({
   contextMenu,
   commentThreads,
   commands,
-  htmlFileDropDragging,
+  htmlFileDropDragging: _htmlFileDropDragging,
   selectedImage,
 }: EditorWorkspaceHostProps) {
   const { htmlRef, pagesRef, documentBridgeRef } = useEditorShellContext()

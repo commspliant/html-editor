@@ -2,6 +2,8 @@ import { CommentIcon, CommentsVisibleIcon } from '../../icons'
 import type { ToolbarCatalog } from '../../toolbar/types'
 
 export const commentsCatalog: ToolbarCatalog = {
+  menus: {},
+  groups: {},
   items: {
     addComment: {
       id: 'addComment',

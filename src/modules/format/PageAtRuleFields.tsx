@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { DEFAULT_LENGTH_UNIT, parseCssLengthInput, type CssLength } from '../../core/cssLength'
-import { BOX_SIDES, type BoxSide, type BoxSides } from '../../core/paragraphBox'
+import { BOX_SIDES, type BoxSide } from '../../core/paragraphBox'
 import {
   emptyPageAtRuleApply,
   type PageAtRuleApply,

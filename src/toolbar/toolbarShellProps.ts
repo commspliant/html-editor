@@ -2,14 +2,14 @@ import type { EditorCommands, EditorQueries } from '../core/commandTypes'
 import type { ChromeLockOptions } from './commentsChrome'
 import type { EditorToolbarProps } from './EditorToolbar'
 import type { ToolbarCatalog, ToolbarLayout } from './types'
-import type { ToolbarQueryRevisions } from './toolbarQueryRevisions'
+import { createToolbarQueryRevisions, type ToolbarQueryRevisions } from './toolbarQueryRevisions'
 
 export type ToolbarShellPropsInput = {
   catalog: ToolbarCatalog
   layout: ToolbarLayout
   commands: EditorCommands
   queries: EditorQueries
-  queryRevisions: ToolbarQueryRevisions
+  queryRevisions?: ToolbarQueryRevisions
   disabled: boolean
   chromeLock: ChromeLockOptions
 }
@@ -25,7 +25,7 @@ export function buildToolbarShellProps(input: ToolbarShellPropsInput): ToolbarSh
     layout: input.layout,
     commands: input.commands,
     queries: input.queries,
-    queryRevisions: input.queryRevisions,
+    queryRevisions: input.queryRevisions ?? createToolbarQueryRevisions(),
     disabled: input.disabled,
     chromeLock: input.chromeLock,
   }

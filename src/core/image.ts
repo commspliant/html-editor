@@ -178,7 +178,7 @@ export function insertImageInDocument(
   registry?: ImageRegistry | null,
 ): boolean {
   const next = defaultImageAttrs(attrs)
-  const resolved = registry ? resolveImageAttrsForEditor(next, registry) : next
+  const resolved: ResolvedImageAttrs = registry ? resolveImageAttrsForEditor(next, registry) : next
 
   if (resolved.registryId) {
     const stored = registry?.getDataUrl(resolved.registryId)

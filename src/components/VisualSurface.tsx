@@ -55,7 +55,7 @@ type VisualSurfaceProps = {
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
 }
 
-export const VisualSurface = forwardRef<HTMLDivElement, VisualSurfaceProps>(
+export const VisualSurface = forwardRef<HTMLElement, VisualSurfaceProps>(
   function VisualSurface(
     {
       html,

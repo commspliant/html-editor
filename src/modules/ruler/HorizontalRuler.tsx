@@ -74,7 +74,6 @@ export const HorizontalRuler: React.FC<HorizontalRulerProps> = ({
   const startDrag = useCallback(
     (target: RulerDragTarget, startEvent: React.PointerEvent) => {
       const startX = Number.isFinite(startEvent.clientX) ? startEvent.clientX : 0
-      const startY = Number.isFinite(startEvent.clientY) ? startEvent.clientY : 0
 
       startPointerDrag(target.type, startEvent, {
         updateDragState: (clientX, clientY, alt) => {

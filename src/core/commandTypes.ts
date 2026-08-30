@@ -396,6 +396,8 @@ export type EditorCommands = {
   toggleNumberedList: () => void
   openFontProperties: (tab?: FontDialogTab) => void
   applyFontProperties: (draft: FontPropertiesApply) => void
+  openCustomCss: () => void
+  applyCustomCss: (css: string) => void
   openParagraphProperties: (tab?: ParagraphDialogTab) => void
   applyParagraphProperties: (
     draft: ParagraphPropertiesApply,

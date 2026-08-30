@@ -160,6 +160,7 @@ export const en: Messages = {
   commandDeletePage: 'Delete page',
   commandDeletePageAria: 'Delete selected page',
   deletePageDialogTitle: 'Delete page',
+  deletePageDialogCloseAria: 'Close',
   deletePageConfirmMessage: 'Are you sure you want to delete the selected page?',
   commandFontColor: 'Font color',
   commandFontColorAria: 'Font color',

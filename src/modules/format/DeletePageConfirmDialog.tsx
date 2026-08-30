@@ -63,7 +63,7 @@ export function DeletePageConfirmDialog({
             <button
               type="button"
               className={styles.close}
-              aria-label={t('fontDialogCloseAria')}
+              aria-label={t('deletePageDialogCloseAria')}
               onClick={onClose}
             >
               <CloseIcon />

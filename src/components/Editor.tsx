@@ -438,7 +438,7 @@ export function Editor({
     defaultValue: defaultComments,
     onChange: onCommentsChange,
   })
-  const visualRootRef = useRef<HTMLDivElement | null>(null)
+  const visualRootRef = useRef<HTMLElement | null>(null)
   const visualPropSyncGuardRef = useRef<(() => void) | null>(null)
   const commentPanelRef = useRef<HTMLDivElement | null>(null)
   const workspaceRef = useRef<HTMLDivElement | null>(null)
@@ -1313,7 +1313,7 @@ export function Editor({
       const multi = multiPageVisualRef.current
       const container = multi?.getContainer()
       const currentPages = pageStore.pages.length > 0 ? pageStore.pages : pagesRef.current
-      if (!container) return [...currentPages]
+      if (!container || !multi) return [...currentPages]
 
       const pageStoreHandle = pageStore
       if (!pageStoreHandle) return [...currentPages]

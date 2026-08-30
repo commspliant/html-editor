@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import type { ImageDialogTab, ImagePropertiesApply } from '../../core/commandTypes'
 import {
   BORDER_STYLES,
