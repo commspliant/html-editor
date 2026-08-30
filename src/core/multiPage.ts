@@ -122,6 +122,12 @@ export function getActivePageRoot(container: HTMLElement, activeIndex: number): 
   return queryPageSurface(container, activeIndex)
 }
 
+export function closestPageSurface(node: Node | null): HTMLElement | null {
+  if (!node) return null
+  const el = node instanceof Element ? node : node.parentElement
+  return el?.closest<HTMLElement>(`[${PAGE_SURFACE_ATTR}]`) ?? null
+}
+
 export function queryPageSurfaceIndex(surface: HTMLElement): number | null {
   const attr = surface.getAttribute('data-page-index')
   if (attr !== null) {

@@ -44,6 +44,7 @@ export type MultiPageVisualSurfaceHandle = {
   flushPageHtml: (index: number) => string | null
   ensurePageMounted: (index: number) => void
   focusPageAt: (index: number) => void
+  activatePageAt: (index: number) => void
 }
 
 type MultiPageVisualSurfaceProps = {
@@ -415,6 +416,7 @@ export const MultiPageVisualSurface = forwardRef<
       scrollToPage(index)
     },
     focusPageAt,
+    activatePageAt: activatePage,
   }))
 
   const syncSurfaceHtml = useCallback((

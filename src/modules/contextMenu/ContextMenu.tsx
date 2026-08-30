@@ -39,6 +39,7 @@ type MenuCommand =
   | 'openFontProperties'
   | 'openParagraphProperties'
   | 'openPageProperties'
+  | 'openPageBackgroundImage'
   | 'deletePage'
   | 'openImageProperties'
   | 'openTableProperties'
@@ -116,6 +117,13 @@ const ENTRIES: MenuEntry[] = [
     command: 'openPageProperties',
     labelKey: 'commandPageProperties',
     ariaKey: 'commandPagePropertiesAria',
+    enabled: (kind) => kind !== 'image',
+  },
+  {
+    type: 'item',
+    command: 'openPageBackgroundImage',
+    labelKey: 'commandBackgroundImageProperties',
+    ariaKey: 'commandBackgroundImagePropertiesAria',
     enabled: (kind) => kind !== 'image',
   },
   {

@@ -113,7 +113,7 @@ export type ParagraphPropertiesFieldsProps = {
   tablistLabelKey?: MessageKey
   backgroundImage?: PageBackgroundImageApply
   customImagePicker?: CustomImagePicker
-  disableBuiltinImageInsert?: boolean
+  disableBuiltinBackgroundImageSources?: boolean
   onCustomImagePick?: () => void
   onBackgroundImageChange?: (next: PageBackgroundImageApply) => void
   onTabChange: (tab: ParagraphDialogTab) => void
@@ -147,7 +147,7 @@ export function ParagraphPropertiesFields({
   tablistLabelKey = 'paragraphDialogTitle',
   backgroundImage,
   customImagePicker,
-  disableBuiltinImageInsert,
+  disableBuiltinBackgroundImageSources,
   onCustomImagePick,
   onBackgroundImageChange,
   onTabChange,
@@ -506,7 +506,7 @@ export function ParagraphPropertiesFields({
             value={backgroundImage}
             disabled={disabled}
             customImagePicker={customImagePicker}
-            disableBuiltinSources={disableBuiltinImageInsert}
+            disableBuiltinSources={disableBuiltinBackgroundImageSources}
             onCustomImagePick={onCustomImagePick}
             onChange={onBackgroundImageChange}
           />

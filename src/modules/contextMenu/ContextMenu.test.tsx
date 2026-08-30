@@ -53,6 +53,8 @@ function stubCommands(overrides: Partial<EditorCommands> = {}): EditorCommands {
     applyParagraphProperties: noop,
     openPageProperties: noop,
     applyPageProperties: noop,
+    openPageBackgroundImage: noop,
+    openParagraphBackgroundImage: noop,
     openCustomParagraphStyleDialog: noop,
     applyCustomParagraphStyle: noop,
     openLinkDialog: noop,
@@ -142,6 +144,7 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Font properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Paragraph properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Page properties' })).toBeEnabled()
+    expect(screen.getByRole('menuitem', { name: 'Background image properties' })).toBeEnabled()
     expect(screen.queryByRole('menuitem', { name: 'Delete page' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Image properties' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Table properties' })).not.toBeInTheDocument()
@@ -160,6 +163,7 @@ describe('ContextMenu', () => {
     expect(screen.queryByRole('menuitem', { name: 'Link' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Font properties' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Paragraph properties' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Background image properties' })).not.toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Image properties' })).toBeEnabled()
     expect(screen.queryByRole('menuitem', { name: 'Table properties' })).not.toBeInTheDocument()
   })
@@ -205,6 +209,7 @@ describe('ContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Font properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Paragraph properties' })).toBeEnabled()
     expect(screen.getByRole('menuitem', { name: 'Page properties' })).toBeEnabled()
+    expect(screen.getByRole('menuitem', { name: 'Background image properties' })).toBeEnabled()
     expect(screen.queryByRole('menuitem', { name: 'Delete page' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Image properties' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Table properties' })).not.toBeInTheDocument()
@@ -239,6 +244,17 @@ describe('ContextMenu', () => {
 
     expect(onClose).toHaveBeenCalledTimes(1)
     expect(openFontProperties).toHaveBeenCalledTimes(1)
+  })
+
+  it('runs openPageBackgroundImage and closes on click', async () => {
+    const user = userEvent.setup()
+    const openPageBackgroundImage = vi.fn()
+    const onClose = renderMenu('caret', stubCommands({ openPageBackgroundImage }))
+
+    await user.click(screen.getByRole('menuitem', { name: 'Background image properties' }))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(openPageBackgroundImage).toHaveBeenCalledTimes(1)
   })
 
   it('closes on Escape', () => {

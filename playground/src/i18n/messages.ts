@@ -83,6 +83,16 @@ export type PlaygroundMessages = {
   imagePickerDefault: string
   imagePickerCustom: string
   imagePickerDirect: string
+  appearanceBackgroundImageAria: string
+  backgroundImagePickerDefault: string
+  backgroundImagePickerCustom: string
+  backgroundImagePickerDirect: string
+  backgroundImagePickerTab: string
+  backgroundImagePickerDescription: string
+  backgroundImagePickerButton: string
+  backgroundImageGalleryTitle: string
+  backgroundImageGalleryCancel: string
+  backgroundImageExampleBody: string
   appearanceToolbarAria: string
   toolbarPersistBrowser: string
   toolbarPersistApi: string
@@ -254,6 +264,17 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     imagePickerDefault: 'Built-in insert',
     imagePickerCustom: 'Custom picker tab',
     imagePickerDirect: 'Custom picker only',
+    appearanceBackgroundImageAria: 'Background image picker',
+    backgroundImagePickerDefault: 'Built-in insert',
+    backgroundImagePickerCustom: 'Custom picker in dialog',
+    backgroundImagePickerDirect: 'Custom picker only',
+    backgroundImagePickerTab: 'Gallery',
+    backgroundImagePickerDescription: 'Choose from the playground gallery.',
+    backgroundImagePickerButton: 'Open gallery',
+    backgroundImageGalleryTitle: 'Background image gallery',
+    backgroundImageGalleryCancel: 'Cancel',
+    backgroundImageExampleBody:
+      'Pass customBackgroundImagePicker for page and paragraph background images. Set disableBuiltinBackgroundImageSources to show only your picker inside the properties dialog, or disableBuiltinBackgroundImageInsert to call onPick immediately from Insert.',
     appearanceToolbarAria: 'Toolbar settings',
     toolbarPersistBrowser: 'Browser storage',
     toolbarPersistApi: 'API storage',
@@ -445,6 +466,17 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     imagePickerDefault: 'Inserción integrada',
     imagePickerCustom: 'Pestaña de selector',
     imagePickerDirect: 'Solo selector',
+    appearanceBackgroundImageAria: 'Selector de imagen de fondo',
+    backgroundImagePickerDefault: 'Inserción integrada',
+    backgroundImagePickerCustom: 'Selector en el diálogo',
+    backgroundImagePickerDirect: 'Solo selector',
+    backgroundImagePickerTab: 'Galería',
+    backgroundImagePickerDescription: 'Elige de la galería del playground.',
+    backgroundImagePickerButton: 'Abrir galería',
+    backgroundImageGalleryTitle: 'Galería de imagen de fondo',
+    backgroundImageGalleryCancel: 'Cancelar',
+    backgroundImageExampleBody:
+      'Pasa customBackgroundImagePicker para imágenes de fondo de página y párrafo. Con disableBuiltinBackgroundImageSources solo se muestra tu selector en el diálogo de propiedades; con disableBuiltinBackgroundImageInsert onPick se llama de inmediato desde Insertar.',
     appearanceToolbarAria: 'Configuración de la barra',
     toolbarPersistBrowser: 'Almacenamiento del navegador',
     toolbarPersistApi: 'Almacenamiento API',

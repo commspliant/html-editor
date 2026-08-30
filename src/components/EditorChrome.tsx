@@ -196,8 +196,8 @@ export type EditorChromeProps = {
   onApplyFontProperties: (draft: FontPropertiesApply) => void
 
   paragraphDialog: EditorParagraphDialogState
-  customImagePicker?: CustomImagePicker
-  disableBuiltinImageInsert?: boolean
+  customBackgroundImagePicker?: CustomImagePicker
+  disableBuiltinBackgroundImageSources?: boolean
   onParagraphCustomImagePick: () => void
   onParagraphDialogTabChange: (tab: ParagraphDialogTab) => void
   onParagraphDialogClose: () => void
@@ -239,6 +239,7 @@ export type EditorChromeProps = {
   onApplyBookmark: (name: string) => void
 
   imageDialogOpen: boolean
+  customImagePicker?: CustomImagePicker
   customAudioPicker?: CustomAudioPicker
   customVideoPicker?: CustomVideoPicker
   onImageDialogClose: () => void
@@ -325,8 +326,8 @@ export const EditorChrome = memo(function EditorChrome({
   onFontDialogClose,
   onApplyFontProperties,
   paragraphDialog,
-  customImagePicker,
-  disableBuiltinImageInsert,
+  customBackgroundImagePicker,
+  disableBuiltinBackgroundImageSources,
   onParagraphCustomImagePick,
   onParagraphDialogTabChange,
   onParagraphDialogClose,
@@ -358,6 +359,7 @@ export const EditorChrome = memo(function EditorChrome({
   onBookmarkDialogClose,
   onApplyBookmark,
   imageDialogOpen,
+  customImagePicker,
   customAudioPicker,
   customVideoPicker,
   onImageDialogClose,
@@ -462,8 +464,8 @@ export const EditorChrome = memo(function EditorChrome({
           value={paragraphDialog.value}
           backgroundImage={paragraphDialog.backgroundImage}
           disabled={contentLocked}
-          customImagePicker={customImagePicker}
-          disableBuiltinImageInsert={disableBuiltinImageInsert}
+          customImagePicker={customBackgroundImagePicker}
+          disableBuiltinBackgroundImageSources={disableBuiltinBackgroundImageSources}
           onCustomImagePick={onParagraphCustomImagePick}
           onTabChange={onParagraphDialogTabChange}
           onApply={onApplyParagraphProperties}
@@ -488,8 +490,8 @@ export const EditorChrome = memo(function EditorChrome({
           fonts={fontFaces}
           disabled={contentLocked}
           printTabVisible={enablePageProperties}
-          customImagePicker={customImagePicker}
-          disableBuiltinImageInsert={disableBuiltinImageInsert}
+          customImagePicker={customBackgroundImagePicker}
+          disableBuiltinBackgroundImageSources={disableBuiltinBackgroundImageSources}
           onCustomImagePick={onPageCustomImagePick}
           onTabChange={onPageDialogTabChange}
           onApply={onApplyPageProperties}

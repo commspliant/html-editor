@@ -58,7 +58,7 @@ export type PagePropertiesDialogProps = {
   /** Nested Paragraph tab to show when the dialog opens on the Paragraph top tab. */
   initialParagraphTab?: ParagraphDialogTab
   customImagePicker?: CustomImagePicker
-  disableBuiltinImageInsert?: boolean
+  disableBuiltinBackgroundImageSources?: boolean
   onCustomImagePick?: () => void
   onTabChange: (tab: PageDialogTab) => void
   onApply: (draft: PagePropertiesApply) => void
@@ -75,7 +75,7 @@ export function PagePropertiesDialog({
   printTabVisible = false,
   initialParagraphTab = 'spacing',
   customImagePicker,
-  disableBuiltinImageInsert,
+  disableBuiltinBackgroundImageSources,
   onCustomImagePick,
   onTabChange,
   onApply,
@@ -188,7 +188,7 @@ export function PagePropertiesDialog({
               tablistLabelKey="pageDialogTitle"
               backgroundImage={backgroundImageDraft}
               customImagePicker={customImagePicker}
-              disableBuiltinImageInsert={disableBuiltinImageInsert}
+              disableBuiltinBackgroundImageSources={disableBuiltinBackgroundImageSources}
               onCustomImagePick={onCustomImagePick}
               onBackgroundImageChange={setBackgroundImageDraft}
               onTabChange={(next) => {

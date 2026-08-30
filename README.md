@@ -181,7 +181,10 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `sanitizeHtml` | `boolean` | `true` | Strip `<script>` tags and `javascript:` URLs from document HTML on load and every write. See [HTML sanitization](#html-sanitization) |
 | `transformHtml` | `(html: string) => string` | — | Optional map over document HTML after built-in sanitization. See [Transform HTML](#transform-html) |
 | `customImagePicker` | `CustomImagePicker` | — | Optional third Insert image source. See [Custom image picker](#custom-image-picker) |
-| `disableBuiltinImageInsert` | `boolean` | `false` | Skip built-in File/URL image sources when `customImagePicker` is set. Insert → Image calls `onPick` immediately; page and paragraph background image commands do the same; background image fields in properties dialogs show only the custom picker |
+| `disableBuiltinImageInsert` | `boolean` | `false` | Skip the Insert image dialog and call `customImagePicker.onPick` from Insert → Image and the toolbar Image button |
+| `customBackgroundImagePicker` | `CustomBackgroundImagePicker` | — | Optional custom source for page and paragraph background images. See [Custom background image picker](#custom-background-image-picker) |
+| `disableBuiltinBackgroundImageInsert` | `boolean` | `false` | Skip Page/Paragraph properties dialogs and call `customBackgroundImagePicker.onPick` from Insert → Page background image and Insert → Paragraph background image |
+| `disableBuiltinBackgroundImageSources` | `boolean` | `false` | Hide built-in File and URL in background image source panels; the properties dialog still opens unless `disableBuiltinBackgroundImageInsert` is set |
 | `customAudioPicker` | `CustomAudioPicker` | — | Optional third Insert audio source. See [Custom audio picker](#custom-audio-picker) |
 | `disableBuiltinAudioInsert` | `boolean` | `false` | Skip the Insert audio dialog and call `customAudioPicker.onPick` from the Insert menu |
 | `customVideoPicker` | `CustomVideoPicker` | — | Optional third Insert YouTube video source. See [Custom video picker](#custom-video-picker) |
@@ -269,7 +272,7 @@ import { Editor } from 'commspliant-html-editor'
 
 Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host. View → Toolbar → Position docks the icon toolbar; the menu bar stays at the top. Top and bottom wrap onto multiple rows when they cannot fit on one line; Full screen stays last, pinned to the right of the first row. Left and right stay a single column.
 
-On the visual surface, a mouse right-click opens the editor context menu (cut, copy, font and paragraph properties, and table items — including merge and unmerge — when the caret is in a table). When `enableComments` is true and text is selected or an image is selected, **Comment** is also shown. A touch or pen long-press does not; phones keep the native selection handles and OS Copy / Paste callout so text can be selected.
+On the visual surface, a mouse right-click opens the editor context menu (cut, copy, font and paragraph properties, page and background image properties, and table items — including merge and unmerge — when the caret is in a table). When `enableComments` is true and text is selected or an image is selected, **Comment** is also shown. A touch or pen long-press does not; phones keep the native selection handles and OS Copy / Paste callout so text can be selected.
 
 ```tsx
 import { useState } from 'react'
@@ -582,7 +585,7 @@ import { Editor } from 'commspliant-html-editor'
 
 ### Multi-page editing
 
-Set `enableMultiPages` to edit several independent HTML pages in visual mode. Pages appear stacked with toolbar-colored gaps between them. **Insert → Page → Page before** and **Page after** are shown only when `enableMultiPages` is true and the editor is in visual mode; both are disabled until you click a page to select it. **Edit → Page → Delete page** is shown under the same conditions and is disabled when only one page remains; choosing it opens a confirmation dialog before the selected page is removed. The visual context menu also includes **Page properties** and **Delete page** (with the same delete guards). When `enablePageProperties` is true, Edit → Page → Page properties includes a Print tab for `@page` size, orientation, and margins; Reset removes the print rule from the active page.
+Set `enableMultiPages` to edit several independent HTML pages in visual mode. Pages appear stacked with toolbar-colored gaps between them. **Insert → Page → Page before** and **Page after** are shown only when `enableMultiPages` is true and the editor is in visual mode; both are disabled until you click a page to select it. **Edit → Page → Delete page** is shown under the same conditions and is disabled when only one page remains; choosing it opens a confirmation dialog before the selected page is removed. The visual context menu also includes **Page properties**, **Background image properties** (same as Page properties → Paragraph → Background Image), and **Delete page** (with the same delete guards). Right-clicking a page activates it before the menu opens so property commands apply to that page. When `enablePageProperties` is true, Edit → Page → Page properties includes a Print tab for `@page` size, orientation, and margins; Reset removes the print rule from the active page.
 
 When multi-page mode is off (default), behavior is unchanged.
 
@@ -762,7 +765,7 @@ const gallery: CustomImagePicker = {
 | `buttonCaption` | `string` | Caption of the button that starts the host picker |
 | `onPick` | `(insertImage) => void` | Called when that button is clicked. Call `insertImage` with a URL or raster data URL, plus optional `alt`, `title`, and inline `css` |
 
-Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInsert` to skip built-in sources: Insert → Image and the toolbar Image button call `onPick` immediately; Insert → Page background image and Insert → Paragraph background image do the same; Page properties and Paragraph properties background image tabs show only the custom picker.
+Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInsert` to skip the dialog: Insert → Image and the toolbar Image button call `onPick` immediately.
 
 ```tsx
 <Editor customImagePicker={gallery} disableBuiltinImageInsert />
@@ -772,7 +775,38 @@ Omit `customImagePicker` to keep File and URL only. Set `disableBuiltinImageInse
 
 When you choose **File** in Insert → Image, Page properties → Background Image, or Paragraph properties → Background Image, the editor embeds the image as a `data:` URL in the serialized HTML. Uploaded JPEG, PNG, and BMP files are converted to WebP first when the browser supports encoding; if conversion fails or is unsupported, the original format is embedded. GIF uploads are kept as GIF so animation is preserved. URL and custom-picker sources are unchanged.
 
-`onPick` from Page properties (Edit → Page → Page properties → Background Image) leaves the editor dialog open so the picked URL can fill the draft. If your picker is a modal overlay, give it a `z-index` above editor dialogs (`1200`).
+### Custom background image picker
+
+Pass `customBackgroundImagePicker` for Insert → Page background image, Insert → Paragraph background image, and the Background Image tabs in Page properties and Paragraph properties. Labels are your copy — the library does not translate them. When the host finishes picking, call the `insertImage` function received by `onPick`; only `src` is applied to the background draft.
+
+```tsx
+import { Editor, type CustomBackgroundImagePicker } from 'commspliant-html-editor'
+
+const gallery: CustomBackgroundImagePicker = {
+  text: 'Gallery',
+  description: 'Choose from your media library.',
+  buttonCaption: 'Open gallery',
+  onPick: (insertImage) => {
+    openHostGallery().then((picked) => {
+      insertImage({ src: picked.url })
+    })
+  },
+}
+
+<Editor customBackgroundImagePicker={gallery} />
+```
+
+Omit `customBackgroundImagePicker` to keep File and URL only. Set `disableBuiltinBackgroundImageSources` to hide built-in sources in the properties dialog and show only your custom button; Insert → Page background image and Insert → Paragraph background image still open the dialog. Set `disableBuiltinBackgroundImageInsert` to skip the dialog and call `onPick` immediately from those insert commands.
+
+```tsx
+<Editor customBackgroundImagePicker={gallery} disableBuiltinBackgroundImageSources />
+
+<Editor customBackgroundImagePicker={gallery} disableBuiltinBackgroundImageInsert />
+```
+
+When the new background props are omitted, `customImagePicker` and `disableBuiltinImageInsert` are used as fallbacks so existing integrations keep working.
+
+`onPick` from Page or Paragraph properties leaves the editor dialog open so the picked URL can fill the draft. If your picker is a modal overlay, give it a `z-index` above editor dialogs (`1200`).
 
 ### Custom audio picker
 
