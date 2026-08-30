@@ -10,6 +10,7 @@ import { normalizeCssColor } from './inlineColor'
 import {
   EMPTY_BOX_SIDES,
   boxSidesEqual,
+  emptyParagraphBoxApply,
   readParagraphBox,
   writeParagraphBox,
   type BoxSides,
@@ -69,6 +70,7 @@ export function writeCellProperties(
   draft: CellPropertiesApply,
 ): boolean {
   let changed = writeParagraphBox(cell, {
+    ...emptyParagraphBoxApply(),
     margin: { ...EMPTY_BOX_SIDES },
     marginMixed: true,
     padding: draft.padding,

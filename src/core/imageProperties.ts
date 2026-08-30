@@ -13,6 +13,7 @@ import {
   EMPTY_BOX_SIDES,
   boxSidesEqual,
   bordersEqual,
+  emptyParagraphBoxApply,
   readParagraphBox,
   shadowsEqual,
   writeParagraphBox,
@@ -194,6 +195,7 @@ export function writeImageProperties(img: HTMLImageElement, draft: ImageProperti
   if (writeSize(img, draft)) changed = true
   if (
     writeParagraphBox(img, {
+      ...emptyParagraphBoxApply(),
       margin: draft.align === 'center' ? { ...draft.margin, left: null, right: null } : draft.margin,
       marginMixed: false,
       padding: EMPTY_BOX_SIDES,

@@ -9,6 +9,7 @@ import {
 import {
   EMPTY_BORDER,
   bordersEqual,
+  emptyParagraphBoxApply,
   readParagraphBox,
   shadowsEqual,
   writeParagraphBox,
@@ -56,6 +57,7 @@ export function readTableProperties(table: HTMLTableElement): TablePropertiesApp
 
 export function writeTableProperties(table: HTMLTableElement, draft: TablePropertiesApply): boolean {
   let changed = writeParagraphBox(table, {
+    ...emptyParagraphBoxApply(),
     margin: { top: null, right: null, bottom: null, left: null },
     marginMixed: true,
     padding: { top: null, right: null, bottom: null, left: null },

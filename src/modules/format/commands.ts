@@ -165,6 +165,7 @@ export function createFormatQueries(
   | 'isNumberedList'
   | 'hasTextSelection'
   | 'isFormatBrushActive'
+  | 'customParagraphStylesEnabled'
   | 'getCustomParagraphStyles'
   | 'isCustomParagraphStylesLoading'
 > {

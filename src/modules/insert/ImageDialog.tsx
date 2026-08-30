@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
 import { useDialogFocusTrap } from '../../hooks/useDialogFocusTrap'
-import { validateImageSrc, type ImageAttrs } from '../../core/image'
+import { type ImageAttrs } from '../../core/image'
 import { CloseIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
 import type { CustomImagePicker } from '../../types'
