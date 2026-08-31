@@ -58,6 +58,20 @@ type UsePageStoreOptions = {
   defaultPages: readonly string[]
 }
 
+function protectDirtyPagesFromProp(
+  current: readonly string[],
+  propPages: readonly string[],
+  dirtyPages: ReadonlySet<number>,
+): readonly string[] {
+  if (dirtyPages.size === 0) return propPages
+  return propPages.map((page, index) => {
+    if (dirtyPages.has(index) && current[index] !== undefined && current[index] !== page) {
+      return current[index]!
+    }
+    return page
+  })
+}
+
 export function usePageStore({
   enabled,
   pagesProp,
@@ -86,7 +100,12 @@ export function usePageStore({
       return
     }
     propPagesRef.current = pagesProp
-    const merged = mergePagesWithStructuralSharing(controlledCacheRef.current, normalizedProp)
+    const incoming = protectDirtyPagesFromProp(
+      controlledCacheRef.current,
+      normalizedProp,
+      dirtyPagesRef.current,
+    )
+    const merged = mergePagesWithStructuralSharing(controlledCacheRef.current, incoming)
     controlledCacheRef.current = merged.pages
     if (!merged.changed) return
     for (const index of merged.changedIndices) {
@@ -101,7 +120,12 @@ export function usePageStore({
   const pages = useMemo(() => {
     if (!enabled) return []
     if (isControlled && normalizedProp !== undefined) {
-      const merged = mergePagesWithStructuralSharing(controlledCacheRef.current, normalizedProp)
+      const incoming = protectDirtyPagesFromProp(
+        controlledCacheRef.current,
+        normalizedProp,
+        dirtyPagesRef.current,
+      )
+      const merged = mergePagesWithStructuralSharing(controlledCacheRef.current, incoming)
       controlledCacheRef.current = merged.pages
       return merged.pages
     }

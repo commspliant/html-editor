@@ -234,11 +234,15 @@ export function mergeCustomActions(
 export function createCustomActionCommands(
   actions: CustomAction[] | undefined,
   createApi: () => CustomActionApi,
+  beforeAction?: () => void,
 ): Record<string, () => void | Promise<void>> {
   const commands: Record<string, () => void | Promise<void>> = {}
   for (const action of actions ?? []) {
     if (BUILTIN_TOOLBAR_ITEM_IDS.has(action.id) || isMenuSeparator(action.id)) continue
-    commands[customCommandName(action.id)] = () => action.onAction(createApi())
+    commands[customCommandName(action.id)] = () => {
+      beforeAction?.()
+      action.onAction(createApi())
+    }
   }
   return commands
 }

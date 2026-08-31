@@ -50,14 +50,31 @@ export type CustomActionSelection = {
   end: number
 }
 
+export type PinnedPageBodySelection = {
+  pageIndex: number
+  start: number
+  end: number
+  pageBodyAtCapture: string
+}
+
 export type CustomActionApi = {
   mode: EditorMode
   selection: CustomActionSelection
   getHtml: () => string
+  /**
+   * Selected HTML from the snapshot captured when the action ran.
+   * Safe to call later (e.g. after a host dialog closes) for async workflows.
+   */
+  getSelectedHtml: () => string
+  /**
+   * Page-body selection indices captured when the action ran (multi-page visual).
+   * Returns null for html mode, collapsed selection, or when the fragment could not be located.
+   */
+  getPinnedPageBodySelection: () => PinnedPageBodySelection | null
   /** Replace the entire document */
   setHtml: (html: string) => void
   /**
-   * Insert HTML at the caret, or replace the selection.
+   * Insert HTML at the caret, or replace the selection captured when the action ran.
    * Pass `formattedText` to insert visible text instead of parsing markup.
    */
   insertHtml: (html: string, formattedText?: string) => void
