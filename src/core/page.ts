@@ -1,4 +1,8 @@
 import { PAGE_SIZED_ATTR } from './pageCanvasLayout'
+import {
+  isTemplateSyntaxText,
+  isTemplateTagSpan,
+} from './templateTags'
 
 export const PAGE_SHELL_ATTR = 'data-page'
 export const PAGE_BG_LAYER_ATTR = 'data-page-bg'
@@ -116,11 +120,15 @@ export function absorbLooseTextInPageShell(shell: HTMLElement): boolean {
   let changed = false
   for (const child of [...shell.childNodes]) {
     if (child instanceof HTMLElement && isPageBackgroundLayer(child)) continue
+    if (child instanceof HTMLElement && isTemplateTagSpan(child)) continue
     if (child.nodeType !== Node.TEXT_NODE) continue
     const text = child.textContent ?? ''
     if (!text.trim()) {
       child.remove()
       changed = true
+      continue
+    }
+    if (isTemplateSyntaxText(text)) {
       continue
     }
     const block = lastContentBlock(shell) ?? ensureShellContentBlock(shell)
@@ -161,6 +169,9 @@ export function absorbLooseBlocksIntoPageShell(holder: HTMLElement): AbsorbLoose
         changed = true
         continue
       }
+      if (isTemplateSyntaxText(text)) {
+        continue
+      }
       let block = lastContentBlock(shell)
       if (!block) {
         block = document.createElement('p')
@@ -172,6 +183,11 @@ export function absorbLooseBlocksIntoPageShell(holder: HTMLElement): AbsorbLoose
     }
     if (child instanceof HTMLElement && isAbsorbableBlock(child)) {
       absorbedBlocks.push(child)
+    }
+    if (child instanceof HTMLElement && isTemplateTagSpan(child)) {
+      shell.appendChild(child)
+      changed = true
+      continue
     }
     shell.appendChild(child)
     changed = true

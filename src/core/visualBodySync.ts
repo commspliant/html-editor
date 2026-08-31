@@ -1,5 +1,6 @@
 import { documentsCanonicallyEqual, type HydrateEmbeddedImages } from './documentEquality'
 import { EMBEDDED_IMAGE_ID_ATTR } from './imageRegistry'
+import { bodyContainsTemplateSyntax, isTemplateTagSpan } from './templateTags'
 
 const DATA_IMAGE_SRC =
   /^data:image\/(?:jpeg|jpg|png|gif|webp|bmp|avif)(?:;charset=[^;,]+)?;base64,/i
@@ -32,6 +33,59 @@ export function resolveImageContentKey(
 
 function parseBodyFragment(html: string): HTMLElement {
   return new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html').body
+}
+
+const TR_INNER_HTML_PATTERN = /<tr(\s[^>]*)?>([\s\S]*?)<\/tr>/gi
+
+/** Source-order inner HTML for each `<tr>` (supports nested tables via non-greedy match). */
+function extractTrInnerHtmlFragments(html: string): string[] {
+  const results: string[] = []
+  let match: RegExpExecArray | null
+  TR_INNER_HTML_PATTERN.lastIndex = 0
+  while ((match = TR_INNER_HTML_PATTERN.exec(html)) !== null) {
+    results.push(match[2] ?? '')
+  }
+  return results
+}
+
+function hydrateTableRowFromSource(tr: HTMLTableRowElement, innerHtml: string): void {
+  const range = document.createRange()
+  range.selectNodeContents(tr)
+  const fragment = range.createContextualFragment(innerHtml)
+  tr.replaceChildren(...fragment.childNodes)
+}
+
+function rehydrateTableRowsFromSource(root: HTMLElement, sourceHtml: string): void {
+  const trInners = extractTrInnerHtmlFragments(sourceHtml)
+  if (trInners.length === 0) return
+
+  let trIndex = 0
+  root.querySelectorAll('tr').forEach((tr) => {
+    if (trIndex >= trInners.length) return
+    hydrateTableRowFromSource(tr, trInners[trIndex]!)
+    trIndex += 1
+  })
+}
+
+function removeHoistedTemplateSpansFromTables(root: HTMLElement): void {
+  const containers = [root, ...root.querySelectorAll('table, tbody, thead, tfoot')]
+  for (const container of containers) {
+    for (const child of [...container.childNodes]) {
+      if (child instanceof Element && isTemplateTagSpan(child)) {
+        child.remove()
+      }
+    }
+  }
+}
+
+function applyBodyHtmlWithDomParser(root: HTMLElement, nextBodyHtml: string): void {
+  const nextBody = parseBodyFragment(nextBodyHtml)
+  root.replaceChildren(...nextBody.childNodes)
+
+  if (/<tr[\s>]/i.test(nextBodyHtml)) {
+    removeHoistedTemplateSpansFromTables(root)
+    rehydrateTableRowsFromSource(root, nextBodyHtml)
+  }
 }
 
 function copyElementAttributes(target: Element, source: Element): void {
@@ -91,6 +145,14 @@ export function syncVisualBodyHtml(
   options: SyncVisualBodyHtmlOptions = {},
 ): SyncVisualBodyHtmlResult {
   const { resolveDataUrl, hydrateEmbeddedImages } = options
+
+  if (bodyContainsTemplateSyntax(nextBodyHtml)) {
+    if (root.innerHTML === nextBodyHtml) {
+      return { changed: false }
+    }
+    applyBodyHtmlWithDomParser(root, nextBodyHtml)
+    return { changed: true }
+  }
 
   if (documentsCanonicallyEqual(root.innerHTML, nextBodyHtml, hydrateEmbeddedImages)) {
     return { changed: false }

@@ -422,6 +422,26 @@ describe('absorbLooseBlocksIntoPageShell', () => {
     expect(shell.firstElementChild?.hasAttribute(PAGE_BG_LAYER_ATTR)).toBe(true)
     expect(shell.querySelector('p')?.textContent).toBe('typed')
   })
+
+  it('leaves template tag spans as shell siblings instead of merging them into paragraphs', () => {
+    const el = mountVisual(
+      '<div data-page><p>Hello</p><span data-template-tag="">{{for items}}</span></div>',
+    )
+    const shell = queryPageShell(el) as HTMLElement
+
+    expect(absorbLooseTextInPageShell(shell)).toBe(false)
+    expect(shell.querySelector('[data-template-tag]')?.textContent).toBe('{{for items}}')
+    expect(shell.querySelector('p')?.textContent).toBe('Hello')
+  })
+
+  it('does not auto-wrap loose template syntax text nodes into template tag spans', () => {
+    const el = mountVisual('<div data-page><p>Hello</p>{{for items}}</div>')
+    const shell = queryPageShell(el) as HTMLElement
+
+    expect(absorbLooseTextInPageShell(shell)).toBe(false)
+    expect(shell.querySelector('[data-template-tag]')).toBeNull()
+    expect(shell.textContent).toBe('Hello{{for items}}')
+  })
 })
 
 describe('reconcileCaretToAbsorbedBlocks', () => {

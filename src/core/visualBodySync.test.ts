@@ -1,4 +1,5 @@
 import { describe, expect, it, afterEach } from 'vitest'
+import { absorbLooseBlocksIntoPageShell } from './page'
 import {
   createImageRegistry,
   externalizeEmbeddedImagesInHtml,
@@ -39,6 +40,44 @@ describe('visualBodySync', () => {
 
     expect(result.changed).toBe(false)
     expect(root.querySelector('img')).toBe(img)
+  })
+
+  it('preserves template tag spans inside a table row through sync and absorb', () => {
+    const body =
+      '<table><tbody><tr><span data-template-tag="">{{for items}}</span><td>Item</td><span data-template-tag="">{{endfor}}</span></tr></tbody></table>'
+    const root = document.createElement('div')
+    root.innerHTML = body
+
+    syncVisualBodyHtml(root, body)
+
+    expect(root.textContent).toBe('{{for items}}Item{{endfor}}')
+    expect(root.querySelector('span[data-template-tag]')).not.toBeNull()
+    expect(root.innerHTML).toContain(
+      '<tr><span data-template-tag="">{{for items}}</span><td>Item</td><span data-template-tag="">{{endfor}}</span></tr>',
+    )
+
+    const { changed } = absorbLooseBlocksIntoPageShell(root)
+    expect(changed).toBe(false)
+    expect(root.innerHTML).toContain('data-template-tag')
+    expect(root.textContent).toBe('{{for items}}Item{{endfor}}')
+  })
+
+  it('does not reparse template tags inside a table row when serialized html already matches', () => {
+    const root = document.createElement('div')
+    root.innerHTML = '<table><tbody><tr><td>Item</td></tr></tbody></table>'
+    const row = root.querySelector('tr')!
+    const range = document.createRange()
+    range.selectNodeContents(row)
+    range.deleteContents()
+    range.insertNode(range.createContextualFragment('{{for items}}<td>Item</td>{{endfor}}'))
+    expect(root.textContent).toBe('{{for items}}Item{{endfor}}')
+
+    const serialized = root.innerHTML
+    const result = syncVisualBodyHtml(root, serialized)
+
+    expect(result.changed).toBe(false)
+    expect(root.textContent).toBe('{{for items}}Item{{endfor}}')
+    expect(root.innerHTML).toContain('<tr>{{for items}}<td>Item</td>{{endfor}}</tr>')
   })
 
   it('preserves image nodes when only image attributes differ', () => {

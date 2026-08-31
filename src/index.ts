@@ -18,6 +18,7 @@ export type {
   CustomActionApi,
   CustomActionSelection,
   CustomActionShowIn,
+  PinnedPageBodySelection,
   CustomAudioInsert,
   CustomAudioPicker,
   CustomBackgroundImagePicker,

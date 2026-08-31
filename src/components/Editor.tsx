@@ -126,8 +126,13 @@ import {
 } from '../core/inlineColor'
 import {
   describeSelection,
+  htmlFromSnapshotRange,
   insertAtSelection,
   rangeToRestore,
+  replaceRangeContents,
+  resolvePinnedBodySelection,
+  resolveActionSnapshot,
+  resolveVisualInsertRange,
   shouldKeepStoredVisualSelection,
   snapshotSelection,
   type SelectionSnapshot,
@@ -508,6 +513,7 @@ export function Editor({
   const htmlModePageHtmlRef = useRef(
     enableMultiPages ? (storedInitialPagesRef.current?.[0] ?? '') : '',
   )
+  const htmlModeDirtyRef = useRef(false)
   const [hasSelectedPage, setHasSelectedPage] = useState(false)
   const hasSelectedPageRef = useRef(hasSelectedPage)
   hasSelectedPageRef.current = hasSelectedPage
@@ -1944,7 +1950,10 @@ export function Editor({
   const handleHtmlPageTabSelect = useCallback(
     (index: number) => {
       if (!enableMultiPagesRef.current || index === activePageIndexRef.current) return
-      recordPageHtmlSource(activePageIndexRef.current, htmlModePageHtmlRef.current, true)
+      if (htmlModeDirtyRef.current) {
+        recordPageHtmlSource(activePageIndexRef.current, htmlModePageHtmlRef.current, true)
+      }
+      htmlModeDirtyRef.current = false
       activePageIndexRef.current = index
       setActivePageIndex(index)
       const pageHtml = pagesRef.current[index] ?? ''
@@ -1955,6 +1964,7 @@ export function Editor({
 
   const handleHtmlSurfaceChange = useCallback(
     (next: string) => {
+      htmlModeDirtyRef.current = true
       if (enableMultiPagesRef.current) {
         if (optimizeEmbeddedImagesRef.current) {
           const stored = externalizeStorageHtml(next)
@@ -1979,7 +1989,9 @@ export function Editor({
           const index = activePageIndexRef.current
           const pageHtml = pages[index] ?? pages[0] ?? ''
           htmlModePageHtmlRef.current = pageHtml
+          htmlModeDirtyRef.current = false
           htmlRef.current = joinPagesToHtml(pages)
+          flushPagesChangeNotify()
         } else if (visualRootRef.current) {
           const flushed = preservePageAtRuleInBody(
             visualRootRef.current.innerHTML,
@@ -2008,14 +2020,17 @@ export function Editor({
         }
       }
       if (modeRef.current === 'html' && next === 'visual' && enableMultiPagesRef.current) {
-        recordPageHtmlSource(activePageIndexRef.current, htmlModePageHtmlRef.current, true)
+        if (htmlModeDirtyRef.current) {
+          recordPageHtmlSource(activePageIndexRef.current, htmlModePageHtmlRef.current, true)
+        }
+        htmlModeDirtyRef.current = false
       }
       setMode(next)
       if (next !== 'visual') {
         setHasSelectedPage(false)
       }
     },
-    [externalizeStorageHtml, history, recordHtml, recordPageHtmlSource, setMode, flushMultiPageHtml],
+    [externalizeStorageHtml, flushPagesChangeNotify, history, recordHtml, recordPageHtmlSource, setMode, flushMultiPageHtml],
   )
 
   useEffect(() => {
@@ -2784,6 +2799,7 @@ export function Editor({
 
   useEffect(() => {
     if (!optimizeEmbeddedImages || !enableMultiPages || pagesProp === undefined) return
+    if (documentDirtyRef.current) return
     const storedPages = normalizePages(pagesProp).map((page) => externalizeStorageHtml(page))
     if (pagesArraysEqual(storedPages, pagesRef.current)) return
     const result = pageStore.replacePages(storedPages)
@@ -3537,28 +3553,166 @@ export function Editor({
     [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistPageZoom, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, runInsertPageBefore, runInsertPageAfter, runDeleteSelectedPage, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState, enablePageProperties],
   )
 
+  const applyPinnedCustomActionInsert = useCallback(
+    (
+      snapshot: SelectionSnapshot,
+      content: string,
+      asHtml: boolean,
+      options: {
+        activePageIndexAtCapture: number
+        pageHtmlAtCapture: string | null
+        selectedHtmlAtCapture: string
+      },
+    ) => {
+      const { activePageIndexAtCapture, pageHtmlAtCapture, selectedHtmlAtCapture } = options
+
+      if (snapshot.mode === 'visual') {
+        let root = visualRootRef.current
+        if (enableMultiPagesRef.current) {
+          const multi = multiPageVisualRef.current
+          multi?.ensurePageMounted(activePageIndexAtCapture)
+          const container = multi?.getContainer()
+          root = container
+            ? queryPageSurface(container, activePageIndexAtCapture)
+            : root
+        }
+        if (root) {
+          visualRootRef.current = root
+          const range = resolveVisualInsertRange(root, snapshot, selectedHtmlAtCapture)
+          if (range && !range.collapsed) {
+            replaceRangeContents(range, content, asHtml)
+            const previousPageHtml = enableMultiPagesRef.current
+              ? (pageHtmlAtCapture ?? pagesRef.current[activePageIndexAtCapture] ?? '')
+              : htmlRef.current
+            recordActivePageHtml(
+              preservePageAtRuleInBody(
+                extractFontStylesheets(root.innerHTML).body,
+                extractFontStylesheets(previousPageHtml).body,
+              ),
+              false,
+            )
+            return
+          }
+          root.focus({ preventScroll: true })
+          const restored = rangeToRestore(root, snapshot)
+          const effectiveSnapshot =
+            restored !== null ? { ...snapshot, visualRange: restored.cloneRange() } : snapshot
+          insertAtSelection({
+            snapshot: effectiveSnapshot,
+            visualEl: root,
+            htmlEl: htmlAreaRef.current,
+            getHtml: () => {
+              if (modeRef.current === 'visual' && root) {
+                return root.innerHTML
+              }
+              return htmlRef.current
+            },
+            setHtml: (next) => {
+              if (modeRef.current === 'visual') {
+                const previousPageHtml = enableMultiPagesRef.current
+                  ? (pagesRef.current[activePageIndexAtCapture] ?? '')
+                  : htmlRef.current
+                recordActivePageHtml(
+                  preservePageAtRuleInBody(
+                    extractFontStylesheets(next).body,
+                    extractFontStylesheets(previousPageHtml).body,
+                  ),
+                  false,
+                )
+                return
+              }
+              recordHtml(next, false)
+            },
+            content,
+            asHtml,
+          })
+          return
+        }
+      }
+
+      applyInsert(snapshot, content, asHtml)
+    },
+    [applyInsert, recordActivePageHtml, recordHtml],
+  )
+
+  const prepareCustomActionSnapshot = useCallback(() => {
+    if (selectionRefreshRafRef.current !== null) {
+      window.cancelAnimationFrame(selectionRefreshRafRef.current)
+      selectionRefreshRafRef.current = null
+      captureSelection()
+    }
+    captureChromeSelection()
+  }, [captureSelection, captureChromeSelection])
+
   const createActionApi = useCallback((): CustomActionApi => {
-    const snapshot =
-      selectionRef.current ??
-      snapshotSelection({
-        mode: modeRef.current,
-        visualEl: visualRootRef.current,
-        htmlEl: htmlAreaRef.current,
-      })
+    const snapshot = resolveActionSnapshot({
+      stored: selectionRef.current,
+      mode: modeRef.current,
+      visualEl: visualRootRef.current,
+      htmlEl: htmlAreaRef.current,
+    })
+    const capturedSnapshot: SelectionSnapshot = {
+      ...snapshot,
+      visualRange: snapshot.visualRange?.cloneRange() ?? null,
+    }
+    selectionRef.current = capturedSnapshot
+    const activePageIndexAtCapture = enableMultiPagesRef.current ? activePageIndexRef.current : 0
+    const pageHtmlAtCapture =
+      snapshot.mode === 'visual' && enableMultiPagesRef.current ? getActivePageHtml() : null
+    const visualInnerHtmlAtCapture = visualRootRef.current?.innerHTML ?? ''
+    const pageBodyAtCapture = pageHtmlAtCapture
+      ? stripPageAtRuleFromHtml(extractFontStylesheets(pageHtmlAtCapture).body)
+      : visualInnerHtmlAtCapture
+    const selectedHtmlAtCapture = (() => {
+      if (snapshot.mode === 'html') {
+        const html = commandContext.getHtml()
+        const from = Math.min(snapshot.start, snapshot.end)
+        const to = Math.max(snapshot.start, snapshot.end)
+        return html.slice(from, to)
+      }
+      const root = visualRootRef.current
+      if (!root) {
+        return snapshot.text
+      }
+      return htmlFromSnapshotRange(root, capturedSnapshot) || snapshot.text
+    })()
+    const pinnedPageBodySelection =
+      snapshot.mode === 'visual' &&
+      enableMultiPagesRef.current &&
+      !snapshot.collapsed &&
+      selectedHtmlAtCapture
+        ? resolvePinnedBodySelection(pageBodyAtCapture, visualInnerHtmlAtCapture, selectedHtmlAtCapture)
+        : null
+    const pinnedPageBodySelectionForApi =
+      pinnedPageBodySelection && enableMultiPagesRef.current
+        ? {
+            pageIndex: activePageIndexAtCapture,
+            start: pinnedPageBodySelection.start,
+            end: pinnedPageBodySelection.end,
+            pageBodyAtCapture,
+          }
+        : null
+    const pinnedInsertOptions = {
+      activePageIndexAtCapture,
+      pageHtmlAtCapture,
+      selectedHtmlAtCapture,
+    }
     return {
-      mode: snapshot.mode,
-      selection: describeSelection(snapshot),
+      mode: capturedSnapshot.mode,
+      selection: describeSelection(capturedSnapshot),
       getHtml: commandContext.getHtml,
+      getSelectedHtml: () => selectedHtmlAtCapture,
+      getPinnedPageBodySelection: () => pinnedPageBodySelectionForApi,
       setHtml: (next) => {
         recordHtml(next, false)
       },
-      insertText: (text) => applyInsert(snapshot, text, false),
+      insertText: (text) => applyPinnedCustomActionInsert(capturedSnapshot, text, false, pinnedInsertOptions),
       insertHtml: (markup, formattedText) => {
         const asHtml = formattedText === undefined
-        applyInsert(snapshot, asHtml ? markup : formattedText, asHtml)
+        applyPinnedCustomActionInsert(capturedSnapshot, asHtml ? markup : formattedText, asHtml, pinnedInsertOptions)
       },
     }
-  }, [applyInsert, commandContext.getHtml, recordHtml])
+  }, [applyPinnedCustomActionInsert, commandContext.getHtml, getActivePageHtml, recordHtml])
 
   const { catalog: baseCatalog, layout: baseLayout } = useMemo(
     () => mergeCustomActions(customActions, defaultToolbarCatalog, defaultToolbarLayout),
@@ -3605,9 +3759,9 @@ export function Editor({
   const commands = useMemo(
     () => ({
       ...createEditorCommands(commandContext),
-      ...createCustomActionCommands(customActions, createActionApi),
+      ...createCustomActionCommands(customActions, createActionApi, prepareCustomActionSnapshot),
     }),
-    [commandContext, customActions, createActionApi],
+    [commandContext, customActions, createActionApi, prepareCustomActionSnapshot],
   )
   const queries = useMemo(
     () => createEditorQueries(commandContext),
@@ -3925,6 +4079,7 @@ export function Editor({
     commentPanelRef,
     activePageIndexRef,
     htmlModePageHtmlRef,
+    setHtmlModePageHtml: () => {},
     activePageHtmlRef,
     pageCanvasSizedRef,
     setActivePageIndex,

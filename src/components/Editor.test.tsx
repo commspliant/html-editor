@@ -2956,6 +2956,251 @@ describe('Editor custom actions', () => {
     expect(textarea).toHaveValue('Hello <em>there</em>')
   })
 
+  it('inserts html from a deferred custom action using the captured visual selection', async () => {
+    const user = userEvent.setup()
+    let capturedApi: CustomActionApi | null = null
+    render(
+      <Editor
+        defaultValue="<p>Hello world</p>"
+        customActions={[
+          demoAction({
+            onAction: (api) => {
+              capturedApi = api
+            },
+          }),
+        ]}
+      />,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    await selectVisualText(visual, 6, 11)
+    await user.click(screen.getByRole('button', { name: 'AI' }))
+
+    expect(capturedApi).not.toBeNull()
+    expect(capturedApi!.selection).toMatchObject({ text: 'world', collapsed: false })
+    expect(capturedApi!.getSelectedHtml()).toBe('world')
+
+    const text = visual.querySelector('p')?.firstChild
+    if (text && text.nodeType === Node.TEXT_NODE) {
+      const range = document.createRange()
+      range.setStart(text, 11)
+      range.setEnd(text, 11)
+      window.getSelection()?.removeAllRanges()
+      window.getSelection()?.addRange(range)
+    }
+    await flushSelectionRefresh()
+
+    capturedApi!.insertHtml('<em>there</em>')
+
+    expect(visual.textContent).toBe('Hello there')
+    expect(visual.querySelector('em')?.textContent).toBe('there')
+  })
+
+  it('inserts html from a deferred multi-page custom action using pinned page html', async () => {
+    const user = userEvent.setup()
+    let capturedApi: CustomActionApi | null = null
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>Hello world</p>', '<p>Other page</p>']}
+        customActions={[
+          demoAction({
+            onAction: (api) => {
+              capturedApi = api
+            },
+          }),
+        ]}
+      />,
+    )
+
+    const visual = await focusMultiPageSurface(user, 0, '<p>Hello world</p>')
+    await selectVisualText(visual, 6, 11)
+    await user.click(screen.getByRole('button', { name: 'AI' }))
+
+    expect(capturedApi).not.toBeNull()
+    expect(capturedApi!.getSelectedHtml()).toBe('world')
+
+    const text = visual.querySelector('p')?.firstChild
+    if (text && text.nodeType === Node.TEXT_NODE) {
+      const range = document.createRange()
+      range.setStart(text, 11)
+      range.setEnd(text, 11)
+      window.getSelection()?.removeAllRanges()
+      window.getSelection()?.addRange(range)
+    }
+    visual.blur()
+    await flushSelectionRefresh()
+
+    capturedApi!.insertHtml('{{for items}}world{{endfor}}')
+
+    expect(visual.textContent).toBe('Hello {{for items}}world{{endfor}}')
+    expect(visual.textContent).not.toContain('worldworld')
+  })
+
+  it('keeps span-wrapped repeat tags around a deferred text selection', async () => {
+    const user = userEvent.setup()
+    let capturedApi: CustomActionApi | null = null
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>Hello world</p>', '<p>Other page</p>']}
+        customActions={[
+          demoAction({
+            onAction: (api) => {
+              capturedApi = api
+            },
+          }),
+        ]}
+      />,
+    )
+
+    const visual = await focusMultiPageSurface(user, 0, '<p>Hello world</p>')
+    await selectVisualText(visual, 6, 11)
+    await user.click(screen.getByRole('button', { name: 'AI' }))
+
+    visual.blur()
+    await flushSelectionRefresh()
+
+    capturedApi!.insertHtml('<span data-template-tag="">{{for items}}world{{endfor}}</span>')
+
+    const span = visual.querySelector('[data-template-tag]')
+    expect(span).not.toBeNull()
+    expect(span?.textContent).toBe('{{for items}}world{{endfor}}')
+    expect(visual.textContent).toBe('Hello {{for items}}world{{endfor}}')
+  })
+
+  it('inserts html from a deferred multi-page custom action for a table row selection', async () => {
+    const user = userEvent.setup()
+    let capturedApi: CustomActionApi | null = null
+    const tablePage =
+      '<table><tbody><tr><td>Item</td></tr></tbody></table>'
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={[tablePage, '<p>Other page</p>']}
+        customActions={[
+          demoAction({
+            onAction: (api) => {
+              capturedApi = api
+            },
+          }),
+        ]}
+      />,
+    )
+
+    const visual = await focusMultiPageSurface(user, 0, tablePage)
+    const row = visual.querySelector('tr')
+    expect(row).not.toBeNull()
+    const range = document.createRange()
+    range.selectNodeContents(row!)
+    window.getSelection()?.removeAllRanges()
+    window.getSelection()?.addRange(range)
+    document.dispatchEvent(new Event('selectionchange'))
+    await flushSelectionRefresh()
+
+    await user.click(screen.getByRole('button', { name: 'AI' }))
+
+    expect(capturedApi).not.toBeNull()
+    const selectedHtml = capturedApi!.getSelectedHtml()
+    expect(selectedHtml).toContain('Item')
+    expect(capturedApi!.getPinnedPageBodySelection()).not.toBeNull()
+
+    visual.blur()
+    await flushSelectionRefresh()
+
+    const wrapped = `<span data-template-tag="">{{for items}}</span>${selectedHtml}<span data-template-tag="">{{endfor}}</span>`
+    capturedApi!.insertHtml(wrapped)
+
+    expect(visual.innerHTML).toContain('data-template-tag')
+    expect(visual.innerHTML).toContain('{{for items}}')
+    expect(visual.innerHTML).toContain('{{endfor}}')
+    expect(visual.textContent).toBe('{{for items}}Item{{endfor}}')
+    expect(visual.querySelectorAll('tr')).toHaveLength(1)
+  })
+
+  it('preserves data-template-tag repeat markup across visual and html mode toggles', async () => {
+    const user = userEvent.setup()
+    let capturedApi: CustomActionApi | null = null
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>Hello world</p>']}
+        customActions={[
+          demoAction({
+            onAction: (api) => {
+              capturedApi = api
+            },
+          }),
+        ]}
+      />,
+    )
+
+    const visual = await focusMultiPageSurface(user, 0, '<p>Hello world</p>')
+    await selectVisualText(visual, 6, 11)
+    await user.click(screen.getByRole('button', { name: 'AI' }))
+    visual.blur()
+    await flushSelectionRefresh()
+
+    capturedApi!.insertHtml('<span data-template-tag="">{{for items}}world{{endfor}}</span>')
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+    const textarea = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(textarea.value).toContain('data-template-tag')
+    expect(textarea.value).toContain('{{for items}}world{{endfor}}')
+    const htmlAfterFirstSwitch = textarea.value
+
+    await user.click(screen.getByRole('button', { name: 'Switch to visual mode' }))
+    const visualAgain = document.querySelector('[data-page-index="0"]') as HTMLElement
+    expect(visualAgain.textContent).toBe('Hello {{for items}}world{{endfor}}')
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+    expect(textarea.value).toBe(htmlAfterFirstSwitch)
+  })
+
+  it('preserves data-template-tag repeat markup across mode toggles on a PDF page shell', async () => {
+    const user = userEvent.setup()
+    let capturedApi: CustomActionApi | null = null
+    const pdfPage =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
+      '<div data-page><p>Hello world</p></div>'
+
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={[pdfPage]}
+        defaultPageProperties={{ atRule: { sizePreset: 'A4' } }}
+        customActions={[
+          demoAction({
+            onAction: (api) => {
+              capturedApi = api
+            },
+          }),
+        ]}
+      />,
+    )
+
+    const visual = await focusMultiPageSurface(user, 0, pdfPage)
+    await selectVisualText(visual, 6, 11)
+    await user.click(screen.getByRole('button', { name: 'AI' }))
+    visual.blur()
+    await flushSelectionRefresh()
+
+    capturedApi!.insertHtml('<span data-template-tag="">{{for items}}world{{endfor}}</span>')
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+    const textarea = screen.getByRole('textbox', { name: 'HTML editor' }) as HTMLTextAreaElement
+    expect(textarea.value).toContain('data-template-tag')
+    expect(textarea.value).toContain('{{for items}}world{{endfor}}')
+    const htmlAfterFirstSwitch = textarea.value
+
+    await user.click(screen.getByRole('button', { name: 'Switch to visual mode' }))
+    const visualAgain = document.querySelector('[data-page-index="0"]') as HTMLElement
+    expect(visualAgain.textContent).toBe('Hello {{for items}}world{{endfor}}')
+
+    await user.click(screen.getByRole('button', { name: 'Switch to HTML mode' }))
+    expect(textarea.value).toBe(htmlAfterFirstSwitch)
+  })
+
   it('inserts optional formatted text instead of HTML', async () => {
     const user = userEvent.setup()
     render(

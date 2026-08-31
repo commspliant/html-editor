@@ -418,6 +418,13 @@
   margin: 0 0 0.75em;
 }
 
+.visual [data-template-tag] {
+  background: color-mix(in srgb, var(--wysiwyg-accent, #d4af37) 18%, transparent);
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 .visual [data-page] :not([data-page-bg]) {
   position: relative;
   z-index: 1;

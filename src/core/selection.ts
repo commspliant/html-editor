@@ -102,6 +102,177 @@ export function rangeToRestore(root: HTMLElement, snapshot: SelectionSnapshot): 
   return rangeFromOffsets(root, snapshot.start, snapshot.end)
 }
 
+/** Picks the best snapshot when a custom action runs (toolbar/menu may collapse live selection). */
+export function resolveActionSnapshot(args: {
+  stored: SelectionSnapshot | null | undefined
+  mode: EditorMode
+  visualEl: HTMLElement | null
+  htmlEl: HTMLTextAreaElement | null
+}): SelectionSnapshot {
+  const live = snapshotSelection({
+    mode: args.mode,
+    visualEl: args.visualEl,
+    htmlEl: args.htmlEl,
+  })
+  const stored = args.stored
+  if (shouldKeepStoredVisualSelection(stored, live)) {
+    return stored
+  }
+  if (live.visualRange) {
+    return live
+  }
+  return stored ?? live
+}
+
+export type PinnedBodySelectionMatch = {
+  start: number
+  end: number
+  corpus: 'pageBody' | 'visualInner'
+}
+
+/** Resolve selection indices in page body or visual inner HTML at capture time. */
+export function resolvePinnedBodySelection(
+  pageBody: string,
+  visualInnerHtml: string,
+  selectedHtml: string,
+): PinnedBodySelectionMatch | null {
+  if (!selectedHtml) {
+    return null
+  }
+
+  const pageIndex = pageBody.indexOf(selectedHtml)
+  if (pageIndex !== -1) {
+    return {
+      start: pageIndex,
+      end: pageIndex + selectedHtml.length,
+      corpus: 'pageBody',
+    }
+  }
+
+  const visualIndex = visualInnerHtml.indexOf(selectedHtml)
+  if (visualIndex !== -1) {
+    return {
+      start: visualIndex,
+      end: visualIndex + selectedHtml.length,
+      corpus: 'visualInner',
+    }
+  }
+
+  return null
+}
+
+/** Locate a visual range that matches serialized selection HTML from capture time. */
+export function findRangeForSelectedHtml(root: HTMLElement, selectedHtml: string): Range | null {
+  if (!selectedHtml) {
+    return null
+  }
+
+  const elements = [root, ...root.querySelectorAll('*')]
+  for (const el of elements) {
+    if (el !== root && el.outerHTML === selectedHtml) {
+      const range = document.createRange()
+      range.selectNode(el)
+      return range
+    }
+    if (el.innerHTML === selectedHtml) {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      return range
+    }
+  }
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let current: Node | null
+  while ((current = walker.nextNode())) {
+    const text = current.textContent ?? ''
+    const index = text.indexOf(selectedHtml)
+    if (index !== -1) {
+      const range = document.createRange()
+      range.setStart(current, index)
+      range.setEnd(current, index + selectedHtml.length)
+      return range
+    }
+  }
+
+  return null
+}
+
+/** Best range to replace when applying a deferred visual custom action. */
+export function resolveVisualInsertRange(
+  root: HTMLElement,
+  snapshot: SelectionSnapshot,
+  selectedHtml: string,
+): Range | null {
+  if (snapshot.visualRange && isRangeLive(snapshot.visualRange, root) && !snapshot.visualRange.collapsed) {
+    return snapshot.visualRange
+  }
+  const fromHtml = findRangeForSelectedHtml(root, selectedHtml)
+  if (fromHtml && !fromHtml.collapsed) {
+    return fromHtml
+  }
+  if (snapshot.collapsed) {
+    return null
+  }
+  const restored = rangeToRestore(root, snapshot)
+  if (restored && !restored.collapsed) {
+    return restored
+  }
+  return null
+}
+
+export function replaceRangeContents(range: Range, content: string, asHtml: boolean): void {
+  range.deleteContents()
+  if (!content) {
+    return
+  }
+
+  if (asHtml) {
+    const fragment = range.createContextualFragment(content)
+    const last = fragment.lastChild
+    range.insertNode(fragment)
+    if (last) {
+      range.setStartAfter(last)
+      range.collapse(true)
+    }
+    return
+  }
+
+  const node = document.createTextNode(content)
+  range.insertNode(node)
+  range.setStartAfter(node)
+  range.collapse(true)
+}
+
+/** Replace the first occurrence of `fragment` in `pageHtml`, or return null when not found. */
+export function replaceFirstHtmlFragment(
+  pageHtml: string,
+  fragment: string,
+  replacement: string,
+): string | null {
+  if (!fragment) {
+    return null
+  }
+  const index = pageHtml.indexOf(fragment)
+  if (index === -1) {
+    return null
+  }
+  return `${pageHtml.slice(0, index)}${replacement}${pageHtml.slice(index + fragment.length)}`
+}
+
+export function htmlFromSnapshotRange(root: HTMLElement, snapshot: SelectionSnapshot): string {
+  if (snapshot.mode !== 'visual' || snapshot.collapsed) {
+    return ''
+  }
+  const range = rangeToRestore(root, snapshot)
+  if (!range || range.collapsed) {
+    return ''
+  }
+  const fragment = range.cloneContents()
+  const container = document.createElement('div')
+  container.appendChild(fragment)
+  return container.innerHTML
+}
+
 export function snapshotSelection(args: {
   mode: EditorMode
   visualEl: HTMLElement | null
@@ -197,11 +368,12 @@ export function insertAtSelection(args: {
     return
   }
 
-  const liveRange =
-    args.snapshot.visualRange && isRangeLive(args.snapshot.visualRange, visualEl)
-      ? args.snapshot.visualRange
-      : null
-  const range = liveRange ?? rangeFromOffsets(visualEl, args.snapshot.start, args.snapshot.end)
+  const range = rangeToRestore(visualEl, args.snapshot)
+  if (!range) {
+    const fallback = args.asHtml ? args.content : escapeHtml(args.content)
+    args.setHtml(args.getHtml() + fallback)
+    return
+  }
 
   range.deleteContents()
   if (args.content) {

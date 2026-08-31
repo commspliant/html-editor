@@ -76,6 +76,7 @@ export type EditorWorkspaceHandlers = {
   commentPanelRef: MutableRefObject<HTMLDivElement | null>
   activePageIndexRef: MutableRefObject<number>
   htmlModePageHtmlRef: MutableRefObject<string>
+  setHtmlModePageHtml: (html: string) => void
   activePageHtmlRef: MutableRefObject<string>
   pageCanvasSizedRef: MutableRefObject<boolean>
   setActivePageIndex: (index: number) => void
@@ -218,12 +219,11 @@ function EditorWorkspaceHostInner({
   const editorHtml = optimizeEmbeddedImages ? storageHtml : html
 
   const [htmlModePageHtml, setHtmlModePageHtml] = useState(() =>
-    enableMultiPages ? (defaultPages[0] ?? '') : '',
+    enableMultiPages ? (propsRef.current.htmlModePageHtmlRef.current || defaultPages[0] || '') : '',
   )
-  const htmlModePageHtmlRef = useRef(htmlModePageHtml)
-  htmlModePageHtmlRef.current = htmlModePageHtml
 
   const handlers = propsRef.current
+  handlers.setHtmlModePageHtml = setHtmlModePageHtml
 
   if (!optimizeEmbeddedImages) {
     htmlRef.current = html
@@ -338,11 +338,10 @@ function EditorWorkspaceHostInner({
 
   useEffect(() => {
     if (!enableMultiPages || mode !== 'html') return
-    const pageHtml = pageStore.pages[activePageIndex] ?? ''
-    if (pageHtml === htmlModePageHtmlRef.current) return
-    htmlModePageHtmlRef.current = pageHtml
+    const pageHtml = pageStore.pages[activePageIndex] ?? pageStore.pages[0] ?? ''
+    handlers.htmlModePageHtmlRef.current = pageHtml
     setHtmlModePageHtml(pageHtml)
-  }, [enableMultiPages, mode, pageStore.pages, pageStore.revision, activePageIndex])
+  }, [enableMultiPages, mode, pageStore.pages, pageStore.revision, activePageIndex, handlers])
 
   useEffect(() => {
     if (!enableComments || mode !== 'visual') return
@@ -351,8 +350,6 @@ function EditorWorkspaceHostInner({
     syncCommentAnchorsToDom(root, commentThreads)
     setCommentHighlightsVisible(root, commentsVisible)
   }, [enableComments, mode, commentThreads, commentsVisible, editorHtml, propsRef])
-
-  handlers.htmlModePageHtmlRef.current = htmlModePageHtmlRef.current
 
   const showRulerChrome = mode === 'visual' && rulerVisible && pageCanvasSized
 
@@ -469,7 +466,11 @@ function EditorWorkspaceHostInner({
         <HtmlSurface
           ref={handlers.htmlAreaRef}
           html={enableMultiPages ? htmlModePageHtml : editorHtml}
-          onChange={handlers.handleHtmlSurfaceChange}
+          onChange={(next) => {
+            handlers.htmlModePageHtmlRef.current = next
+            setHtmlModePageHtml(next)
+            handlers.handleHtmlSurfaceChange(next)
+          }}
           placeholder={placeholder}
           disabled={contentLocked}
         />
