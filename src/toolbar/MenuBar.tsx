@@ -8,7 +8,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
-import { ChromePortal } from '../chrome/ChromeTheme'
+import { ChromePortal, useChromeTheme } from '../chrome/ChromeTheme'
 import { useT } from '../i18n/LocaleProvider'
 import { CloseIcon, CommspliantShieldIcon, MenuIcon } from '../icons'
 import type { EditorCommands, EditorQueries } from '../core/commandTypes'
@@ -31,16 +31,13 @@ import styles from './Toolbar.module.css'
 
 type MenuVariant = 'dropdown' | 'overlay'
 
-const MENU_CUSTOM_VARS = [
-  '--wysiwyg-menu-color',
-  '--wysiwyg-menu-background',
-  '--wysiwyg-menu-font-size',
-  '--wysiwyg-menu-font-family',
-] as const
+const MENU_THEME_VARS = ['--wysiwyg-menu-color', '--wysiwyg-menu-background'] as const
+const MENU_FONT_VARS = ['--wysiwyg-menu-font-size', '--wysiwyg-menu-font-family'] as const
 
-function readMenuCustomVars(from: HTMLElement): CSSProperties {
+function readMenuCustomVars(from: HTMLElement, dark: boolean): CSSProperties {
+  const names = dark ? MENU_FONT_VARS : [...MENU_THEME_VARS, ...MENU_FONT_VARS]
   const style: Record<string, string> = {}
-  for (const name of MENU_CUSTOM_VARS) {
+  for (const name of names) {
     const computed = getComputedStyle(from).getPropertyValue(name).trim()
     if (computed) {
       style[name] = computed
@@ -83,6 +80,7 @@ export function MenuBar({
   onOpenMenuIdChange,
 }: MenuBarProps) {
   const t = useT()
+  const dark = useChromeTheme()
   const [overlayOpen, setOverlayOpen] = useState(false)
   const [overlayMenuStyle, setOverlayMenuStyle] = useState<CSSProperties>({})
   const menuBarRef = useRef<HTMLDivElement>(null)
@@ -97,8 +95,8 @@ export function MenuBar({
 
   useLayoutEffect(() => {
     if (!overlayOpen || !menuBarRef.current) return
-    setOverlayMenuStyle(readMenuCustomVars(menuBarRef.current))
-  }, [overlayOpen])
+    setOverlayMenuStyle(readMenuCustomVars(menuBarRef.current, dark))
+  }, [dark, overlayOpen])
 
   useEffect(() => {
     if (!overlayOpen) return

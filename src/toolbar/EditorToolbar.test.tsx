@@ -21,6 +21,7 @@ function renderToolbar(
     commands?: Partial<EditorCommands>
     queries?: Partial<EditorQueries>
     wrapperStyle?: CSSProperties
+    dark?: boolean
   } = {},
   locale: Locale = 'en',
 ) {
@@ -188,7 +189,7 @@ function renderToolbar(
     ...overrides.queries,
   }
   const toolbar = (
-    <ChromeThemeProvider dark={false}>
+    <ChromeThemeProvider dark={overrides.dark ?? false}>
       <LocaleProvider locale={locale}>
         <EditorToolbar
           catalog={overrides.catalog ?? defaultToolbarCatalog}
@@ -1645,6 +1646,29 @@ describe('EditorToolbar', () => {
       const portal = overlay.parentElement
       expect(portal?.style.getPropertyValue('--wysiwyg-menu-color')).toBe('#1e3a5f')
       expect(portal?.style.getPropertyValue('--wysiwyg-menu-background')).toBe('#fef3c7')
+      expect(portal?.style.getPropertyValue('--wysiwyg-menu-font-size')).toBe('1.125rem')
+      expect(portal?.style.getPropertyValue('--wysiwyg-menu-font-family')).toBe('Georgia, serif')
+    })
+
+    it('copies only font menu custom properties in dark mode', async () => {
+      const user = userEvent.setup()
+      renderToolbar({
+        compact: true,
+        dark: true,
+        wrapperStyle: {
+          '--wysiwyg-menu-color': '#1e3a5f',
+          '--wysiwyg-menu-background': '#fef3c7',
+          '--wysiwyg-menu-font-size': '1.125rem',
+          '--wysiwyg-menu-font-family': 'Georgia, serif',
+        } as CSSProperties,
+      })
+
+      await user.click(screen.getByRole('button', { name: 'Open menu' }))
+
+      const overlay = screen.getByRole('dialog', { name: 'Editor menu' })
+      const portal = overlay.parentElement
+      expect(portal?.style.getPropertyValue('--wysiwyg-menu-color')).toBe('')
+      expect(portal?.style.getPropertyValue('--wysiwyg-menu-background')).toBe('')
       expect(portal?.style.getPropertyValue('--wysiwyg-menu-font-size')).toBe('1.125rem')
       expect(portal?.style.getPropertyValue('--wysiwyg-menu-font-family')).toBe('Georgia, serif')
     })

@@ -326,6 +326,39 @@ describe('Editor', () => {
     expect(root.style.getPropertyValue('--wysiwyg-menu-font-family')).toBe('Georgia, serif')
   })
 
+  it('omits host toolbar and menu chrome overrides in dark mode', () => {
+    const { container } = render(
+      <Editor
+        darkMode
+        toolbarBackground="#ddeeff"
+        menuColor="#1e3a5f"
+        menuBackground="#fef3c7"
+      />,
+    )
+    const root = container.firstElementChild as HTMLElement
+
+    expect(root).toHaveAttribute('data-wysiwyg-theme', 'dark')
+    expect(root.style.getPropertyValue('--wysiwyg-toolbar-background')).toBe('')
+    expect(root.style.getPropertyValue('--wysiwyg-menu-color')).toBe('')
+    expect(root.style.getPropertyValue('--wysiwyg-menu-background')).toBe('')
+  })
+
+  it('applies host toolbar and menu chrome overrides in light mode', () => {
+    const { container } = render(
+      <Editor
+        toolbarBackground="#ddeeff"
+        menuColor="#1e3a5f"
+        menuBackground="#fef3c7"
+      />,
+    )
+    const root = container.firstElementChild as HTMLElement
+
+    expect(root).toHaveAttribute('data-wysiwyg-theme', 'light')
+    expect(root.style.getPropertyValue('--wysiwyg-toolbar-background')).toBe('#ddeeff')
+    expect(root.style.getPropertyValue('--wysiwyg-menu-color')).toBe('#1e3a5f')
+    expect(root.style.getPropertyValue('--wysiwyg-menu-background')).toBe('#fef3c7')
+  })
+
   it('leaves menu formatting vars unset when those props are omitted', () => {
     const { container } = render(<Editor />)
     const root = container.firstElementChild as HTMLElement
@@ -4164,11 +4197,19 @@ describe('Editor dark mode', () => {
 
   it('persists View menu dark mode in localStorage', async () => {
     const user = userEvent.setup()
-    const { container } = render(<Editor />)
+    const { container } = render(
+      <Editor toolbarBackground="#ddeeff" menuColor="#1e3a5f" menuBackground="#fef3c7" />,
+    )
+    const root = container.firstElementChild as HTMLElement
+
+    expect(root.style.getPropertyValue('--wysiwyg-toolbar-background')).toBe('#ddeeff')
 
     await chooseViewTheme(user, 'Dark mode')
 
     expect(container.firstElementChild).toHaveAttribute('data-wysiwyg-theme', 'dark')
+    expect(root.style.getPropertyValue('--wysiwyg-toolbar-background')).toBe('')
+    expect(root.style.getPropertyValue('--wysiwyg-menu-color')).toBe('')
+    expect(root.style.getPropertyValue('--wysiwyg-menu-background')).toBe('')
     expect(JSON.parse(localStorage.getItem(DARK_MODE_STORAGE_KEY) ?? '')).toBe(true)
   })
 
