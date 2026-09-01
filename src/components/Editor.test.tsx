@@ -309,6 +309,28 @@ describe('Editor', () => {
     expect(root.style.getPropertyValue('--wysiwyg-toolbar-background')).toBe('')
   })
 
+  it('applies workspaceBackground as a CSS custom property on the root', () => {
+    const { container } = render(<Editor workspaceBackground="#ddeeff" />)
+    const root = container.firstElementChild as HTMLElement
+
+    expect(root.style.getPropertyValue('--wysiwyg-workspace-background')).toBe('#ddeeff')
+  })
+
+  it('uses the default workspace background when the prop is omitted', () => {
+    const { container } = render(<Editor />)
+    const root = container.firstElementChild as HTMLElement
+
+    expect(root.style.getPropertyValue('--wysiwyg-workspace-background')).toBe('')
+  })
+
+  it('applies workspaceBackground in dark mode', () => {
+    const { container } = render(<Editor darkMode workspaceBackground="#ddeeff" />)
+    const root = container.firstElementChild as HTMLElement
+
+    expect(root).toHaveAttribute('data-wysiwyg-theme', 'dark')
+    expect(root.style.getPropertyValue('--wysiwyg-workspace-background')).toBe('#ddeeff')
+  })
+
   it('applies menu formatting as CSS custom properties on the root', () => {
     const { container } = render(
       <Editor

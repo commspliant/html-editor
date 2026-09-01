@@ -140,6 +140,13 @@ export const ToolbarBackground: Story = {
   },
 }
 
+export const WorkspaceBackground: Story = {
+  args: {
+    workspaceBackground: '#dbeafe',
+    defaultValue: '<p>Custom workspace well background.</p>',
+  },
+}
+
 export const MenuFormatting: Story = {
   args: {
     menuColor: '#1e3a5f',

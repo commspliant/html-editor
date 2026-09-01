@@ -163,6 +163,7 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `className` | `string` | — | Extra class on the editor root |
 | `locale` | `'en' \| 'es'` | `'en'` | Library chrome language. Document content is not translated |
 | `toolbarBackground` | `string` | `#f0f0f0` | CSS color for the icon toolbar row. Omit to use the default light gray |
+| `workspaceBackground` | `string` | `#e9e9e9` | CSS color for the document workspace well around page canvas(es), ruler strip, and multi-page gaps. Omit to use the default light gray |
 | `menuColor` | `string` | `#444` | CSS color for menu bar text and dropdown items |
 | `menuBackground` | `string` | `#fff` | CSS color for the menu bar and dropdown panel |
 | `menuFontSize` | `string` | `0.875rem` | CSS font-size for menu triggers and items. Omit to use the default |
