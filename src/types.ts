@@ -330,6 +330,8 @@ export type EditorProps = {
   className?: string
   locale?: Locale
   toolbarBackground?: string
+  /** CSS color for the document workspace well around page canvas(es). Default `#e9e9e9`. */
+  workspaceBackground?: string
   /** CSS color for menu bar text and dropdown items. Default `#444`. */
   menuColor?: string
   /** CSS color for the menu bar row and dropdown panel. Default `#fff`. */

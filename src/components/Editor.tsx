@@ -308,6 +308,7 @@ export function Editor({
   className,
   locale = 'en',
   toolbarBackground,
+  workspaceBackground,
   menuColor,
   menuBackground,
   menuFontSize,
