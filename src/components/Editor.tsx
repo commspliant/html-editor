@@ -4061,6 +4061,7 @@ export function Editor({
   const rootStyle = editorChromeStyle({
     dark,
     toolbarBackground,
+    workspaceBackground,
     menuColor,
     menuBackground,
     menuFontSize,
@@ -4407,6 +4408,7 @@ export function Editor({
 function editorChromeStyle({
   dark,
   toolbarBackground,
+  workspaceBackground,
   menuColor,
   menuBackground,
   menuFontSize,
@@ -4415,6 +4417,7 @@ function editorChromeStyle({
 }: Pick<
   EditorProps,
   | 'toolbarBackground'
+  | 'workspaceBackground'
   | 'menuColor'
   | 'menuBackground'
   | 'menuFontSize'
@@ -4422,6 +4425,7 @@ function editorChromeStyle({
   | 'border'
 > & { dark: boolean }): CSSProperties | undefined {
   const style: Record<string, string> = {}
+  if (workspaceBackground) style['--wysiwyg-workspace-background'] = workspaceBackground
   if (!dark) {
     if (toolbarBackground) style['--wysiwyg-toolbar-background'] = toolbarBackground
     if (menuColor) style['--wysiwyg-menu-color'] = menuColor
