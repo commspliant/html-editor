@@ -114,7 +114,9 @@
 }
 
 .toolbar .menuButton,
-.toolbar .menuItem {
+.toolbar .menuItem,
+.toolbar .menuButton.menuButton,
+.toolbar .menuItem.menuItem {
   color: var(--wysiwyg-menu-color, var(--wysiwyg-chrome-text, #444));
   font-size: var(--wysiwyg-menu-font-size, 0.875rem);
   font-family: var(--wysiwyg-menu-font-family, inherit);
@@ -261,15 +263,18 @@
   background: var(--wysiwyg-chrome-divider, #d0d0d0);
 }
 
-.toolbar .iconButton {
+.toolbar .iconButton,
+.toolbar .iconButton.iconButton {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   padding: 0.5rem 0.65rem;
+  color: var(--wysiwyg-chrome-text, #444);
 }
 
-.toolbar .iconNav .iconButton {
+.toolbar .iconNav .iconButton,
+.toolbar .iconNav .iconButton.iconButton {
   padding: calc(0.5rem + 2px) 0.65rem calc(0.5rem - 2px);
 }
 
@@ -279,7 +284,8 @@
   align-items: stretch;
 }
 
-.toolbar .iconButton[aria-pressed='true'] {
+.toolbar .iconButton[aria-pressed='true'],
+.toolbar .iconButton.iconButton[aria-pressed='true'] {
   color: var(--wysiwyg-chrome-text-strong, #111);
   background: var(--wysiwyg-chrome-pressed, #ececec);
   box-shadow: inset 0 -2px 0 var(--wysiwyg-chrome-text-strong, #111);
@@ -424,27 +430,37 @@
 }
 
 .toolbar .menuItem:hover,
-.toolbar .menuItem:focus-visible {
+.toolbar .menuItem.menuItem:hover,
+.toolbar .menuItem:focus-visible,
+.toolbar .menuItem.menuItem:focus-visible {
   background: var(--wysiwyg-chrome-hover, #f0f0f0);
   color: var(--wysiwyg-chrome-text-strong, #111);
 }
 
-.toolbar .menuItem[aria-checked='true'] {
+.toolbar .menuItem[aria-checked='true'],
+.toolbar .menuItem.menuItem[aria-checked='true'] {
   color: var(--wysiwyg-chrome-text-strong, #111);
   font-weight: 600;
 }
 
 .toolbar .menuButton:hover,
+.toolbar .menuButton.menuButton:hover,
 .toolbar .iconButton:hover,
+.toolbar .iconButton.iconButton:hover,
 .toolbar .menuButton:focus-visible,
-.toolbar .iconButton:focus-visible {
+.toolbar .menuButton.menuButton:focus-visible,
+.toolbar .iconButton:focus-visible,
+.toolbar .iconButton.iconButton:focus-visible {
   color: var(--wysiwyg-chrome-text-strong, #111);
   background: var(--wysiwyg-chrome-hover, #f0f0f0);
 }
 
 .toolbar .menuButton:focus-visible,
+.toolbar .menuButton.menuButton:focus-visible,
 .toolbar .iconButton:focus-visible,
-.toolbar .menuItem:focus-visible {
+.toolbar .iconButton.iconButton:focus-visible,
+.toolbar .menuItem:focus-visible,
+.toolbar .menuItem.menuItem:focus-visible {
   outline: 2px solid var(--wysiwyg-chrome-focus, #8ab4ff);
   outline-offset: -2px;
 }
@@ -495,4 +511,26 @@
   z-index: 1300;
   max-width: 18rem;
   white-space: normal;
+}
+
+[data-wysiwyg-theme='dark'] .toolbar .iconNav {
+  background: var(--wysiwyg-chrome-toolbar);
+}
+
+[data-wysiwyg-theme='dark'] .toolbar .iconButton.iconButton {
+  color: var(--wysiwyg-chrome-text);
+}
+
+[data-wysiwyg-theme='dark'] .toolbar .menuBar,
+[data-wysiwyg-theme='dark'] .toolbar .menu {
+  background: var(--wysiwyg-chrome-menu);
+}
+
+[data-wysiwyg-theme='dark'] .toolbar .menuButton.menuButton,
+[data-wysiwyg-theme='dark'] .toolbar .menuItem.menuItem {
+  color: var(--wysiwyg-chrome-text);
+}
+
+[data-wysiwyg-theme='dark'] .toolbar .menuItem.menuItem[aria-checked='true'] {
+  color: var(--wysiwyg-chrome-text-strong);
 }

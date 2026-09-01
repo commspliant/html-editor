@@ -4059,6 +4059,7 @@ export function Editor({
     .filter(Boolean)
     .join(' ')
   const rootStyle = editorChromeStyle({
+    dark,
     toolbarBackground,
     menuColor,
     menuBackground,
@@ -4404,6 +4405,7 @@ export function Editor({
 }
 
 function editorChromeStyle({
+  dark,
   toolbarBackground,
   menuColor,
   menuBackground,
@@ -4418,11 +4420,13 @@ function editorChromeStyle({
   | 'menuFontSize'
   | 'menuFontFamily'
   | 'border'
->): CSSProperties | undefined {
+> & { dark: boolean }): CSSProperties | undefined {
   const style: Record<string, string> = {}
-  if (toolbarBackground) style['--wysiwyg-toolbar-background'] = toolbarBackground
-  if (menuColor) style['--wysiwyg-menu-color'] = menuColor
-  if (menuBackground) style['--wysiwyg-menu-background'] = menuBackground
+  if (!dark) {
+    if (toolbarBackground) style['--wysiwyg-toolbar-background'] = toolbarBackground
+    if (menuColor) style['--wysiwyg-menu-color'] = menuColor
+    if (menuBackground) style['--wysiwyg-menu-background'] = menuBackground
+  }
   if (menuFontSize) style['--wysiwyg-menu-font-size'] = menuFontSize
   if (menuFontFamily) style['--wysiwyg-menu-font-family'] = menuFontFamily
   if (border === 'none') {
