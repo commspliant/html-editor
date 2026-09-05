@@ -246,7 +246,6 @@ import {
   validatePagesAgainstCapabilities,
   isPageLayoutAllowed,
   type CapabilityValidationResult,
-  type RenderingCapabilities,
 } from '../capabilities'
 import {
   mergeCapabilitiesCatalog,

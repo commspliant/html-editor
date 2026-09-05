@@ -1,6 +1,5 @@
 import {
   cssValueUsesFormat,
-  normalizeCssPropertyName,
   parseInlineStyle,
 } from './inlineStyle'
 import { normalizeContract } from './normalizeContract'
@@ -16,7 +15,7 @@ function buildSelector(element: Element): string {
   let current: Element | null = element
   while (current && current.tagName.toLowerCase() !== 'body') {
     const tag = current.tagName.toLowerCase()
-    const parent = current.parentElement
+    const parent: Element | null = current.parentElement
     if (!parent) {
       parts.unshift(tag)
       break
@@ -134,7 +133,7 @@ function validateAttributes(
 }
 
 function validateCssValue(
-  property: string,
+  _property: string,
   value: string,
   cssRule: NonNullable<ReturnType<NormalizedContract['cssPropertyRules']['get']>>,
 ): boolean {
