@@ -1,6 +1,6 @@
 {
   "name": "commspliant-html-editor",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "description": "Reusable React WYSIWYG editor with visual and HTML modes",
   "license": "MIT",
   "type": "module",
