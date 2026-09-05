@@ -1,6 +1,6 @@
 import type { PlaygroundMessages } from './i18n/messages'
 
-export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'optimizeEmbeddedImages' | 'pageProperties' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'backgroundImage' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
+export type ExampleBlockId = 'chrome' | 'allowedChrome' | 'renderingCapabilities' | 'readOnly' | 'htmlFileDrop' | 'autoSave' | 'fileCallbacks' | 'multiPages' | 'optimizeEmbeddedImages' | 'pageProperties' | 'comments' | 'customActions' | 'menu' | 'border' | 'fonts' | 'customParagraphStyles' | 'image' | 'backgroundImage' | 'audio' | 'youtube' | 'toolbar' | 'darkMode' | 'toolbarPosition' | 'language'
 
 export type CodeExampleBlock = {
   titleKey: keyof PlaygroundMessages
@@ -48,6 +48,28 @@ const allowedChrome: AllowedChrome = {
       `import { Editor } from 'commspliant-html-editor'
 
 <Editor />`,
+    ],
+  },
+  renderingCapabilities: {
+    titleKey: 'renderingCapabilitiesAria',
+    bodyKey: 'renderingCapabilitiesExampleBody',
+    snippets: [
+      `import {
+  Editor,
+  validateHtmlAgainstCapabilities,
+  type RenderingCapabilities,
+} from 'commspliant-html-editor'
+
+const emailContract: RenderingCapabilities = { /* contract JSON */ }
+
+<Editor
+  renderingCapabilities={emailContract}
+  onCapabilitiesValidation={(result) => {
+    setValidation(result) // result.violations lists each issue
+  }}
+/>
+
+const report = validateHtmlAgainstCapabilities(html, emailContract)`,
     ],
   },
   readOnly: {

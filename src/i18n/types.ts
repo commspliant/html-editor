@@ -619,6 +619,27 @@ export type Messages = {
   helpTopicKeyboardShortcutsTitle: string
   helpTopicKeyboardShortcutsBody: string
   helpTopicKeyboardShortcutsKeywords: string
+  commandCompatibilityCheck: string
+  commandCompatibilityCheckAria: string
+  capabilitiesPanelTitle: string
+  capabilitiesPanelCloseAria: string
+  capabilitiesPanelEmpty: string
+  capabilitiesPanelSummary: string
+  capabilitiesPanelErrors: string
+  capabilitiesPanelWarnings: string
+  capabilitiesViolationPage: string
+  capabilitiesViolationDisallowedTag: string
+  capabilitiesViolationUnknownTag: string
+  capabilitiesViolationRestrictedTag: string
+  capabilitiesViolationMissingRequiredAttribute: string
+  capabilitiesViolationUnknownAttribute: string
+  capabilitiesViolationTagDisallowedCss: string
+  capabilitiesViolationMissingForcedCss: string
+  capabilitiesViolationCssDisallowed: string
+  capabilitiesViolationCssRestricted: string
+  capabilitiesViolationCssWrongTag: string
+  capabilitiesViolationCssValueNotAllowed: string
+  capabilitiesViolationContainerWidthExceeded: string
 }
 
 export type MessageKey = keyof Messages

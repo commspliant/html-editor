@@ -150,6 +150,7 @@ export type CommandName =
   | 'openHelp'
   | 'openKeyboardShortcuts'
   | 'openAbout'
+  | 'openCompatibilityCheck'
   | (string & {})
 
 export type QueryName =
@@ -220,6 +221,7 @@ export type CommandContext = {
   openHelp: () => void
   openKeyboardShortcuts: () => void
   openAbout: () => void
+  openCompatibilityCheck: () => void
   toggleReadAloud: () => void
   toggleRuler: () => void
   isReadingAloud: () => boolean
@@ -360,6 +362,7 @@ export type EditorCommands = {
   openHelp: () => void
   openKeyboardShortcuts: () => void
   openAbout: () => void
+  openCompatibilityCheck: () => void
   toggleReadAloud: () => void
   toggleRuler: () => void
   setLightMode: () => void

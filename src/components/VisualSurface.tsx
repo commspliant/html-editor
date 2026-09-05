@@ -53,6 +53,8 @@ type VisualSurfaceProps = {
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onMouseUp?: (event: ReactMouseEvent<HTMLDivElement>) => void
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
+  /** When false, skip print page shell, @page canvas, and rulers. */
+  pageLayoutEnabled?: boolean
 }
 
 export const VisualSurface = forwardRef<HTMLElement, VisualSurfaceProps>(
@@ -76,6 +78,7 @@ export const VisualSurface = forwardRef<HTMLElement, VisualSurfaceProps>(
       onPointerDown,
       onMouseUp,
       onContextMenu,
+      pageLayoutEnabled = true,
     },
     ref,
   ) {
@@ -87,7 +90,7 @@ export const VisualSurface = forwardRef<HTMLElement, VisualSurfaceProps>(
     onBeforeInputRef.current = onBeforeInput
 
     const layoutHtml = pageHtml ?? html
-    const showRulers = rulerVisible && hasPrintLayout(layoutHtml)
+    const showRulers = pageLayoutEnabled && rulerVisible && hasPrintLayout(layoutHtml)
 
     const { geometry, indentState, refresh } = usePageRulerMetrics(surfaceEl, layoutHtml, showRulers)
 
@@ -114,16 +117,18 @@ export const VisualSurface = forwardRef<HTMLElement, VisualSurfaceProps>(
           hydrateEmbeddedImages,
         })
       }
-      if (queryPageShell(el) || hasPrintLayout(layoutHtml)) {
+      if (pageLayoutEnabled && (queryPageShell(el) || hasPrintLayout(layoutHtml))) {
         ensurePageShell(el)
         absorbLooseBlocksIntoPageShell(el)
         normalizePageBackgroundLayerInHolder(el)
         const shell = queryPageShell(el)
         if (shell) ensureSizedPageShellLayout(el, shell)
       }
-      syncPageHolderBackground(el)
-      syncPageCanvasLayout(el, layoutHtml)
-    }, [html, layoutHtml, resolveEmbeddedImageDataUrl, hydrateEmbeddedImages])
+      if (pageLayoutEnabled) {
+        syncPageHolderBackground(el)
+        syncPageCanvasLayout(el, layoutHtml)
+      }
+    }, [html, layoutHtml, pageLayoutEnabled, resolveEmbeddedImageDataUrl, hydrateEmbeddedImages])
 
     useLayoutEffect(() => {
       if (!propSyncGuardRef) return

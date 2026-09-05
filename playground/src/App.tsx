@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import {
   Editor,
+  formatCapabilityViolationLocation,
+  formatCapabilityViolationMessage,
   type AllowedChrome,
   type CommentThread,
   type CustomAction,
@@ -22,11 +24,13 @@ import {
   type DarkModePersistence,
   type ToolbarPosition,
   type ToolbarPositionPersistence,
+  type CapabilityValidationResult,
 } from 'commspliant-html-editor'
 import { playgroundMessages } from './i18n/messages'
 import { CodeExampleDialog } from './CodeExampleDialog'
 import { DocumentationPage } from './DocumentationPage'
 import type { ExampleBlockId } from './codeExamples'
+import { COMMSPLIANT_EMAIL_CONTRACT } from './contracts/commspliantEmailContract'
 
 type PageView = 'playground' | 'documentation'
 type MenuAppearance = 'default' | 'example'
@@ -274,6 +278,9 @@ export function App() {
   const [menuVisible, setMenuVisible] = useState(true)
   const [toolbarVisible, setToolbarVisible] = useState(true)
   const [allowedChromePreset, setAllowedChromePreset] = useState<AllowedChromePreset>('all')
+  const [renderingCapabilitiesEnabled, setRenderingCapabilitiesEnabled] = useState(false)
+  const [capabilitiesValidation, setCapabilitiesValidation] =
+    useState<CapabilityValidationResult | null>(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [readOnly, setReadOnly] = useState(false)
   const [disableHtmlFileDrop, setDisableHtmlFileDrop] = useState(false)
@@ -390,6 +397,15 @@ export function App() {
     if (allowedChromePreset === 'format') return FORMAT_CHROME
     return undefined
   }, [allowedChromePreset])
+
+  const renderingCapabilities = useMemo(
+    () => (renderingCapabilitiesEnabled ? COMMSPLIANT_EMAIL_CONTRACT : undefined),
+    [renderingCapabilitiesEnabled],
+  )
+
+  const onCapabilitiesValidation = useCallback((result: CapabilityValidationResult) => {
+    setCapabilitiesValidation(result)
+  }, [])
 
   const customActions = useMemo<CustomAction[]>(
     () => [
@@ -641,6 +657,78 @@ export function App() {
                       {t.allowedChromeFormat}
                     </button>
                   </div>
+                </div>
+                <div className="control-group">
+                  <ControlGroupHeading
+                    label={t.renderingCapabilitiesAria}
+                    examplesLabel={t.codeExamplesLink}
+                    onOpenExamples={() => setExampleBlock('renderingCapabilities')}
+                  />
+                  <div
+                    className="locale-toggle"
+                    role="group"
+                    aria-label={t.renderingCapabilitiesAria}
+                  >
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={!renderingCapabilitiesEnabled}
+                      onClick={() => {
+                        setRenderingCapabilitiesEnabled(false)
+                        setCapabilitiesValidation(null)
+                      }}
+                    >
+                      {t.renderingCapabilitiesOff}
+                    </button>
+                    <button
+                      type="button"
+                      className="locale-toggle-button"
+                      aria-pressed={renderingCapabilitiesEnabled}
+                      onClick={() => setRenderingCapabilitiesEnabled(true)}
+                    >
+                      {t.renderingCapabilitiesEmail}
+                    </button>
+                  </div>
+                  {renderingCapabilitiesEnabled ? (
+                    <div className="capabilities-validation">
+                      {capabilitiesValidation ? (
+                        <>
+                          <p className="capabilities-validation-summary">
+                            {t.renderingCapabilitiesSummary
+                              .replace('{errors}', String(capabilitiesValidation.errorCount))
+                              .replace('{warnings}', String(capabilitiesValidation.warningCount))}
+                          </p>
+                          {capabilitiesValidation.violations.length > 0 ? (
+                            <ul className="capabilities-validation-list">
+                              {capabilitiesValidation.violations.map((violation, index) => {
+                                const location = formatCapabilityViolationLocation(violation, locale)
+                                const severityLabel =
+                                  violation.severity === 'error'
+                                    ? t.renderingCapabilitiesSeverityError
+                                    : t.renderingCapabilitiesSeverityWarning
+                                return (
+                                  <li
+                                    key={`${violation.code}-${index}`}
+                                    className={`capabilities-violation capabilities-violation--${violation.severity}`}
+                                  >
+                                    <span className="capabilities-violation-label">{severityLabel}</span>
+                                    <span className="capabilities-violation-message">
+                                      {formatCapabilityViolationMessage(violation, locale)}
+                                    </span>
+                                    {location ? (
+                                      <span className="capabilities-violation-location">{location}</span>
+                                    ) : null}
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          ) : (
+                            <p className="capabilities-validation-empty">{t.renderingCapabilitiesNoIssues}</p>
+                          )}
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="control-group">
                   <ControlGroupHeading
@@ -1466,6 +1554,10 @@ export function App() {
               }
               onDeleteCustomParagraphStyle={
                 customParagraphStylesEnabled ? deletePlaygroundCustomStyle : undefined
+              }
+              renderingCapabilities={renderingCapabilities}
+              onCapabilitiesValidation={
+                renderingCapabilitiesEnabled ? onCapabilitiesValidation : undefined
               }
             />
           </div>

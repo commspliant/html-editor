@@ -20,6 +20,7 @@ export function createCommandContext(overrides: Partial<CommandContext> = {}): C
     openHelp: vi.fn(),
     openKeyboardShortcuts: vi.fn(),
     openAbout: vi.fn(),
+    openCompatibilityCheck: vi.fn(),
     toggleReadAloud: vi.fn(),
     toggleRuler: vi.fn(),
     isReadingAloud: () => false,

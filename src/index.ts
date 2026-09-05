@@ -1,4 +1,20 @@
 export { Editor } from './components/Editor'
+export {
+  normalizeContract,
+  resolveEditorCapabilities,
+  validateHtmlAgainstCapabilities,
+  validatePagesAgainstCapabilities,
+  formatCapabilityViolationMessage,
+  formatCapabilityViolationLocation,
+  isPageLayoutAllowed,
+} from './capabilities'
+export type {
+  CapabilityValidationResult,
+  CapabilityViolation,
+  EditorCapabilityProfile,
+  NormalizedContract,
+  RenderingCapabilities,
+} from './capabilities'
 export { stripCommentAnchors } from './core/comments/sanitize'
 export { sanitizeDocumentHtml, sanitizePageHtml } from './core/sanitizeHtml'
 export {

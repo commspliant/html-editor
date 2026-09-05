@@ -75,6 +75,7 @@ type MultiPageVisualSurfaceProps = {
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onMouseUp?: (event: ReactMouseEvent<HTMLDivElement>) => void
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
+  pageLayoutEnabled?: boolean
 }
 
 type PageRowGeometry = ReturnType<
@@ -264,6 +265,7 @@ export const MultiPageVisualSurface = forwardRef<
     onPointerDown,
     onMouseUp,
     onContextMenu,
+    pageLayoutEnabled = true,
   },
   ref,
 ) {
@@ -316,14 +318,18 @@ export const MultiPageVisualSurface = forwardRef<
     pages,
     visibleIndices,
     getActiveIndex,
-    true,
+    pageLayoutEnabled,
     zoomScale,
   )
 
   const rulerContextIndex = hasSelectedPage ? activePageIndex : 0
   const rulerContextHtml = pages[rulerContextIndex] ?? ''
-  const pageHasPrintLayout = useCallback((index: number) => hasPrintLayout(pages[index] ?? ''), [pages])
-  const showHorizontalRulers = rulerVisible && hasPrintLayout(rulerContextHtml)
+  const pageHasPrintLayout = useCallback(
+    (index: number) => pageLayoutEnabled && hasPrintLayout(pages[index] ?? ''),
+    [pageLayoutEnabled, pages],
+  )
+  const showHorizontalRulers =
+    pageLayoutEnabled && rulerVisible && hasPrintLayout(rulerContextHtml)
 
   const scrollToPage = useCallback(
     (index: number) => {
@@ -437,23 +443,25 @@ export const MultiPageVisualSurface = forwardRef<
         hydrateEmbeddedImages,
       })
     }
-    ensurePageShell(surface)
-    absorbLooseBlocksIntoPageShell(surface)
-    const normalized = normalizePageBackgroundLayerInHolder(surface)
-    syncPageHolderBackground(surface)
-    syncPageCanvasLayout(surface, html)
-    const shell = queryPageShell(surface)
-    if (shell) ensureSizedPageShellLayout(surface, shell)
-    if (normalized) {
-      const storedBody = stripPageAtRuleFromHtml(extractFontStylesheets(html).body)
-      if (
-        surface.innerHTML !== storedBody &&
-        templateMarkupPreserved(storedBody, surface)
-      ) {
-        onPageChangeRef.current(index, surface.innerHTML)
+    if (pageLayoutEnabled) {
+      ensurePageShell(surface)
+      absorbLooseBlocksIntoPageShell(surface)
+      const normalized = normalizePageBackgroundLayerInHolder(surface)
+      syncPageHolderBackground(surface)
+      syncPageCanvasLayout(surface, html)
+      const shell = queryPageShell(surface)
+      if (shell) ensureSizedPageShellLayout(surface, shell)
+      if (normalized) {
+        const storedBody = stripPageAtRuleFromHtml(extractFontStylesheets(html).body)
+        if (
+          surface.innerHTML !== storedBody &&
+          templateMarkupPreserved(storedBody, surface)
+        ) {
+          onPageChangeRef.current(index, surface.innerHTML)
+        }
       }
     }
-  }, [hydrateEmbeddedImages, resolveEmbeddedImageDataUrl])
+  }, [hydrateEmbeddedImages, pageLayoutEnabled, resolveEmbeddedImageDataUrl])
 
   useLayoutEffect(() => {
     heightCacheRef.current.clear()

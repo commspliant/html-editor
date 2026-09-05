@@ -152,6 +152,8 @@ export type EditorWorkspaceHostProps = {
   commands: EditorCommands
   htmlFileDropDragging: boolean
   selectedImage: HTMLImageElement | null
+  hiddenContextMenuCommands?: ReadonlySet<string>
+  pageLayoutEnabled?: boolean
 }
 
 function workspaceHostPropsAreEqual(
@@ -207,6 +209,8 @@ function EditorWorkspaceHostInner({
   commands,
   htmlFileDropDragging: _htmlFileDropDragging,
   selectedImage,
+  hiddenContextMenuCommands,
+  pageLayoutEnabled = true,
 }: EditorWorkspaceHostProps) {
   const { htmlRef, pagesRef, documentBridgeRef } = useEditorShellContext()
 
@@ -351,7 +355,7 @@ function EditorWorkspaceHostInner({
     setCommentHighlightsVisible(root, commentsVisible)
   }, [enableComments, mode, commentThreads, commentsVisible, editorHtml, propsRef])
 
-  const showRulerChrome = mode === 'visual' && rulerVisible && pageCanvasSized
+  const showRulerChrome = mode === 'visual' && rulerVisible && pageLayoutEnabled && pageCanvasSized
 
   const activeCommentThread = useMemo(
     () => (activeThreadId ? findCommentThread(commentThreads, activeThreadId) : null),
@@ -422,6 +426,7 @@ function EditorWorkspaceHostInner({
             optimizeEmbeddedImages ? handlers.resolveEmbeddedImageDataUrl : undefined
           }
           hydrateEmbeddedImages={optimizeEmbeddedImages ? handlers.hydrateExportHtml : undefined}
+          pageLayoutEnabled={pageLayoutEnabled}
         />
       ) : (
         <VisualSurface
@@ -431,6 +436,7 @@ function EditorWorkspaceHostInner({
           rulerVisible={rulerVisible}
           rulerUnit={rulerUnit}
           zoomScale={pageZoomScale}
+          pageLayoutEnabled={pageLayoutEnabled}
           propSyncGuardRef={handlers.visualPropSyncGuardRef}
           resolveEmbeddedImageDataUrl={
             optimizeEmbeddedImages ? handlers.resolveEmbeddedImageDataUrl : undefined
@@ -527,6 +533,7 @@ function EditorWorkspaceHostInner({
         canUnmergeCells={contextMenu.canUnmergeCells}
         canDeletePage={contextMenu.canDeletePage}
         canAddComment={contextMenu.canAddComment}
+        hiddenCommands={hiddenContextMenuCommands}
         commands={commands}
         onClose={() => handlers.setContextMenu((prev) => ({ ...prev, open: false }))}
       />

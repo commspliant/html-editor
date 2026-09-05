@@ -172,6 +172,8 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 | `menuVisible` | `boolean` | `true` | Show the dropdown menu bar. Set `false` to hide it |
 | `toolbarVisible` | `boolean` | `true` | Show the icon toolbar. Set `false` to hide it |
 | `allowedChrome` | `AllowedChrome` | — | Host allowlist of menus and icon-toolbar buttons. Omit to show everything. See [Allowed chrome](#allowed-chrome) |
+| `renderingCapabilities` | `RenderingCapabilities` | — | Contract-driven chrome hiding and HTML validation. Omit for full editor behavior. See [Rendering capabilities](#rendering-capabilities) |
+| `onCapabilitiesValidation` | `(result: CapabilityValidationResult) => void` | — | Fired after debounced validation when `renderingCapabilities` is set |
 | `toolbarPosition` | `'top' \| 'left' \| 'right' \| 'bottom'` | `'top'` | Initial icon-toolbar dock when nothing is persisted. See [Toolbar position](#toolbar-position) |
 | `toolbarPositionPersistence` | `ToolbarPositionPersistence` | — | Host load/save for the icon-toolbar dock. Omit to persist in `localStorage`. See [Toolbar position](#toolbar-position) |
 | `customActions` | `CustomAction[]` | — | Host-defined menu items and/or toolbar buttons. See [Custom actions](#custom-actions) |
@@ -332,6 +334,49 @@ const allowedChrome: AllowedChrome = {
 import { Editor } from 'commspliant-html-editor'
 
 <Editor />
+```
+
+### Rendering capabilities
+
+Pass `renderingCapabilities` with a versioned contract JSON object (allowed tags, disallowed tags, CSS rules, global rules). The editor **derives** chrome visibility and validation from that object at runtime — there is no built-in “email mode” flag. When the contract changes, chrome and validation update automatically.
+
+- Incompatible toolbar items, menu entries, and context-menu commands are **hidden** (not merely disabled).
+- Paragraph style and font-family pickers filter to contract-allowed options.
+- Properties dialog tabs that expose disallowed CSS are hidden.
+- Document HTML is validated on a **debounced** schedule (~750ms after edits) and when View → Compatibility opens.
+- Validation is advisory; editing is not blocked.
+
+Omit `renderingCapabilities` for the default full editor with no compatibility UI.
+
+`validateHtmlAgainstCapabilities(html, contract)` is also exported for host-side checks outside the editor.
+
+`allowedChrome` and `renderingCapabilities` compose: both filters apply.
+
+```tsx
+import {
+  Editor,
+  validateHtmlAgainstCapabilities,
+  type RenderingCapabilities,
+  type CapabilityValidationResult,
+} from 'commspliant-html-editor'
+
+const emailContract: RenderingCapabilities = {
+  version: '1.0.0',
+  global_rules: { strip_unknown_tags: true },
+  html_elements: {
+    allowed_tags: [{ tag: 'p', allowed_attributes: ['style'] }],
+    disallowed_tags: ['video', 'audio'],
+  },
+}
+
+<Editor
+  renderingCapabilities={emailContract}
+  onCapabilitiesValidation={(result: CapabilityValidationResult) => {
+    console.log(result.valid, result.errorCount)
+  }}
+/>
+
+const report = validateHtmlAgainstCapabilities(html, emailContract)
 ```
 
 ### Toolbar position

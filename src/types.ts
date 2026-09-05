@@ -1,4 +1,8 @@
 import type { ComponentType } from 'react'
+import type {
+  CapabilityValidationResult,
+  RenderingCapabilities,
+} from './capabilities/types'
 import type { DefaultPageProperties } from './core/commandTypes'
 import type { FontSizeUnit } from './core/fontSizeUnits'
 import type { FontFace } from './core/fontFamily'
@@ -520,4 +524,19 @@ export type EditorProps = {
   defaultComments?: CommentThread[]
   /** Fires when comment threads change. */
   onCommentsChange?: (threads: CommentThread[]) => void
+  /**
+   * When set, chrome visibility and validation follow this contract dynamically.
+   * Omit to keep the full editor with no compatibility checks.
+   */
+  renderingCapabilities?: RenderingCapabilities
+  /**
+   * Fired after debounced validation when `renderingCapabilities` is set.
+   */
+  onCapabilitiesValidation?: (result: CapabilityValidationResult) => void
 }
+
+export type {
+  CapabilityValidationResult,
+  CapabilityViolation,
+  RenderingCapabilities,
+} from './capabilities/types'

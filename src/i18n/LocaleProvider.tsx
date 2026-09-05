@@ -8,6 +8,7 @@ const dictionaries: Record<Locale, Messages> = { en, es }
 export type Translate = (key: MessageKey) => string
 
 const LocaleContext = createContext<Translate>((key) => en[key])
+const LocaleIdContext = createContext<Locale>('en')
 
 type LocaleProviderProps = {
   locale?: Locale
@@ -20,9 +21,17 @@ export function LocaleProvider({ locale = 'en', children }: LocaleProviderProps)
     return (key) => messages[key]
   }, [locale])
 
-  return <LocaleContext.Provider value={t}>{children}</LocaleContext.Provider>
+  return (
+    <LocaleIdContext.Provider value={locale}>
+      <LocaleContext.Provider value={t}>{children}</LocaleContext.Provider>
+    </LocaleIdContext.Provider>
+  )
 }
 
 export function useT(): Translate {
   return useContext(LocaleContext)
+}
+
+export function useLocale(): Locale {
+  return useContext(LocaleIdContext)
 }

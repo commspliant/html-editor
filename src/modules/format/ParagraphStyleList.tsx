@@ -3,6 +3,7 @@ import {
   PARAGRAPH_STYLE_TAGS,
   type ParagraphStyleTag,
 } from '../../core/blockFormat'
+import { useCapabilitiesProfile } from '../../capabilities/CapabilitiesContext'
 import { PlusIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
 import type { MessageKey } from '../../i18n/types'
@@ -72,14 +73,18 @@ export function ParagraphStyleList({
   onAddNew,
 }: ParagraphStyleListProps) {
   const t = useT()
+  const capabilityProfile = useCapabilitiesProfile()
+  const styleTags = capabilityProfile
+    ? PARAGRAPH_STYLE_TAGS.filter((tag) => capabilityProfile.allowedParagraphTags.includes(tag))
+    : PARAGRAPH_STYLE_TAGS
   const selected = mixed ? null : value
-  const showCustom = customStylesEnabled
+  const showCustom = customStylesEnabled && styleTags.length > 0
   const showAddNew = Boolean(menu && customStylesEnabled && onAddNew)
 
   if (menu) {
     return (
       <>
-        {PARAGRAPH_STYLE_TAGS.map((tag) => (
+        {styleTags.map((tag) => (
           <button
             key={tag}
             type="button"

@@ -15,6 +15,10 @@ import { PAGE_ZOOM_STORAGE_KEY } from '../modules/view/pageZoomPersistence'
 import { TOOLBAR_POSITION_STORAGE_KEY } from '../modules/view/toolbarPositionPersistence'
 import { Editor } from './Editor'
 import styles from './Editor.module.css'
+import {
+  COMMSPLIANT_EMAIL_CONTRACT,
+  PERMISSIVE_WEB_CONTRACT,
+} from '../capabilities/testContracts'
 import { estimatePageRowHeight } from '../core/pageRowHeight'
 import { queryPageShell } from '../core/page'
 
@@ -5143,5 +5147,79 @@ describe('Editor comments', () => {
 
     expect(screen.getByRole('dialog', { name: 'Comment' })).toBeInTheDocument()
     expect(reply).toHaveValue('Follow up')
+  })
+})
+
+describe('Editor renderingCapabilities', () => {
+  it('hides contract-incompatible toolbar items for the email contract', () => {
+    render(<Editor renderingCapabilities={COMMSPLIANT_EMAIL_CONTRACT} />)
+    expect(screen.queryByRole('button', { name: 'Custom CSS' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Numbered list' })).not.toBeInTheDocument()
+  })
+
+  it('shows toolbar items again when a permissive contract replaces the email contract', () => {
+    const { rerender } = render(<Editor renderingCapabilities={COMMSPLIANT_EMAIL_CONTRACT} />)
+    expect(screen.queryByRole('button', { name: 'Numbered list' })).not.toBeInTheDocument()
+    rerender(<Editor renderingCapabilities={PERMISSIVE_WEB_CONTRACT} />)
+    expect(screen.getByRole('button', { name: 'Numbered list' })).toBeInTheDocument()
+  })
+
+  it('runs debounced validation and opens the compatibility panel', async () => {
+    const onCapabilitiesValidation = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Editor
+        defaultValue='<video src="x"></video>'
+        renderingCapabilities={COMMSPLIANT_EMAIL_CONTRACT}
+        onCapabilitiesValidation={onCapabilitiesValidation}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(onCapabilitiesValidation).toHaveBeenCalled()
+    }, { timeout: 2000 })
+
+    await user.click(screen.getByRole('button', { name: 'Check document compatibility' }))
+    expect(screen.getByRole('dialog', { name: 'Compatibility' })).toBeInTheDocument()
+  })
+
+  it('skips defaultPageProperties when the email contract disallows page layout', () => {
+    render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        defaultPageProperties={{ atRule: { sizePreset: 'A4', orientation: 'portrait' } }}
+        renderingCapabilities={COMMSPLIANT_EMAIL_CONTRACT}
+      />,
+    )
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual.innerHTML).not.toContain('data-page-at-rule')
+    expect(visual.innerHTML).not.toContain('data-page')
+    expect(visual).not.toHaveAttribute('data-page-sized')
+    expect(visual.innerHTML).toContain('<p>Hello</p>')
+  })
+
+  it('strips page chrome when the email contract is enabled on an existing document', async () => {
+    const { rerender } = render(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        defaultPageProperties={{ atRule: { sizePreset: 'A4', orientation: 'portrait' } }}
+      />,
+    )
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    expect(visual.innerHTML).toContain('data-page')
+
+    rerender(
+      <Editor
+        defaultValue="<p>Hello</p>"
+        defaultPageProperties={{ atRule: { sizePreset: 'A4', orientation: 'portrait' } }}
+        renderingCapabilities={COMMSPLIANT_EMAIL_CONTRACT}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(visual.innerHTML).not.toContain('data-page')
+      expect(visual.innerHTML).not.toContain('data-page-at-rule')
+    })
+    expect(visual.innerHTML).toContain('<p>Hello</p>')
   })
 })

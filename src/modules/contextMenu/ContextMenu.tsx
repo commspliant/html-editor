@@ -18,6 +18,7 @@ export type ContextMenuProps = {
   canUnmergeCells?: boolean
   canDeletePage?: boolean
   canAddComment?: boolean
+  hiddenCommands?: ReadonlySet<string>
   commands: EditorCommands
   onClose: () => void
 }
@@ -177,7 +178,11 @@ const ENTRIES: MenuEntry[] = [
   },
 ]
 
-function getVisibleEntries(kind: ContextMenuKind, flags: ContextMenuFlags): MenuEntry[] {
+function getVisibleEntries(
+  kind: ContextMenuKind,
+  flags: ContextMenuFlags,
+  hiddenCommands?: ReadonlySet<string>,
+): MenuEntry[] {
   const result: MenuEntry[] = []
   let pendingSeparator = false
 
@@ -188,6 +193,7 @@ function getVisibleEntries(kind: ContextMenuKind, flags: ContextMenuFlags): Menu
       }
       continue
     }
+    if (hiddenCommands?.has(entry.command)) continue
     if (!entry.enabled(kind, flags)) continue
     if (pendingSeparator) {
       result.push({ type: 'separator' })
@@ -213,6 +219,7 @@ export function ContextMenu({
   canUnmergeCells = false,
   canDeletePage = false,
   canAddComment = false,
+  hiddenCommands,
   commands,
   onClose,
 }: ContextMenuProps) {
@@ -277,7 +284,7 @@ export function ContextMenu({
     canUnmergeCells,
     canDeletePage,
     canAddComment,
-  })
+  }, hiddenCommands)
 
   const onMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
