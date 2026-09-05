@@ -173,4 +173,40 @@ describe('VisualSurface', () => {
     expect(blockStyle.paddingLeft).not.toBe('24px')
     expect(blockStyle.paddingRight).not.toBe('24px')
   })
+
+  it('styles unsized holders as flex columns that grow with content', () => {
+    expect(editorModuleCss).toMatch(
+      /\.root \.visual:not\(\[data-page-sized\]\)\s*\{[^}]*display:\s*flex/s,
+    )
+    expect(editorModuleCss).toMatch(
+      /\.root \.visual:not\(\[data-page-sized\]\)\s*\{[^}]*flex:\s*1 0 auto/s,
+    )
+    expect(editorModuleCss).not.toMatch(
+      /\.root \.visual:not\(\[data-page-sized\]\)\s*\{(?![^}]*>)[^}]*(?<!min-)height:\s*100%/s,
+    )
+    expect(editorModuleCss).toMatch(
+      /\.root \.visual:not\(\[data-page-sized\]\) > \[data-page\]\s*\{[^}]*height:\s*auto !important/s,
+    )
+  })
+
+  it('lets unsized canvas height follow tall content instead of locking to the well', () => {
+    const tallHtml =
+      '<div data-page>' +
+      Array.from({ length: 40 }, (_, index) => `<p>Line ${index + 1}</p>`).join('') +
+      '</div>'
+
+    render(
+      <LocaleProvider>
+        <div className={styles.root}>
+          <VisualSurface html={tallHtml} onChange={() => undefined} />
+        </div>
+      </LocaleProvider>,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' }) as HTMLDivElement
+    const shell = visual.querySelector('[data-page]') as HTMLElement
+    expect(visual).not.toHaveAttribute('data-page-sized')
+    expect(visual.style.height).toBe('')
+    expect(shell.style.height).toBe('100%')
+  })
 })

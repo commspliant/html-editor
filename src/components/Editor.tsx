@@ -908,7 +908,7 @@ export function Editor({
         const surface = getActiveVisualRoot()
         const zoom = pageZoomScaleRef.current > 0 ? pageZoomScaleRef.current : 1
         pageW = (surface?.offsetWidth ?? 0) / zoom
-        pageH = (surface?.offsetHeight ?? 0) / zoom
+        pageH = availH
       }
 
       if (pageW <= 0) pageW = availW
