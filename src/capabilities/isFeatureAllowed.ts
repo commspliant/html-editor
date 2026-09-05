@@ -82,7 +82,7 @@ export function isFeatureAllowed(
 }
 
 export function isDialogTabAllowed(
-  dialog: 'paragraph' | 'page',
+  _dialog: 'paragraph' | 'page',
   tab: string,
   rules: NormalizedContract,
   tabFootprints: Record<string, FeatureFootprint>,

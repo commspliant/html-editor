@@ -1,2 +1,2 @@
 /** Keep in sync with package.json version when releasing. */
-export const EDITOR_VERSION = '0.0.11'
+export const EDITOR_VERSION = '0.1.0'
