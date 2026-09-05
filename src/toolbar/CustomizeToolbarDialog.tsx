@@ -22,6 +22,7 @@ export type CustomizeToolbarDialogProps = {
   loading?: boolean
   busy?: boolean
   disabled?: boolean
+  isItemAllowed?: (itemId: string) => boolean
   onChange: (settings: ToolbarCustomization) => void
   onReset: () => void
   onClose: () => void
@@ -48,6 +49,7 @@ export function CustomizeToolbarDialog({
   loading = false,
   busy = false,
   disabled,
+  isItemAllowed,
   onChange,
   onReset,
   onClose,
@@ -205,6 +207,7 @@ export function CustomizeToolbarDialog({
                   </div>
                   <div className={styles.items}>
                     {group.items.map((itemId) => {
+                      if (isItemAllowed && !isItemAllowed(itemId)) return null
                       const item = catalog.items[itemId]
                       if (!item) return null
                       const Icon = item.icon

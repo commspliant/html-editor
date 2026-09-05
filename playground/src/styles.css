@@ -358,6 +358,80 @@ body {
   color: var(--nav-label);
 }
 
+.capabilities-validation {
+  margin-top: 0.5rem;
+}
+
+.capabilities-validation-summary {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--nav-label);
+}
+
+.capabilities-validation-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 12rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.capabilities-validation-empty {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--nav-label);
+}
+
+.capabilities-violation {
+  padding: 0.35rem 0.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  font-size: 0.6875rem;
+  line-height: 1.35;
+}
+
+.capabilities-violation--error {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.capabilities-violation--warning {
+  border-color: rgba(217, 119, 6, 0.35);
+  background: rgba(217, 119, 6, 0.06);
+}
+
+.capabilities-violation-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.capabilities-violation--error .capabilities-violation-label {
+  color: #b91c1c;
+}
+
+.capabilities-violation--warning .capabilities-violation-label {
+  color: #b45309;
+}
+
+.capabilities-violation-message {
+  display: block;
+  color: var(--color-text);
+}
+
+.capabilities-violation-location {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--nav-label);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  word-break: break-all;
+}
+
 .locale-toggle {
   display: flex;
   flex-wrap: wrap;

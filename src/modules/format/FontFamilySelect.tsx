@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { ChromePortal } from '../../chrome/ChromeTheme'
 import { useViewportAnchoredPosition } from '../../hooks/useViewportAnchoredPosition'
 import type { FontFace } from '../../core/fontFamily'
+import { useCapabilitiesProfile } from '../../capabilities/CapabilitiesContext'
 import { useT } from '../../i18n/LocaleProvider'
 import type { ToolbarWidgetProps } from '../../toolbar/types'
 import { Tooltip } from '../../toolbar/Tooltip'
@@ -112,12 +113,23 @@ export function FontFamilyCombobox({
 
 export function FontFamilySelect({ commands, queries, disabled }: ToolbarWidgetProps) {
   const t = useT()
+  const capabilityProfile = useCapabilitiesProfile()
   const isDisabled = Boolean(disabled || !queries.isVisualMode())
+  const fonts = (() => {
+    const faces = queries.getFontFaces()
+    const allowed = capabilityProfile?.allowedFontFamilies
+    if (!allowed) return faces
+    const allowedLower = new Set(allowed.map((face) => face.toLowerCase()))
+    return faces.filter((face) =>
+      allowedLower.has(face.family.toLowerCase()) ||
+      allowed.some((entry) => face.family.toLowerCase().includes(entry.toLowerCase())),
+    )
+  })()
   return (
     <FontFamilyCombobox
       family={queries.isFontFamilyMixed() ? null : queries.getFontFamily()}
       mixed={queries.isFontFamilyMixed()}
-      fonts={queries.getFontFaces()}
+      fonts={fonts}
       disabled={isDisabled}
       tooltip={t('commandFontFamily')}
       toolbar

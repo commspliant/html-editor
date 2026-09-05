@@ -20,6 +20,14 @@ export type PlaygroundMessages = {
   allowedChromeAll: string
   allowedChromeFileEdit: string
   allowedChromeFormat: string
+  renderingCapabilitiesAria: string
+  renderingCapabilitiesOff: string
+  renderingCapabilitiesEmail: string
+  renderingCapabilitiesSummary: string
+  renderingCapabilitiesNoIssues: string
+  renderingCapabilitiesSeverityError: string
+  renderingCapabilitiesSeverityWarning: string
+  renderingCapabilitiesExampleBody: string
   readOnlyAria: string
   readOnly: string
   readOnlyOff: string
@@ -129,6 +137,7 @@ export type PlaygroundMessages = {
   codeExamplesClose: string
   chromeExampleBody: string
   allowedChromeExampleBody: string
+  renderingCapabilitiesExampleBody: string
   readOnlyExampleBody: string
   htmlFileDropExampleBody: string
   autoSaveExampleBody: string
@@ -200,6 +209,13 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     allowedChromeAll: 'All',
     allowedChromeFileEdit: 'File and Edit',
     allowedChromeFormat: 'Format only',
+    renderingCapabilitiesAria: 'Rendering capabilities',
+    renderingCapabilitiesOff: 'Off',
+    renderingCapabilitiesEmail: 'Email contract',
+    renderingCapabilitiesSummary: '{errors} errors, {warnings} warnings',
+    renderingCapabilitiesNoIssues: 'No compatibility issues',
+    renderingCapabilitiesSeverityError: 'Error',
+    renderingCapabilitiesSeverityWarning: 'Warning',
     readOnlyAria: 'Read only',
     readOnly: 'Read only',
     readOnlyOff: 'Editable',
@@ -313,6 +329,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Show or hide the menu bar and icon toolbar, and control the full-screen overlay from the host.',
     allowedChromeExampleBody:
       'Pass allowedChrome to show only the menus and icon-toolbar buttons the host allows. The two lists are independent. Omit the prop to show everything. Customize toolbar and persistence still apply on the allowed toolbar subset.',
+    renderingCapabilitiesExampleBody:
+      'Pass renderingCapabilities with a contract JSON object. The editor hides incompatible toolbar items, filters pickers, and validates document HTML (debounced). Use onCapabilitiesValidation for live results, or validateHtmlAgainstCapabilities outside the editor.',
     readOnlyExampleBody:
       'Lock both editing surfaces and all menus and toolbar buttons from the host. Default is false. Same lock as disabled.',
     htmlFileDropExampleBody:
@@ -402,6 +420,13 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
     allowedChromeAll: 'Todo',
     allowedChromeFileEdit: 'Archivo y Editar',
     allowedChromeFormat: 'Solo Formato',
+    renderingCapabilitiesAria: 'Capacidades de renderizado',
+    renderingCapabilitiesOff: 'Desactivado',
+    renderingCapabilitiesEmail: 'Contrato de correo',
+    renderingCapabilitiesSummary: '{errors} errores, {warnings} advertencias',
+    renderingCapabilitiesNoIssues: 'Sin problemas de compatibilidad',
+    renderingCapabilitiesSeverityError: 'Error',
+    renderingCapabilitiesSeverityWarning: 'Advertencia',
     readOnlyAria: 'Solo lectura',
     readOnly: 'Solo lectura',
     readOnlyOff: 'Editable',
@@ -515,6 +540,8 @@ export const playgroundMessages: Record<Locale, PlaygroundMessages> = {
       'Muestra u oculta la barra de menú y la barra de iconos, y controla la pantalla completa desde la aplicación anfitriona.',
     allowedChromeExampleBody:
       'Pasa allowedChrome para mostrar solo los menús y botones de la barra que el anfitrión permite. Las dos listas son independientes. Omite la propiedad para mostrar todo. Personalizar la barra y la persistencia siguen aplicándose al subconjunto permitido.',
+    renderingCapabilitiesExampleBody:
+      'Pasa renderingCapabilities con un objeto de contrato JSON. El editor oculta elementos incompatibles, filtra selectores y valida el HTML del documento (con retardo). Usa onCapabilitiesValidation para resultados en vivo o validateHtmlAgainstCapabilities fuera del editor.',
     readOnlyExampleBody:
       'Bloquea ambas superficies de edición y todos los menús y botones de la barra desde la aplicación anfitriona. El valor predeterminado es false. El mismo bloqueo que disabled.',
     htmlFileDropExampleBody:

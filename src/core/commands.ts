@@ -7,6 +7,7 @@ import { createTableCommands, createTableQueries } from '../modules/table/comman
 import { createHelpCommands } from '../modules/help/commands'
 import { createViewCommands, createViewQueries } from '../modules/view/commands'
 import { createCommentsCommands, createCommentsQueries } from '../modules/comments/commands'
+import { createCapabilitiesCommands } from '../modules/capabilities/commands'
 import type { CommandContext, EditorCommands, EditorQueries } from './commandTypes'
 
 export type { CommandContext, CommandName, EditorCommands, EditorQueries } from './commandTypes'
@@ -21,6 +22,7 @@ export function createEditorCommands(ctx: CommandContext): EditorCommands {
     ...createViewCommands(ctx),
     ...createFormatCommands(ctx),
     ...createCommentsCommands(ctx),
+    ...createCapabilitiesCommands(ctx),
     ...createHelpCommands(ctx),
   }
 }

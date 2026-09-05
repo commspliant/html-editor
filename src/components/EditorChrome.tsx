@@ -54,6 +54,8 @@ import type { ToolbarCatalog, ToolbarLayout } from '../toolbar/types'
 import type { ToolbarQueryRevisions } from '../toolbar/toolbarQueryRevisions'
 import { buildToolbarShellProps } from '../toolbar/toolbarShellProps'
 import { CustomizeToolbarDialog } from '../toolbar/CustomizeToolbarDialog'
+import type { CapabilityValidationResult } from '../capabilities/types'
+import { CompatibilityPanel } from '../modules/capabilities'
 import type {
   CustomAudioPicker,
   CustomImagePicker,
@@ -183,6 +185,11 @@ export type EditorChromeProps = {
 
   aboutDialogOpen: boolean
   onAboutDialogClose: () => void
+
+  compatibilityPanelOpen?: boolean
+  capabilitiesValidation?: CapabilityValidationResult | null
+  onCompatibilityPanelClose?: () => void
+  isToolbarItemAllowed?: (itemId: string) => boolean
 
   fontDialog: EditorFontDialogState
   fontSizeState: FontSizeQuery
@@ -315,6 +322,10 @@ export const EditorChrome = memo(function EditorChrome({
   onHelpTopicChange,
   aboutDialogOpen,
   onAboutDialogClose,
+  compatibilityPanelOpen = false,
+  capabilitiesValidation = null,
+  onCompatibilityPanelClose,
+  isToolbarItemAllowed,
   fontDialog,
   fontSizeState,
   markState,
@@ -416,6 +427,7 @@ export const EditorChrome = memo(function EditorChrome({
           loading={toolbarSettingsLoading}
           busy={toolbarSettingsBusy}
           disabled={contentLocked}
+          isItemAllowed={isToolbarItemAllowed}
           onChange={onToolbarSettingsChange}
           onReset={onToolbarSettingsReset}
           onClose={onCustomizeToolbarClose}
@@ -437,6 +449,13 @@ export const EditorChrome = memo(function EditorChrome({
         />
       ) : null}
       {aboutDialogOpen ? <AboutDialog open onClose={onAboutDialogClose} /> : null}
+      {compatibilityPanelOpen ? (
+        <CompatibilityPanel
+          open
+          result={capabilitiesValidation}
+          onClose={() => onCompatibilityPanelClose?.()}
+        />
+      ) : null}
       {fontDialog.open ? (
         <FontPropertiesDialog
           open

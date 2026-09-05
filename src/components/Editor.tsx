@@ -64,6 +64,7 @@ import {
   queryPageAtRule,
   stripPageAtRuleFromHtml,
 } from '../core/pageAtRule'
+import { stripPageChromeFromPageHtml } from '../core/stripPageChrome'
 import {
   buildPageHtmlWithMarginPx,
   previewPageCanvasMargins,
@@ -237,6 +238,20 @@ import {
   writeToolbarPositionToStorage,
 } from '../modules/view/toolbarPositionPersistence'
 import { shouldOpenEditorContextMenu, type ContextMenuKind } from '../modules/contextMenu'
+import { CapabilitiesProvider } from '../capabilities/CapabilitiesContext'
+import {
+  filterCapabilitiesLayout,
+  isToolbarItemAllowedByCapabilities,
+  resolveEditorCapabilities,
+  validatePagesAgainstCapabilities,
+  isPageLayoutAllowed,
+  type CapabilityValidationResult,
+  type RenderingCapabilities,
+} from '../capabilities'
+import {
+  mergeCapabilitiesCatalog,
+  mergeCapabilitiesLayout,
+} from '../modules/capabilities'
 import { useHtmlFileDrop } from '../modules/file/useHtmlFileDrop'
 import {
   createDocumentHistory,
@@ -354,19 +369,27 @@ export function Editor({
   comments: commentsProp,
   defaultComments = [],
   onCommentsChange,
+  renderingCapabilities,
+  onCapabilitiesValidation,
 }: EditorProps) {
   const contentLocked = Boolean(disabled || readOnly)
   const chromeDisabled = Boolean(disabled)
+  const pageLayoutAllowed = renderingCapabilities
+    ? isPageLayoutAllowed(renderingCapabilities)
+    : true
   const isControlledContent = enableMultiPages ? pagesProp !== undefined : value !== undefined
   const rawInitialPages = normalizePages(
     defaultPages ?? (defaultValue.trim() ? [defaultValue] : [emptyPageHtml()]),
   )
-  const initialPages =
-    !isControlledContent && defaultPageProperties
-      ? rawInitialPages.map((page) =>
-          applyDefaultPagePropertiesToPageHtml(page, defaultPageProperties),
-        )
-      : rawInitialPages
+  let initialPages = rawInitialPages
+  if (!isControlledContent && defaultPageProperties && pageLayoutAllowed) {
+    initialPages = rawInitialPages.map((page) =>
+      applyDefaultPagePropertiesToPageHtml(page, defaultPageProperties),
+    )
+  }
+  if (!pageLayoutAllowed) {
+    initialPages = initialPages.map(stripPageChromeFromPageHtml)
+  }
   const imageRegistryRef = useRef<ImageRegistry | null>(null)
   if (optimizeEmbeddedImages && imageRegistryRef.current === null) {
     imageRegistryRef.current = createImageRegistry()
@@ -456,6 +479,8 @@ export function Editor({
   enableMultiPagesRef.current = enableMultiPages
   const defaultPagePropertiesRef = useRef(defaultPageProperties)
   defaultPagePropertiesRef.current = defaultPageProperties
+  const pageLayoutAllowedRef = useRef(pageLayoutAllowed)
+  pageLayoutAllowedRef.current = pageLayoutAllowed
   const enableCommentsRef = useRef(enableComments)
   enableCommentsRef.current = enableComments
   const readOnlyRef = useRef(readOnly)
@@ -678,6 +703,14 @@ export function Editor({
     aboutDialogOpen,
     setAboutDialogOpen,
   } = useEditorDialogState()
+  const [compatibilityPanelOpen, setCompatibilityPanelOpen] = useState(false)
+  const [capabilitiesValidation, setCapabilitiesValidation] = useState<CapabilityValidationResult | null>(null)
+  const onCapabilitiesValidationRef = useRef(onCapabilitiesValidation)
+  onCapabilitiesValidationRef.current = onCapabilitiesValidation
+  const capabilityProfile = useMemo(
+    () => (renderingCapabilities ? resolveEditorCapabilities(renderingCapabilities) : undefined),
+    [renderingCapabilities],
+  )
   const [dark, setDark] = useState(() => {
     if (darkModePersistence) return darkMode
     return readDarkModeFromStorage() ?? darkMode
@@ -1551,9 +1584,13 @@ export function Editor({
       const currentPages = flushMultiPageHtml()
       const clampedInsertAt = Math.max(0, Math.min(insertAt, currentPages.length))
       const nextPages = [...currentPages]
-      const blank = defaultPagePropertiesRef.current
-        ? applyDefaultPagePropertiesToPageHtml(emptyPageHtml(), defaultPagePropertiesRef.current)
-        : emptyPageHtml()
+      const blank =
+        pageLayoutAllowedRef.current && defaultPagePropertiesRef.current
+          ? applyDefaultPagePropertiesToPageHtml(
+              emptyPageHtml(),
+              defaultPagePropertiesRef.current,
+            )
+          : emptyPageHtml()
       nextPages.splice(clampedInsertAt, 0, blank)
       const storedPages = nextPages.map((page) => externalizeStorageHtml(page))
       commitPages(nextPages, false, undefined, { skipHistory: true })
@@ -2859,6 +2896,16 @@ export function Editor({
       openAbout: () => {
         setAboutDialogOpen(true)
       },
+      openCompatibilityCheck: () => {
+        if (!renderingCapabilities) return
+        const pages = enableMultiPagesRef.current
+          ? [...pagesRef.current]
+          : [htmlRef.current]
+        const result = validatePagesAgainstCapabilities(pages, renderingCapabilities)
+        setCapabilitiesValidation(result)
+        onCapabilitiesValidationRef.current?.(result)
+        setCompatibilityPanelOpen(true)
+      },
       toggleReadAloud: () => {
         const session = readAloudSessionRef.current
         if (!session) return
@@ -3551,8 +3598,52 @@ export function Editor({
           }
         : {}),
     }),
-    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistPageZoom, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, runInsertPageBefore, runInsertPageAfter, runDeleteSelectedPage, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState, enablePageProperties],
+    [recordHtml, recordVisualHtml, recordVisualHtmlFromRoot, recordCommentAnchorsFromRoot, handleModeChange, setFullscreen, persistDarkMode, persistPageZoom, persistToolbarPosition, applyInsert, undo, redo, captureSelection, refreshMarkState, restoreVisualRange, applyFontSize, applyFontFamily, applyInlineColor, applyProperties, applyCustomCss, applyParagraphProperties, applyPageProperties, applyLink, applyBookmark, applyImage, applyAudio, applyYoutube, applyImageProperties, applyTable, applyTableProperties, applyCellProperties, applyRowProperties, runTableStructure, insertCustomImage, insertCustomAudio, insertCustomVideo, getDocumentHtml, getActivePageHtml, getAllPagesHtml, runInsertPageBefore, runInsertPageAfter, runDeleteSelectedPage, toggleFormatBrush, onSave, onOpen, disabled, setCommentThreadsState, enablePageProperties, renderingCapabilities],
   )
+
+  const runCapabilitiesValidation = useCallback(() => {
+    if (!renderingCapabilities) {
+      setCapabilitiesValidation(null)
+      return null
+    }
+    const pages = enableMultiPagesRef.current ? [...pagesRef.current] : [htmlRef.current]
+    const result = validatePagesAgainstCapabilities(pages, renderingCapabilities)
+    setCapabilitiesValidation(result)
+    onCapabilitiesValidationRef.current?.(result)
+    return result
+  }, [renderingCapabilities])
+
+  useEffect(() => {
+    if (!renderingCapabilities) {
+      setCapabilitiesValidation(null)
+      return
+    }
+    const timeout = window.setTimeout(() => {
+      runCapabilitiesValidation()
+    }, 750)
+    return () => window.clearTimeout(timeout)
+  }, [historyRevision, renderingCapabilities, runCapabilitiesValidation])
+
+  const prevPageLayoutAllowedRef = useRef(pageLayoutAllowed)
+  useEffect(() => {
+    const wasAllowed = prevPageLayoutAllowedRef.current
+    prevPageLayoutAllowedRef.current = pageLayoutAllowed
+    if (!wasAllowed || pageLayoutAllowed) return
+    if (enableMultiPagesRef.current) {
+      const pages = flushMultiPageHtml({ allPages: true })
+      const stripped = pages.map(stripPageChromeFromPageHtml)
+      if (stripped.some((page, index) => page !== pages[index])) {
+        commitPages(stripped, false)
+      }
+      return
+    }
+    const previous = htmlRef.current
+    const extracted = extractFontStylesheets(previous)
+    const strippedBody = stripPageChromeFromPageHtml(extracted.body)
+    if (strippedBody !== extracted.body) {
+      commitHtml(prependFontStylesheets(strippedBody, extracted.hrefs), { fullReplace: true })
+    }
+  }, [pageLayoutAllowed, flushMultiPageHtml, commitPages, commitHtml])
 
   const applyPinnedCustomActionInsert = useCallback(
     (
@@ -3735,14 +3826,25 @@ export function Editor({
     () => filterMultiPageLayout(customizedLayout, insertPageVisible),
     [customizedLayout, insertPageVisible],
   )
-  const displayCatalog = useMemo(
-    () => (enableComments ? mergeCommentsCatalog(baseCatalog, commentsVisible) : baseCatalog),
-    [baseCatalog, enableComments, commentsVisible],
+  const capabilitiesLayout = useMemo(
+    () => filterCapabilitiesLayout(multiPageLayout, capabilityProfile),
+    [multiPageLayout, capabilityProfile],
   )
-  const displayLayout = useMemo(
-    () => (enableComments ? mergeCommentsLayout(multiPageLayout) : multiPageLayout),
-    [multiPageLayout, enableComments],
+  const capabilitiesCatalog = useMemo(
+    () => (capabilityProfile ? mergeCapabilitiesCatalog(baseCatalog) : baseCatalog),
+    [baseCatalog, capabilityProfile],
   )
+  const displayCatalog = useMemo(() => {
+    const catalog = enableComments
+      ? mergeCommentsCatalog(capabilitiesCatalog, commentsVisible)
+      : capabilitiesCatalog
+    return catalog
+  }, [capabilitiesCatalog, enableComments, commentsVisible])
+  const displayLayout = useMemo(() => {
+    let layout = capabilityProfile ? mergeCapabilitiesLayout(capabilitiesLayout) : capabilitiesLayout
+    if (enableComments) layout = mergeCommentsLayout(layout)
+    return layout
+  }, [capabilitiesLayout, capabilityProfile, enableComments])
   const chromeLock = useMemo<ChromeLockOptions>(
     () => ({ disabled: chromeDisabled, readOnly, enableComments }),
     [chromeDisabled, readOnly, enableComments],
@@ -4137,10 +4239,23 @@ export function Editor({
     () => ({ documentBridgeRef, htmlRef, pagesRef }),
     [],
   )
+  const capabilitiesContextValue = useMemo(
+    () => ({
+      profile: capabilityProfile,
+      validation: capabilitiesValidation,
+      refreshValidation: runCapabilitiesValidation,
+    }),
+    [capabilityProfile, capabilitiesValidation, runCapabilitiesValidation],
+  )
+  const isToolbarItemAllowed = useCallback(
+    (itemId: string) => isToolbarItemAllowedByCapabilities(itemId, capabilityProfile),
+    [capabilityProfile],
+  )
 
   return (
     <LocaleProvider locale={locale}>
       <ChromeThemeProvider dark={dark}>
+        <CapabilitiesProvider value={capabilitiesContextValue}>
         <EditorShellProvider value={shellContextValue}>
           <div
             className={rootClassName}
@@ -4228,7 +4343,7 @@ export function Editor({
               }
               onApplyCustomCss={(css) => commandContext.applyCustomCss(css)}
               pageDialog={pageDialog}
-              enablePageProperties={enablePageProperties}
+              enablePageProperties={enablePageProperties && pageLayoutAllowed}
               onPageCustomImagePick={() => {
                 resolvedBackgroundImagePicker?.onPick((image) => {
                   setPageDialog((prev) => ({
@@ -4356,6 +4471,10 @@ export function Editor({
                 setRowProperties((prev) => ({ ...prev, open: false }))
               }
               onApplyRowProperties={(draft) => commandContext.applyRowProperties(draft)}
+              compatibilityPanelOpen={compatibilityPanelOpen}
+              capabilitiesValidation={capabilitiesValidation}
+              onCompatibilityPanelClose={() => setCompatibilityPanelOpen(false)}
+              isToolbarItemAllowed={capabilityProfile ? isToolbarItemAllowed : undefined}
             />
             <EditorWorkspaceFrame
               toolbarVisible={toolbarVisible}
@@ -4396,11 +4515,14 @@ export function Editor({
                 commands={commands}
                 htmlFileDropDragging={htmlFileDrop.dragging}
                 selectedImage={selectedImage}
+                hiddenContextMenuCommands={capabilityProfile?.hiddenContextMenuCommands}
+                pageLayoutEnabled={pageLayoutAllowed}
               />
             </EditorWorkspaceFrame>
             {fullscreen ? <ExitFullscreenButton onClick={() => setFullscreen(false)} /> : null}
           </div>
         </EditorShellProvider>
+        </CapabilitiesProvider>
       </ChromeThemeProvider>
     </LocaleProvider>
   )

@@ -37,6 +37,7 @@ import { ColorField } from './ColorField'
 import { LengthField } from './LengthField'
 import { ShadowFields } from './ShadowFields'
 import { PARAGRAPH_DIALOG_TABS } from './paragraphDialog'
+import { useCapabilitiesProfile } from '../../capabilities/CapabilitiesContext'
 import { PAGE_DIALOG_TABS } from './pageDialog'
 import { PageBackgroundImageFields } from './PageBackgroundImageFields'
 import styles from './FontPropertiesDialog.module.css'
@@ -154,9 +155,15 @@ export function ParagraphPropertiesFields({
   onChange,
 }: ParagraphPropertiesFieldsProps) {
   const t = useT()
-  const visibleTabs = tabs
+  const capabilityProfile = useCapabilitiesProfile()
+  const hiddenParagraphTabs = new Set([
+    ...(capabilityProfile?.hiddenDialogTabs?.paragraph ?? []),
+    ...(tabs ? capabilityProfile?.hiddenDialogTabs?.page ?? [] : []),
+  ])
+  const baseTabs = tabs
     ? mergedDialogTabs().filter((item) => tabs.includes(item.id))
     : PARAGRAPH_DIALOG_TABS
+  const visibleTabs = baseTabs.filter((item) => !hiddenParagraphTabs.has(item.id))
   const borderStyleId = useId()
   const breakInsideId = useId()
   const breakAfterId = useId()
