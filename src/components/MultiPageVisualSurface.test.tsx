@@ -11,6 +11,7 @@ import { applyPagePropertiesInDocument, emptyPagePropertiesApply } from '../core
 import { estimatePageRowHeight } from '../core/pageRowHeight'
 import { LocaleProvider } from '../i18n/LocaleProvider'
 import { MultiPageVisualSurface } from './MultiPageVisualSurface'
+import styles from './Editor.module.css'
 
 const pageA4 =
   '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style><div data-page><p>One</p></div>'
@@ -35,18 +36,20 @@ function renderMultiPage(
   function Harness() {
     const scrollRef = useRef<HTMLDivElement>(null)
     return (
-      <div ref={scrollRef} style={{ height: 300, overflow: 'auto' }}>
-        <MultiPageVisualSurface
-          pages={pages}
-          activePageIndex={props.activePageIndex ?? 0}
-          hasSelectedPage={props.hasSelectedPage ?? true}
-          scrollRootRef={scrollRef}
-          onActivePageIndexChange={props.onActivePageIndexChange ?? (() => undefined)}
-          onPageChange={props.onPageChange ?? (() => undefined)}
-          onPageFlush={props.onPageFlush}
-          rulerVisible={props.rulerVisible ?? true}
-          {...props}
-        />
+      <div className={styles.root}>
+        <div ref={scrollRef} style={{ height: 300, overflow: 'auto' }}>
+          <MultiPageVisualSurface
+            pages={pages}
+            activePageIndex={props.activePageIndex ?? 0}
+            hasSelectedPage={props.hasSelectedPage ?? true}
+            scrollRootRef={scrollRef}
+            onActivePageIndexChange={props.onActivePageIndexChange ?? (() => undefined)}
+            onPageChange={props.onPageChange ?? (() => undefined)}
+            onPageFlush={props.onPageFlush}
+            rulerVisible={props.rulerVisible ?? true}
+            {...props}
+          />
+        </div>
       </div>
     )
   }
@@ -335,5 +338,20 @@ describe('MultiPageVisualSurface rulers', () => {
       'utf8',
     )
     expect(css).toContain('.visual:has(> [data-page-bg]) > [data-page]')
+  })
+
+  it('lets unsized page rows grow with tall content', () => {
+    const tallPlain =
+      '<div data-page>' +
+      Array.from({ length: 40 }, (_, index) => `<p>Plain line ${index + 1}</p>`).join('') +
+      '</div>'
+
+    renderMultiPage({ pages: [tallPlain], rulerVisible: false })
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' }) as HTMLDivElement
+    expect(visual).not.toHaveAttribute('data-page-sized')
+    expect(visual.style.height).toBe('')
+    const shell = visual.querySelector('[data-page]') as HTMLElement
+    expect(shell.style.height).toBe('100%')
   })
 })
