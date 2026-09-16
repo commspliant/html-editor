@@ -8,6 +8,12 @@ describe('pageZoomPersistence', () => {
     expect(parsePageZoom('invalid')).toBeNull()
   })
 
+  it('does not proto-merge JSON objects (WE-026)', () => {
+    const value = JSON.parse('{"__proto__":{"polluted":true}}') as unknown
+    expect(parsePageZoom(value)).toBeNull()
+    expect(Object.prototype).not.toHaveProperty('polluted')
+  })
+
   it('writes and reads from localStorage', () => {
     writePageZoomToStorage(125)
     expect(readPageZoomFromStorage()).toBe(125)

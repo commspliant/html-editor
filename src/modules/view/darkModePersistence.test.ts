@@ -14,6 +14,12 @@ describe('parseDarkMode', () => {
     expect(parseDarkMode('true')).toBeNull()
     expect(parseDarkMode(1)).toBeNull()
   })
+
+  it('does not proto-merge JSON objects (WE-026)', () => {
+    const value = JSON.parse('{"__proto__":{"polluted":true}}') as unknown
+    expect(parseDarkMode(value)).toBeNull()
+    expect(Object.prototype).not.toHaveProperty('polluted')
+  })
 })
 
 describe('dark mode localStorage', () => {

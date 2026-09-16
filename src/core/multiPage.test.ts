@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DOCUMENT_TRUNCATED_COMMENT,
+  MAX_EDITOR_HTML_CHARS,
+  MAX_EDITOR_PAGE_COUNT,
   PAGE_SEPARATOR,
   PAGE_SURFACE_ATTR,
+  clampDocumentPages,
   closestPageSurface,
   emptyPageHtml,
   joinPagesToHtml,
@@ -101,5 +105,34 @@ describe('multiPage', () => {
     expect(pagesArraysEqual(a, b)).toBe(true)
     expect(pagesArraysEqual(a, ['<p>One</p>', '<p>Three</p>'])).toBe(false)
     expect(pagesArraysEqual(a, a)).toBe(true)
+  })
+
+  it('splitPagesFromHtml does not clamp oversized input (WE-024)', () => {
+    const pages = Array.from({ length: MAX_EDITOR_PAGE_COUNT + 2 }, (_, i) => `<p>${i}</p>`)
+    const joined = joinPagesToHtml(pages)
+    expect(splitPagesFromHtml(joined)).toHaveLength(MAX_EDITOR_PAGE_COUNT + 2)
+  })
+
+  it('clampDocumentPages drops extra pages and marks the remainder (WE-024)', () => {
+    const pages = Array.from({ length: MAX_EDITOR_PAGE_COUNT + 3 }, (_, i) => `<p>${i}</p>`)
+    const clamped = clampDocumentPages(pages)
+    expect(clamped.truncated).toBe(true)
+    expect(clamped.pages).toHaveLength(MAX_EDITOR_PAGE_COUNT)
+    expect(clamped.pages.at(-1)).toContain(DOCUMENT_TRUNCATED_COMMENT)
+    expect(clamped.pages[0]).toBe('<p>0</p>')
+  })
+
+  it('clampDocumentPages drops trailing pages that exceed the HTML budget (WE-024)', () => {
+    const huge = 'x'.repeat(MAX_EDITOR_HTML_CHARS - 10)
+    const clamped = clampDocumentPages([huge, '<p>drop-me</p>', '<p>also</p>'])
+    expect(clamped.truncated).toBe(true)
+    expect(clamped.pages).toHaveLength(1)
+    expect(clamped.pages[0]).toContain(DOCUMENT_TRUNCATED_COMMENT)
+    expect(clamped.pages.join('')).not.toContain('drop-me')
+  })
+
+  it('clampDocumentPages is a no-op under the documented limits (WE-024)', () => {
+    const pages = ['<p>One</p>', '<p>Two</p>']
+    expect(clampDocumentPages(pages)).toEqual({ pages: ['<p>One</p>', '<p>Two</p>'], truncated: false })
   })
 })
