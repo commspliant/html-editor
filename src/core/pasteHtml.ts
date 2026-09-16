@@ -1,7 +1,8 @@
 import { sanitizePageHtml } from './sanitizeHtml'
 
-type PasteEventLike = {
-  clipboardData: DataTransfer | null
+type TransferEventLike = {
+  clipboardData?: DataTransfer | null
+  dataTransfer?: DataTransfer | null
   preventDefault: () => void
 }
 
@@ -26,10 +27,12 @@ function insertHtmlAtRange(range: Range, html: string): void {
   }
 }
 
-/** Intercept paste into a contentEditable surface and insert sanitized HTML. */
-export function handleContentEditablePaste(event: PasteEventLike, root: HTMLElement): boolean {
-  const data = event.clipboardData
-  if (!data) return false
+function transferFromEvent(event: TransferEventLike): DataTransfer | null {
+  return event.clipboardData ?? event.dataTransfer ?? null
+}
+
+function insertSanitizedTransfer(event: TransferEventLike, root: HTMLElement, data: DataTransfer): boolean {
+  if (data.files && data.files.length > 0) return false
   let html = ''
   let text = ''
   try {
@@ -53,4 +56,18 @@ export function handleContentEditablePaste(event: PasteEventLike, root: HTMLElem
   }
   root.dispatchEvent(new InputEvent('input', { bubbles: true }))
   return true
+}
+
+/** Intercept paste into a contentEditable surface and insert sanitized HTML. */
+export function handleContentEditablePaste(event: TransferEventLike, root: HTMLElement): boolean {
+  const data = transferFromEvent(event)
+  if (!data) return false
+  return insertSanitizedTransfer(event, root, data)
+}
+
+/** Intercept native HTML drop / insertFromDrop the same way as paste. File drops are left to the host. */
+export function handleContentEditableDrop(event: TransferEventLike, root: HTMLElement): boolean {
+  const data = transferFromEvent(event)
+  if (!data) return false
+  return insertSanitizedTransfer(event, root, data)
 }

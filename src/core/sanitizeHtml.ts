@@ -67,11 +67,13 @@ function compactUri(value: string): string {
   return decodeUriValue(value).replace(/[\u0000-\u001F\u007F\s]+/g, '')
 }
 
-/** True for javascript:, vbscript:, and data:text/html, including HTML-entity encodings. */
+/** True for javascript:, vbscript:, data:text/html, data:image/svg+xml, and file: URIs. */
 export function isDangerousUri(value: string): boolean {
   const compact = compactUri(value)
   if (/^(?:javascript|vbscript)\s*:/i.test(compact)) return true
+  if (/^file\s*:/i.test(compact)) return true
   if (/^data\s*:\s*text\s*\/\s*html/i.test(compact)) return true
+  if (/^data\s*:\s*image\s*\/\s*svg\s*\+\s*xml/i.test(compact)) return true
   return false
 }
 
