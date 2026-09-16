@@ -295,6 +295,13 @@ export type CommentAuthor = {
 }
 
 export type EditorProps = {
+  /**
+   * Security flags (`sanitizeHtml`, `transformHtml`, `enableMultiPages`) interact.
+   * Default sanitization runs on inbound HTML and every outbound write, including
+   * multi-page commits. `transformHtml` is extra host filtering after that.
+   * `sanitizeHtml={false}` is the dangerouslyDisableSanitize escape hatch.
+   * See `SECURITY.md`.
+   */
   value?: string
   defaultValue?: string
   onChange?: (html: string) => void
@@ -371,8 +378,12 @@ export type EditorProps = {
    * When true (default), strip XSS vectors (scripts, event handlers, dangerous URIs,
    * iframe/form/object/embed) from document HTML on inbound `value` / `defaultValue` /
    * `pages` and on every outbound write, including multi-page commits. Tables and
-   * inline styles used for email are kept. Set false to disable; use `transformHtml`
-   * for custom filtering instead.
+   * inline styles used for email are kept.
+   *
+   * `sanitizeHtml={false}` is the dangerouslyDisableSanitize escape hatch: it turns
+   * off built-in filtering. Hosts that already set this keep working; in development
+   * the editor logs a console warning. Prefer `transformHtml` (or a server sanitizer)
+   * instead of disabling this unless you fully control the HTML.
    */
   sanitizeHtml?: boolean
   /**
@@ -492,6 +503,8 @@ export type EditorProps = {
   /**
    * When true, the editor manages multiple independent HTML pages in visual mode.
    * Default `false` (single document, unchanged behavior).
+   * Documents are clamped to `MAX_EDITOR_PAGE_COUNT` / `MAX_EDITOR_HTML_CHARS`
+   * (see `SECURITY.md`); dropped content is marked with `DOCUMENT_TRUNCATED_COMMENT`.
    */
   enableMultiPages?: boolean
   /** Controlled page HTML strings when `enableMultiPages` is true. */

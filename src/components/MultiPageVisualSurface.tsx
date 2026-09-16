@@ -12,7 +12,7 @@ import {
   type RefObject,
 } from 'react'
 import { extractFontStylesheets } from '../core/fontFamily'
-import { PAGE_SURFACE_ATTR, queryPageSurface } from '../core/multiPage'
+import { PAGE_SURFACE_ATTR, queryPageSurface, queryPageSurfaceIndex } from '../core/multiPage'
 import { createPageHeightCache, estimatePageRowHeight, buildPrefixSums } from '../core/pageRowHeight'
 import {
   absorbLooseBlocksIntoPageShell,
@@ -45,6 +45,8 @@ export type MultiPageVisualSurfaceHandle = {
   getActivePageRoot: () => HTMLElement | null
   getActivePageIndex: () => number
   flushPageHtml: (index: number) => string | null
+  /** Flush live HTML for every currently mounted page that has pending input. */
+  flushDirtyPages: () => void
   ensurePageMounted: (index: number) => void
   focusPageAt: (index: number) => void
   activatePageAt: (index: number) => void
@@ -99,6 +101,7 @@ type MemoizedPageRowProps = {
   onPageChange: (index: number, html: string) => void
   onPageFlush?: (index: number, html: string) => void
   suppressPageFlushRef?: MutableRefObject<boolean>
+  dirtyHtmlByIndexRef?: MutableRefObject<Map<number, string>>
   onMeasured?: (index: number, height: number) => void
   onMarginChange?: (index: number, sides: PageMarginSidesPx) => void
   onMarginPreview?: (index: number, sides: PageMarginSidesPx) => void
@@ -123,6 +126,7 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
   onPageChange,
   onPageFlush,
   suppressPageFlushRef,
+  dirtyHtmlByIndexRef,
   onMeasured,
   onMarginChange,
   onMarginPreview,
@@ -162,8 +166,9 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
       if (suppressPageFlushRef?.current) return
       if (!dirtyRef.current || !onPageFlushRef.current) return
       onPageFlushRef.current(index, htmlSnapshotRef.current)
+      dirtyHtmlByIndexRef?.current.delete(index)
     }
-  }, [index, suppressPageFlushRef])
+  }, [index, suppressPageFlushRef, dirtyHtmlByIndexRef])
 
   return (
     <RulerPageRow
@@ -217,6 +222,7 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
           htmlSnapshotRef.current = surface.innerHTML
           const { absorbedBlocks } = absorbLooseBlocksIntoPageShell(surface)
           htmlSnapshotRef.current = surface.innerHTML
+          dirtyHtmlByIndexRef?.current.set(index, htmlSnapshotRef.current)
           onPageChange(index, surface.innerHTML)
           if (absorbedBlocks.length > 0) {
             const count = absorbedBlocks.length
@@ -299,6 +305,7 @@ export const MultiPageVisualSurface = forwardRef<
   const prevVisibleIndicesRef = useRef<readonly number[]>([])
   const heightCacheRef = useRef(createPageHeightCache())
   const suppressPageFlushRefProp = suppressPageFlushRef
+  const dirtyHtmlByIndexRef = useRef(new Map<number, string>())
 
   const getActiveIndex = useCallback(() => activeIndexRef.current, [])
 
@@ -417,6 +424,26 @@ export const MultiPageVisualSurface = forwardRef<
     [activePageIndex, onActivePageIndexChange, refreshRulerMetrics, scrollToPage, visibleIndices],
   )
 
+  const flushMountedPageHtml = useCallback((options?: { dirtyOnly?: boolean }) => {
+    if (suppressPageFlushRefProp?.current) return
+    const dirtyOnly = options?.dirtyOnly !== false
+    const container = containerRef.current
+    if (dirtyOnly) {
+      for (const [index, html] of dirtyHtmlByIndexRef.current) {
+        onPageFlushRef.current?.(index, html)
+      }
+      dirtyHtmlByIndexRef.current.clear()
+      return
+    }
+    if (!container) return
+    for (const node of container.querySelectorAll<HTMLElement>(`[${PAGE_SURFACE_ATTR}]`)) {
+      const index = queryPageSurfaceIndex(node)
+      if (index === null) continue
+      onPageFlushRef.current?.(index, node.innerHTML)
+    }
+    dirtyHtmlByIndexRef.current.clear()
+  }, [suppressPageFlushRefProp])
+
   useImperativeHandle(ref, () => ({
     getContainer: () => containerRef.current,
     getActivePageRoot: () => {
@@ -429,6 +456,9 @@ export const MultiPageVisualSurface = forwardRef<
       const container = containerRef.current
       if (!container) return null
       return queryPageSurface(container, index)?.innerHTML ?? null
+    },
+    flushDirtyPages: () => {
+      flushMountedPageHtml({ dirtyOnly: true })
     },
     ensurePageMounted: (index: number) => {
       scrollToPage(index)
@@ -480,6 +510,12 @@ export const MultiPageVisualSurface = forwardRef<
     if (!container) return
     const prev = prevPagesRef.current
     const lengthChanged = prev === null || prev.length !== pages.length
+    const suppressFlush = Boolean(suppressPageFlushRefProp?.current)
+    // WE-022: persist in-progress edits before page-array length changes so
+    // force-sync / virtualization remount cannot drop them.
+    if (lengthChanged && prev !== null && !suppressFlush) {
+      flushMountedPageHtml({ dirtyOnly: true })
+    }
     if (lengthChanged) {
       scrollPageIntoViewIfNeededRef.current(activePageIndex)
     }
@@ -494,7 +530,9 @@ export const MultiPageVisualSurface = forwardRef<
       if (!lengthChanged && !newlyVisible && !pageChanged) continue
       const surface = queryPageSurface(container, index)
       if (surface) {
-        syncSurfaceHtml(index, surface, pages[index] ?? '', { forceBodySync: lengthChanged })
+        const forceBodySync =
+          lengthChanged && (suppressFlush || pageChanged || prev === null)
+        syncSurfaceHtml(index, surface, pages[index] ?? '', { forceBodySync })
       }
     }
     prevPagesRef.current = pages
@@ -504,7 +542,15 @@ export const MultiPageVisualSurface = forwardRef<
     }
     const frame = requestAnimationFrame(refreshRulerMetrics)
     return () => cancelAnimationFrame(frame)
-  }, [activePageIndex, pages, suppressPageFlushRefProp, syncSurfaceHtml, refreshRulerMetrics, visibleIndices])
+  }, [
+    activePageIndex,
+    flushMountedPageHtml,
+    pages,
+    suppressPageFlushRefProp,
+    syncSurfaceHtml,
+    refreshRulerMetrics,
+    visibleIndices,
+  ])
 
   useLayoutEffect(() => {
     const container = containerRef.current
@@ -569,6 +615,7 @@ export const MultiPageVisualSurface = forwardRef<
           onPageChange={handlePageChange}
           onPageFlush={handlePageFlush}
           suppressPageFlushRef={suppressPageFlushRefProp}
+          dirtyHtmlByIndexRef={dirtyHtmlByIndexRef}
           onMeasured={handleRowMeasured}
           onMarginChange={handleMarginChange}
           onMarginPreview={handleMarginPreview}

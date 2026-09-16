@@ -4,11 +4,72 @@ export const PAGE_SEPARATOR = '<!-- wysiwyg-page-separator -->'
 
 export const PAGE_SURFACE_ATTR = 'data-page-surface'
 
+/**
+ * Soft cap on page count to avoid tab OOM / freeze on hostile or accidental
+ * multi-MB HTML. Enforced by `clampDocumentPages` (editor ingest/commit), not by
+ * `splitPagesFromHtml` (public split stays lossless).
+ */
+export const MAX_EDITOR_PAGE_COUNT = 500
+
+/**
+ * Soft cap on total document HTML characters (~5MB). Same enforcement as
+ * `MAX_EDITOR_PAGE_COUNT`.
+ */
+export const MAX_EDITOR_HTML_CHARS = 5_000_000
+
+/**
+ * Marker appended when `clampDocumentPages` drops pages or HTML so truncation
+ * is visible in source — never silent.
+ */
+export const DOCUMENT_TRUNCATED_COMMENT = '<!-- wysiwyg-truncated -->'
+
 export function splitPagesFromHtml(html: string): string[] {
   const trimmed = html.trim()
   if (!trimmed) return ['']
   if (!trimmed.includes(PAGE_SEPARATOR)) return [html]
   return html.split(PAGE_SEPARATOR).map((page) => page.trim())
+}
+
+/**
+ * Drop extra pages / tail HTML that would exceed the documented size guards.
+ * Does not mutate input. When content is dropped, the last kept page gets
+ * `DOCUMENT_TRUNCATED_COMMENT` unless it already contains that marker.
+ */
+export function clampDocumentPages(pages: readonly string[]): {
+  pages: string[]
+  truncated: boolean
+} {
+  const source = pages.length === 0 ? [emptyPageHtml()] : [...pages]
+  let truncated = false
+  let next = source
+
+  if (next.length > MAX_EDITOR_PAGE_COUNT) {
+    next = next.slice(0, MAX_EDITOR_PAGE_COUNT)
+    truncated = true
+  }
+
+  let total = 0
+  for (const page of next) total += page.length
+
+  while (next.length > 1 && total > MAX_EDITOR_HTML_CHARS) {
+    const removed = next.pop()
+    total -= removed?.length ?? 0
+    truncated = true
+  }
+
+  if (next.length === 1 && (next[0]?.length ?? 0) > MAX_EDITOR_HTML_CHARS) {
+    const budget = Math.max(0, MAX_EDITOR_HTML_CHARS - DOCUMENT_TRUNCATED_COMMENT.length)
+    next = [`${next[0]!.slice(0, budget)}${DOCUMENT_TRUNCATED_COMMENT}`]
+    truncated = true
+  } else if (truncated) {
+    const lastIndex = next.length - 1
+    const last = next[lastIndex] ?? ''
+    if (!last.includes(DOCUMENT_TRUNCATED_COMMENT)) {
+      next[lastIndex] = `${last}\n${DOCUMENT_TRUNCATED_COMMENT}`
+    }
+  }
+
+  return { pages: next, truncated }
 }
 
 export function joinPagesToHtml(pages: readonly string[]): string {

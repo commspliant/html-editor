@@ -139,4 +139,15 @@ describe('parseToolbarCustomization', () => {
       hiddenItemIds: ['print'],
     })
   })
+
+  it('does not proto-merge JSON.parse payloads (WE-026)', () => {
+    const raw = JSON.parse(
+      '{"groupOrder":["file"],"hiddenItemIds":["print"],"__proto__":{"polluted":true}}',
+    ) as unknown
+    const parsed = parseToolbarCustomization(raw)
+    expect(parsed).toEqual({ groupOrder: ['file'], hiddenItemIds: ['print'] })
+    expect(parsed).not.toHaveProperty('polluted')
+    expect(Object.prototype).not.toHaveProperty('polluted')
+    expect(parseToolbarCustomization(['file'])).toBeNull()
+  })
 })

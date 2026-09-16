@@ -19,6 +19,12 @@ export type ImageRegistry = {
   has: (id: string) => boolean
   externalizeHtml: (html: string) => string
   hydrateHtml: (html: string) => string
+  /**
+   * Revoke object URLs whose ids (or blob URLs) no longer appear in the live HTML.
+   * Data URLs stay cached so undo/re-externalize can recreate display blobs.
+   * Returns the ids whose object URLs were revoked.
+   */
+  pruneUnreferenced: (html: string | readonly string[]) => string[]
   clear: () => void
 }
 
@@ -67,6 +73,22 @@ function createId(): string {
   return `img-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+const EMBEDDED_ID_RE = new RegExp(`${EMBEDDED_IMAGE_ID_ATTR}="([^"]+)"`, 'g')
+
+function collectReferencedIds(html: string | readonly string[]): Set<string> {
+  const fragments = typeof html === 'string' ? [html] : html
+  const ids = new Set<string>()
+  for (const fragment of fragments) {
+    EMBEDDED_ID_RE.lastIndex = 0
+    let match: RegExpExecArray | null = EMBEDDED_ID_RE.exec(fragment)
+    while (match) {
+      if (match[1]) ids.add(match[1])
+      match = EMBEDDED_ID_RE.exec(fragment)
+    }
+  }
+  return ids
+}
+
 export function createImageRegistry(): ImageRegistry {
   const entries = new Map<string, ImageRegistryEntry>()
 
@@ -74,7 +96,12 @@ export function createImageRegistry(): ImageRegistry {
     const existing = entries.get(id)
     if (existing) {
       if (existing.dataUrl !== dataUrl) {
-        URL.revokeObjectURL(existing.objectUrl)
+        if (existing.objectUrl) URL.revokeObjectURL(existing.objectUrl)
+        const objectUrl = URL.createObjectURL(dataUrlToBlob(dataUrl))
+        entries.set(id, { dataUrl, objectUrl })
+        return objectUrl
+      }
+      if (!existing.objectUrl) {
         const objectUrl = URL.createObjectURL(dataUrlToBlob(dataUrl))
         entries.set(id, { dataUrl, objectUrl })
         return objectUrl
@@ -102,7 +129,10 @@ export function createImageRegistry(): ImageRegistry {
   }
 
   function getObjectUrl(id: string): string | null {
-    return entries.get(id)?.objectUrl ?? null
+    const entry = entries.get(id)
+    if (!entry) return null
+    if (entry.objectUrl) return entry.objectUrl
+    return ensureObjectUrl(id, entry.dataUrl)
   }
 
   function has(id: string): boolean {
@@ -232,9 +262,26 @@ export function createImageRegistry(): ImageRegistry {
     return serializeHtmlFragment(doc)
   }
 
+  function pruneUnreferenced(html: string | readonly string[]): string[] {
+    if (entries.size === 0) return []
+    const liveIds = collectReferencedIds(html)
+    const fragments = typeof html === 'string' ? [html] : html
+    const joined = fragments.join('\n')
+    const released: string[] = []
+    for (const [id, entry] of entries) {
+      if (liveIds.has(id)) continue
+      if (entry.objectUrl && joined.includes(entry.objectUrl)) continue
+      if (!entry.objectUrl) continue
+      URL.revokeObjectURL(entry.objectUrl)
+      entries.set(id, { dataUrl: entry.dataUrl, objectUrl: '' })
+      released.push(id)
+    }
+    return released
+  }
+
   function clear(): void {
     for (const entry of entries.values()) {
-      URL.revokeObjectURL(entry.objectUrl)
+      if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl)
     }
     entries.clear()
   }
@@ -246,6 +293,7 @@ export function createImageRegistry(): ImageRegistry {
     has,
     externalizeHtml,
     hydrateHtml,
+    pruneUnreferenced,
     clear,
   }
 }

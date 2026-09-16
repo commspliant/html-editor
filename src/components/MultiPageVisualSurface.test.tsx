@@ -120,6 +120,60 @@ describe('MultiPageVisualSurface virtualization', () => {
       expect(onPageFlush).toHaveBeenCalledWith(0, expect.stringContaining('Edited page 1'))
     })
   })
+
+  it('flushes dirty page html before page-array length changes (WE-022)', async () => {
+    const onPageFlush = vi.fn()
+    const onPageChange = vi.fn()
+    const user = userEvent.setup()
+    const initialPages = [pageA4, pageLetter]
+
+    function Harness({ pages }: { pages: string[] }) {
+      const scrollRef = useRef<HTMLDivElement>(null)
+      return (
+        <div className={styles.root}>
+          <div ref={scrollRef} style={{ height: 800, overflow: 'auto' }}>
+            <MultiPageVisualSurface
+              pages={pages}
+              activePageIndex={0}
+              hasSelectedPage
+              scrollRootRef={scrollRef}
+              onActivePageIndexChange={() => undefined}
+              onPageChange={onPageChange}
+              onPageFlush={onPageFlush}
+              rulerVisible={false}
+            />
+          </div>
+        </div>
+      )
+    }
+
+    const { rerender } = render(
+      <LocaleProvider>
+        <Harness pages={initialPages} />
+      </LocaleProvider>,
+    )
+
+    const firstSurface = screen.getByText('One').closest('[role="textbox"]') as HTMLDivElement
+    await user.click(firstSurface)
+    const paragraph = firstSurface.querySelector('[data-page] p') as HTMLParagraphElement
+    await act(async () => {
+      paragraph.textContent = 'Edited before insert'
+      fireEvent.input(firstSurface)
+    })
+
+    expect(onPageChange).toHaveBeenCalledWith(0, expect.stringContaining('Edited before insert'))
+    onPageFlush.mockClear()
+
+    await act(async () => {
+      rerender(
+        <LocaleProvider>
+          <Harness pages={[pageA4, pageLetter, pagePlain]} />
+        </LocaleProvider>,
+      )
+    })
+
+    expect(onPageFlush).toHaveBeenCalledWith(0, expect.stringContaining('Edited before insert'))
+  })
 })
 
 describe('MultiPageVisualSurface rulers', () => {

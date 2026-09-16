@@ -85,6 +85,10 @@ import {
   splitPagesFromHtml,
   emptyPageHtml,
   updatePageAt,
+  clampDocumentPages,
+  DOCUMENT_TRUNCATED_COMMENT,
+  MAX_EDITOR_HTML_CHARS,
+  MAX_EDITOR_PAGE_COUNT,
 } from '../core/multiPage'
 import { sanitizeDocumentHtml, sanitizePageHtml } from '../core/sanitizeHtml'
 import {
@@ -303,6 +307,33 @@ import type { EditorDocumentBridgeRef } from './editorDocumentBridgeTypes'
 
 const PAGE_ZOOM_MEASURE_EPSILON = 0.005
 
+function limitDocumentPages(pages: readonly string[]): string[] {
+  const { pages: next, truncated } = clampDocumentPages(pages)
+  if (truncated && import.meta.env.DEV) {
+    console.warn(
+      `[commspliant-html-editor] Document exceeds the editor size guard ` +
+        `(${MAX_EDITOR_PAGE_COUNT} pages or ${MAX_EDITOR_HTML_CHARS} characters). ` +
+        `Extra content was dropped and marked with ${DOCUMENT_TRUNCATED_COMMENT}.`,
+    )
+  }
+  return next
+}
+
+function parseAutoSavePagesJson(raw: string): string[] | null {
+  try {
+    const value: unknown = JSON.parse(raw)
+    if (!Array.isArray(value)) return null
+    const pages: string[] = []
+    for (const item of value) {
+      if (typeof item !== 'string') return null
+      pages.push(item)
+    }
+    return pages
+  } catch {
+    return null
+  }
+}
+
 export function Editor({
   value,
   defaultValue = '',
@@ -399,9 +430,9 @@ export function Editor({
       optimizeEmbeddedImages && imageRegistryRef.current
         ? initialPages.map((page) => imageRegistryRef.current!.externalizeHtml(page))
         : [...initialPages]
-    storedInitialPagesRef.current = sanitizeHtml
-      ? storedPages.map((page) => sanitizePageHtml(page))
-      : storedPages
+    storedInitialPagesRef.current = limitDocumentPages(
+      sanitizeHtml ? storedPages.map((page) => sanitizePageHtml(page)) : storedPages,
+    )
   }
   const initialHtmlRaw = enableMultiPages
     ? joinPagesToHtml(storedInitialPagesRef.current)
@@ -523,11 +554,13 @@ export function Editor({
   pagesPropRef.current = pagesProp
   const ingestedPagesProp = useMemo(() => {
     if (pagesProp === undefined) return pagesProp
-    return normalizePages(pagesProp).map((page) => {
-      const sanitized = sanitizeHtml ? sanitizePageHtml(page) : page
-      if (!optimizeEmbeddedImages) return sanitized
-      return imageRegistryRef.current?.externalizeHtml(sanitized) ?? sanitized
-    })
+    return limitDocumentPages(
+      normalizePages(pagesProp).map((page) => {
+        const sanitized = sanitizeHtml ? sanitizePageHtml(page) : page
+        if (!optimizeEmbeddedImages) return sanitized
+        return imageRegistryRef.current?.externalizeHtml(sanitized) ?? sanitized
+      }),
+    )
   }, [optimizeEmbeddedImages, pagesProp, sanitizeHtml])
   const pageStore = usePageStore({
     enabled: enableMultiPages,
@@ -593,6 +626,15 @@ export function Editor({
   transformHtmlRef.current = transformHtml
   const sanitizeHtmlRef = useRef(sanitizeHtml)
   sanitizeHtmlRef.current = sanitizeHtml
+  useEffect(() => {
+    if (sanitizeHtml) return
+    if (!import.meta.env.DEV) return
+    console.warn(
+      '[commspliant-html-editor] sanitizeHtml={false} disables built-in XSS filtering. ' +
+        'This is the dangerouslyDisableSanitize escape hatch — provide transformHtml ' +
+        'or sanitize on the host before render/store. See SECURITY.md.',
+    )
+  }, [sanitizeHtml])
   const pendingMarksRef = useRef<PendingFontMarks>({})
   const pendingFontSizeRef = useRef<FontSizeValue | null>(null)
   const pendingFontFamilyRef = useRef<PendingFontFamily>(null)
@@ -1131,15 +1173,18 @@ export function Editor({
     (next: string, options?: { fullReplace?: boolean }) => {
       const sanitized = sanitizeHtmlRef.current ? sanitizeDocumentHtml(next) : next
       const transformed = transformHtmlRef.current?.(sanitized) ?? sanitized
+      const limited = enableMultiPagesRef.current
+        ? joinPagesToHtml(limitDocumentPages(splitPagesFromHtml(transformed)))
+        : (limitDocumentPages([transformed])[0] ?? transformed)
       const canonicallyEqual = documentsCanonicallyEqual(
         htmlRef.current,
-        transformed,
+        limited,
         hydrateExportHtml,
       )
       if (options?.fullReplace && !canonicallyEqual && optimizeEmbeddedImagesRef.current) {
         imageRegistryRef.current?.clear()
       }
-      const stored = externalizeStorageHtml(transformed)
+      const stored = externalizeStorageHtml(limited)
       if (canonicallyEqual) {
         htmlRef.current = stored
         return { stored, stateUpdated: false }
@@ -1157,6 +1202,7 @@ export function Editor({
         const result = pageStoreHandle.replacePages(splitPagesFromHtml(stored))
         htmlRef.current = result.joined
         pagesRef.current = result.pages
+        imageRegistryRef.current?.pruneUnreferenced(result.pages)
         if (modeRef.current === 'html' && !optimizeEmbeddedImagesRef.current) {
           bridge?.setHtml(stored)
         }
@@ -1166,6 +1212,7 @@ export function Editor({
         )
         return { stored, stateUpdated: true }
       }
+      imageRegistryRef.current?.pruneUnreferenced(stored)
       if (optimizeEmbeddedImagesRef.current) {
         htmlRef.current = stored
         bridge?.setStorageHtml(stored)
@@ -1186,17 +1233,20 @@ export function Editor({
       editedIndex?: number,
       options?: { skipHistory?: boolean },
     ) => {
-      const storedPages = nextPages.map((page) => {
-        const sanitized = sanitizeHtmlRef.current ? sanitizePageHtml(page) : page
-        const transformed = transformHtmlRef.current?.(sanitized) ?? sanitized
-        return externalizeStorageHtml(transformed)
-      })
+      const storedPages = limitDocumentPages(
+        nextPages.map((page) => {
+          const sanitized = sanitizeHtmlRef.current ? sanitizePageHtml(page) : page
+          const transformed = transformHtmlRef.current?.(sanitized) ?? sanitized
+          return externalizeStorageHtml(transformed)
+        }),
+      )
       const pageStoreHandle = pageStore
       if (!pageStoreHandle) return joinPagesToHtml(storedPages)
       const result = pageStoreHandle.setPages(storedPages, { editedIndex })
       if (!result.changed) {
         return result.joined
       }
+      imageRegistryRef.current?.pruneUnreferenced(result.pages)
       pagesRef.current = result.pages
       documentDirtyRef.current = true
       htmlRef.current = result.joined
@@ -1669,9 +1719,13 @@ export function Editor({
 
   const applyPagesFromHistory = useCallback(
     (pages: readonly string[]) => {
+      if (pages.length !== pageStore.pages.length) {
+        suppressPageFlushRef.current = true
+      }
       const result = pageStore.replacePages([...pages])
       htmlRef.current = result.joined
       pagesRef.current = result.pages
+      imageRegistryRef.current?.pruneUnreferenced(result.pages)
       documentDirtyRef.current = true
       schedulePagesChange(
         hydrateExportPages(result.pages),
@@ -2819,7 +2873,7 @@ export function Editor({
       ? async (comparisonHtml) => {
           documentDirtyRef.current = false
           const payload = enableMultiPagesRef.current
-            ? hydrateExportPages(JSON.parse(comparisonHtml) as string[])
+            ? hydrateExportPages(parseAutoSavePagesJson(comparisonHtml) ?? [])
             : hydrateExportHtml(comparisonHtml)
           return onAutoSave(payload)
         }
@@ -2851,6 +2905,7 @@ export function Editor({
     const result = pageStore.replacePages(storedPages)
     htmlRef.current = result.joined
     pagesRef.current = result.pages
+    imageRegistryRef.current?.pruneUnreferenced(result.pages)
     if (isMultiPageHistory(history)) {
       history.syncPages(result.pages)
     }

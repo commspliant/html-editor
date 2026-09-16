@@ -16,6 +16,12 @@ describe('parseToolbarPosition', () => {
     expect(parseToolbarPosition('side')).toBeNull()
     expect(parseToolbarPosition(1)).toBeNull()
   })
+
+  it('does not proto-merge JSON objects (WE-026)', () => {
+    const value = JSON.parse('{"__proto__":{"polluted":true}}') as unknown
+    expect(parseToolbarPosition(value)).toBeNull()
+    expect(Object.prototype).not.toHaveProperty('polluted')
+  })
 })
 
 describe('toolbar position localStorage', () => {

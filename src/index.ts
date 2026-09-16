@@ -19,6 +19,10 @@ export { stripCommentAnchors } from './core/comments/sanitize'
 export { sanitizeDocumentHtml, sanitizePageHtml } from './core/sanitizeHtml'
 export {
   PAGE_SEPARATOR,
+  DOCUMENT_TRUNCATED_COMMENT,
+  MAX_EDITOR_HTML_CHARS,
+  MAX_EDITOR_PAGE_COUNT,
+  clampDocumentPages,
   joinPagesToHtml,
   splitPagesFromHtml,
 } from './core/multiPage'

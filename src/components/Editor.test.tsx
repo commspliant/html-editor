@@ -3788,6 +3788,7 @@ describe('Editor sanitizeHtml', () => {
   })
 
   it('does not strip script tags when sanitizeHtml is false', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const onChange = vi.fn()
     render(<Editor sanitizeHtml={false} onChange={onChange} />)
 
@@ -3797,6 +3798,23 @@ describe('Editor sanitizeHtml', () => {
 
     const lastHtml = onChange.mock.calls.at(-1)?.[0] as string
     expect(lastHtml).toContain('<script')
+    warn.mockRestore()
+  })
+
+  it('warns in development when sanitizeHtml is false (WE-017)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    render(<Editor sanitizeHtml={false} onChange={vi.fn()} />)
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/dangerouslyDisableSanitize|sanitizeHtml=\{false\}/))
+    warn.mockRestore()
+  })
+
+  it('does not warn about sanitizer flags when sanitizeHtml stays enabled (WE-017)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    render(<Editor onChange={vi.fn()} />)
+    expect(
+      warn.mock.calls.filter((call) => String(call[0]).includes('sanitizeHtml')),
+    ).toHaveLength(0)
+    warn.mockRestore()
   })
 
   it('sanitizes multi-page visual input before onPagesChange (WE-003)', async () => {

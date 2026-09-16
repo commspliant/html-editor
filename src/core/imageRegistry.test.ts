@@ -1,4 +1,4 @@
-import { describe, expect, it, afterEach } from 'vitest'
+import { describe, expect, it, afterEach, vi } from 'vitest'
 import {
   EMBEDDED_IMAGE_ID_ATTR,
   createImageRegistry,
@@ -128,5 +128,42 @@ describe('imageRegistry', () => {
     const reExternal = externalizeEmbeddedImagesInHtml(blobOnlyHtml, imageRegistry)
     expect(reExternal).toContain(EMBEDDED_IMAGE_ID_ATTR)
     expect(reExternal).not.toContain('base64')
+  })
+
+  it('revokes object URLs when images are no longer referenced (WE-020)', () => {
+    const imageRegistry = registry()
+    const id = imageRegistry.register(PNG_DATA_URL)
+    const objectUrl = imageRegistry.getObjectUrl(id)
+    expect(objectUrl).toBeTruthy()
+    const revoke = vi.spyOn(URL, 'revokeObjectURL')
+
+    const released = imageRegistry.pruneUnreferenced('<p>no images</p>')
+
+    expect(released).toEqual([id])
+    expect(revoke).toHaveBeenCalledWith(objectUrl)
+    expect(imageRegistry.getDataUrl(id)).toBe(PNG_DATA_URL)
+    const recreated = imageRegistry.getObjectUrl(id)
+    expect(recreated).toBeTruthy()
+    expect(recreated).not.toBe(objectUrl)
+    revoke.mockRestore()
+  })
+
+  it('keeps object URLs that are still referenced after a page delete (WE-020)', () => {
+    const imageRegistry = registry()
+    const kept = externalizeEmbeddedImagesInHtml(
+      `<p><img src="${PNG_DATA_URL}" alt="Keep"></p>`,
+      imageRegistry,
+    )
+    const removedId = imageRegistry.register('data:image/png;base64,AAAA')
+    const removedUrl = imageRegistry.getObjectUrl(removedId)
+    const revoke = vi.spyOn(URL, 'revokeObjectURL')
+
+    const released = imageRegistry.pruneUnreferenced([kept, '<p>Empty page</p>'])
+
+    expect(released).toEqual([removedId])
+    expect(revoke).toHaveBeenCalledWith(removedUrl)
+    expect(kept).toContain(EMBEDDED_IMAGE_ID_ATTR)
+    expect(imageRegistry.has(removedId)).toBe(true)
+    revoke.mockRestore()
   })
 })

@@ -57,13 +57,19 @@ export function applyToolbarCustomization(
 
 export function parseToolbarCustomization(value: unknown): ToolbarCustomization | null {
   if (value === null || value === undefined) return null
-  if (typeof value !== 'object') return null
+  if (typeof value !== 'object' || Array.isArray(value)) return null
   const record = value as Record<string, unknown>
-  const groupOrder = Array.isArray(record.groupOrder)
-    ? record.groupOrder.filter((id): id is string => typeof id === 'string')
+  const groupOrderRaw = Object.prototype.hasOwnProperty.call(record, 'groupOrder')
+    ? record.groupOrder
+    : undefined
+  const hiddenItemIdsRaw = Object.prototype.hasOwnProperty.call(record, 'hiddenItemIds')
+    ? record.hiddenItemIds
+    : undefined
+  const groupOrder = Array.isArray(groupOrderRaw)
+    ? groupOrderRaw.filter((id): id is string => typeof id === 'string')
     : []
-  const hiddenItemIds = Array.isArray(record.hiddenItemIds)
-    ? [...new Set(record.hiddenItemIds.filter((id): id is string => typeof id === 'string'))]
+  const hiddenItemIds = Array.isArray(hiddenItemIdsRaw)
+    ? [...new Set(hiddenItemIdsRaw.filter((id): id is string => typeof id === 'string'))]
     : []
   if (groupOrder.length === 0 && hiddenItemIds.length === 0) return null
   return { groupOrder, hiddenItemIds }
