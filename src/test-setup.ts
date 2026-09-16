@@ -2,6 +2,15 @@ import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 
+if (typeof createImageBitmap !== 'function') {
+  globalThis.createImageBitmap = async () =>
+    ({
+      width: 1,
+      height: 1,
+      close() {},
+    }) as ImageBitmap
+}
+
 if (typeof URL !== 'undefined' && typeof URL.createObjectURL !== 'function') {
   const objectUrls = new Map<string, string>()
   let nextObjectUrlId = 0

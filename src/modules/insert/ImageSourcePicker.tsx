@@ -58,6 +58,7 @@ export function ImageSourcePicker({
   const urlId = useId()
   const errorId = useId()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const pickGenerationRef = useRef(0)
   const customOnly = disableBuiltinSources && Boolean(customImagePicker)
   const [source, setSource] = useState<ImageSource>(() =>
     initialImageSource(src, disableBuiltinSources, customImagePicker),
@@ -74,6 +75,12 @@ export function ImageSourcePicker({
   useEffect(() => {
     if (customOnly) setSource('custom')
   }, [customOnly])
+
+  useEffect(() => {
+    return () => {
+      pickGenerationRef.current += 1
+    }
+  }, [])
 
   const activeSrc = source === 'file' && src.startsWith('data:') ? src : source === 'url' ? url : ''
   const srcError = source === 'custom' ? null : validateImageSrc(activeSrc)
@@ -94,16 +101,19 @@ export function ImageSourcePicker({
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
+    const generation = ++pickGenerationRef.current
     setReading(true)
     setFileError(null)
     void readImageFileAsDataUrl(file).then(
       (dataUrl) => {
+        if (generation !== pickGenerationRef.current) return
         setFileName(file.name)
         setSource('file')
         onSrcChange(dataUrl)
         setReading(false)
       },
       (error: unknown) => {
+        if (generation !== pickGenerationRef.current) return
         const code = error instanceof Error ? error.message : ''
         setFileName('')
         setSource('file')

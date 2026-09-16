@@ -1,4 +1,5 @@
 import { formatCssLength, parseCssLength, type CssLength } from './cssLength'
+import { sanitizeCssText } from './sanitizeHtml'
 import {
   BOX_SIDES,
   EMPTY_BOX_SIDES,
@@ -240,10 +241,23 @@ export function resetPageAtRule(pageHtml: string): string {
   return stripPageAtRuleFromHtml(pageHtml)
 }
 
+const DANGEROUS_PAGE_CSS =
+  /@import|expression\s*\(|javascript:|vbscript:|-moz-binding|\bbehavior\s*:/i
+
+/** Strip @import, expression(), javascript:, and similar from @page CSS before print injection. */
+export function sanitizePageAtRuleCss(css: string): string {
+  const cleaned = sanitizeCssText(css).trim()
+  if (!cleaned) return ''
+  if (!DANGEROUS_PAGE_CSS.test(cleaned)) return cleaned
+  return serializePageAtRuleCss(parsePageAtRuleCss(cleaned)) ?? ''
+}
+
 export function collectPageAtRulesForPrint(pages: readonly string[]): string {
   const rules = pages
     .map((page) => extractPageAtRuleCss(page))
     .filter((css): css is string => Boolean(css))
+    .map(sanitizePageAtRuleCss)
+    .filter(Boolean)
   if (rules.length === 0) return ''
   return rules.join('\n')
 }

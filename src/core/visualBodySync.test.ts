@@ -111,6 +111,45 @@ describe('visualBodySync', () => {
     expect(root.querySelector('img')).not.toBe(img)
   })
 
+  it('rehydrates nested table rows per-table instead of globally (WE-018)', () => {
+    const body =
+      '<table><tbody>' +
+      '<tr><td>Outer<table><tbody><tr><span data-template-tag="">{{for items}}</span><td>Item</td><span data-template-tag="">{{endfor}}</span></tr></tbody></table></td></tr>' +
+      '<tr><td>Footer</td></tr>' +
+      '</tbody></table>'
+    const root = document.createElement('div')
+    root.innerHTML = '<p>stale</p>'
+
+    syncVisualBodyHtml(root, body)
+
+    const tables = [...root.querySelectorAll('table')]
+    expect(tables).toHaveLength(2)
+    const outerRows = [...tables[0]!.querySelectorAll('tr')].filter(
+      (tr) => tr.closest('table') === tables[0],
+    )
+    const innerRows = [...tables[1]!.querySelectorAll('tr')].filter(
+      (tr) => tr.closest('table') === tables[1],
+    )
+    expect(outerRows).toHaveLength(2)
+    expect(outerRows[0]?.textContent).toContain('Outer')
+    expect(outerRows[0]?.textContent).toContain('{{for items}}Item{{endfor}}')
+    expect(outerRows[1]?.textContent).toBe('Footer')
+    expect(innerRows).toHaveLength(1)
+    expect(innerRows[0]?.innerHTML).toContain('data-template-tag')
+    expect(innerRows[0]?.textContent).toBe('{{for items}}Item{{endfor}}')
+    expect(root.querySelector('table table span[data-template-tag]')).not.toBeNull()
+  })
+
+  it('keeps page-at-rule style tags present in source html (WE-019)', () => {
+    const body =
+      '<style data-page-at-rule>@page { size: A4; }</style>' +
+      '<div data-page><table><tbody><tr><span data-template-tag="">{{x}}</span><td>A</td></tr></tbody></table></div>'
+    const root = document.createElement('div')
+    syncVisualBodyHtml(root, body)
+    expect(root.querySelector('style[data-page-at-rule]')?.textContent).toContain('size: A4')
+    expect(root.textContent).toContain('{{x}}A')
+  })
+
   it('resolves registry image keys from data URLs', () => {
     const imageRegistry = registry()
     const id = imageRegistry.register(PNG_DATA_URL)

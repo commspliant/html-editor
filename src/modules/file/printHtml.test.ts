@@ -66,6 +66,8 @@ describe('printHtml', () => {
 
     expect(iframe.getAttribute('aria-hidden')).toBe('true')
     expect(iframe.getAttribute('data-wysiwyg-print')).toBe('')
+    expect(iframe.getAttribute('sandbox')).toBe('allow-same-origin allow-modals')
+    expect(iframe.getAttribute('sandbox')).not.toContain('allow-scripts')
     expect(iframe.style.left).toBe('-9999px')
     expect(iframe.style.width).toBe('1px')
     expect(iframe.style.height).toBe('1px')
@@ -235,5 +237,56 @@ describe('printHtml', () => {
     expect(print).not.toHaveBeenCalled()
     await flushPrint()
     expect(print).toHaveBeenCalledTimes(1)
+  })
+
+  it('sandboxes the print iframe without allowing scripts (WE-009)', async () => {
+    const { iframe } = mockPrintIframe()
+
+    printHtml('<p>Hello</p>')
+    await flushPrint()
+
+    const sandbox = iframe.getAttribute('sandbox') ?? ''
+    expect(sandbox.split(/\s+/)).toEqual(expect.arrayContaining(['allow-same-origin', 'allow-modals']))
+    expect(sandbox.split(/\s+/)).not.toContain('allow-scripts')
+  })
+
+  it('sanitizes html before writing the print document (WE-009)', async () => {
+    const { fakeDoc } = mockPrintIframe()
+
+    printHtml('<p onclick="alert(1)">Hello</p><script>alert(1)</script>')
+    await flushPrint()
+
+    expect(fakeDoc?.body.innerHTML).toContain('Hello')
+    expect(fakeDoc?.body.innerHTML).not.toMatch(/\bonclick\b/i)
+    expect(fakeDoc?.body.innerHTML).not.toMatch(/<script\b/i)
+  })
+
+  it('adds a CSP that blocks scripts in the print document (WE-009)', async () => {
+    const { fakeDoc } = mockPrintIframe()
+
+    printHtml('<p>Hello</p>')
+    await flushPrint()
+
+    const csp = fakeDoc?.head.querySelector('meta[http-equiv="Content-Security-Policy"]')
+    expect(csp?.getAttribute('content')).toContain("script-src 'none'")
+  })
+
+  it('strips dangerous @page css before injecting print styles (WE-011)', async () => {
+    const { fakeDoc } = mockPrintIframe()
+    const pageHtml =
+      '<style data-page-at-rule>@page { size: A4; } @import url("https://evil.example/x.css");</style>' +
+      '<p>Hello</p>'
+
+    printPagesHtml([pageHtml])
+    await flushPrint()
+
+    const styles = [...(fakeDoc?.querySelectorAll('style') ?? [])]
+      .map((node) => node.textContent ?? '')
+      .join('\n')
+    expect(styles).toContain('@page')
+    expect(styles).toContain('A4')
+    expect(styles).not.toMatch(/@import/i)
+    expect(styles).not.toMatch(/javascript:/i)
+    expect(styles).not.toMatch(/expression\s*\(/i)
   })
 })

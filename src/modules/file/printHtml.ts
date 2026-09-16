@@ -2,6 +2,9 @@ import { writeDocumentHtml } from '../../core/documentStyles'
 import { extractFontStylesheets } from '../../core/fontFamily'
 import { prepareDocumentHtmlForOutput } from '../../core/pagePrintBleed'
 import { collectPageAtRulesForPrint } from '../../core/pageAtRule'
+import { sanitizeDocumentHtml, sanitizePageHtml } from '../../core/sanitizeHtml'
+
+const PRINT_IFRAME_SANDBOX = 'allow-same-origin allow-modals'
 
 const CLEANUP_MS = 1000
 
@@ -28,6 +31,7 @@ function mountPrintIframe(): { iframe: HTMLIFrameElement; doc: Document; win: Wi
   const iframe = document.createElement('iframe')
   iframe.setAttribute('aria-hidden', 'true')
   iframe.setAttribute('data-wysiwyg-print', '')
+  iframe.setAttribute('sandbox', PRINT_IFRAME_SANDBOX)
   iframe.style.position = 'fixed'
   iframe.style.left = '-9999px'
   iframe.style.top = '0'
@@ -67,14 +71,15 @@ async function runPrint(doc: Document, win: Window, iframe: HTMLIFrameElement, h
 export function printHtml(html: string): void {
   const mounted = mountPrintIframe()
   if (!mounted) return
-  void runPrint(mounted.doc, mounted.win, mounted.iframe, html)
+  void runPrint(mounted.doc, mounted.win, mounted.iframe, sanitizeDocumentHtml(html))
 }
 
 export function printPagesHtml(pages: readonly string[]): void {
   const mounted = mountPrintIframe()
   if (!mounted) return
 
-  const preparedPages = pages.map(prepareDocumentHtmlForOutput)
+  const sanitizedPages = pages.map(sanitizePageHtml)
+  const preparedPages = sanitizedPages.map(prepareDocumentHtmlForOutput)
   const hasBleed = preparedPages.some((page) => page.hasBleed)
 
   const hrefs: string[] = []
@@ -95,7 +100,7 @@ export function printPagesHtml(pages: readonly string[]): void {
     })
     .join('')
 
-  const atRuleCss = collectPageAtRulesForPrint(pages)
+  const atRuleCss = collectPageAtRulesForPrint(sanitizedPages)
   const bleedMarginOverride = hasBleed ? '@page { margin: 0 !important; }' : ''
   const combinedHtml = [
     atRuleCss ? `<style>${atRuleCss}</style>` : '',

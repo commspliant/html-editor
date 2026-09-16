@@ -4,6 +4,7 @@ import { useDialogFocusTrap } from '../../hooks/useDialogFocusTrap'
 import { writeDocumentHtml } from '../../core/documentStyles'
 import { splitPagesFromHtml } from '../../core/multiPage'
 import { extractFontStylesheets } from '../../core/fontFamily'
+import { sanitizeDocumentHtml } from '../../core/sanitizeHtml'
 import { CloseIcon } from '../../icons'
 import { useT } from '../../i18n/LocaleProvider'
 import styles from './DocumentPreviewDialog.module.css'
@@ -15,8 +16,9 @@ export type DocumentPreviewDialogProps = {
 }
 
 export function formatPreviewHtml(html: string): string {
-  const pages = splitPagesFromHtml(html)
-  if (pages.length <= 1) return html
+  const sanitized = sanitizeDocumentHtml(html)
+  const pages = splitPagesFromHtml(sanitized)
+  if (pages.length <= 1) return sanitized
 
   const hrefs: string[] = []
   const bodies: string[] = []
