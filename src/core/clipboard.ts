@@ -1,4 +1,5 @@
 import { isInside } from './inlineRange'
+import { sanitizePageHtml } from './sanitizeHtml'
 
 export type ClipboardPayload = {
   html: string
@@ -19,14 +20,14 @@ export function serializeSelection(root: HTMLElement): ClipboardPayload | null {
 
   const holder = document.createElement('div')
   holder.appendChild(range.cloneContents())
-  const html = holder.innerHTML
-  if (!html) return null
+  const html = sanitizePageHtml(holder.innerHTML)
 
   let text = range.toString()
   if (!text) {
     const img = holder.querySelector('img')
     text = img?.getAttribute('alt') ?? img?.getAttribute('src') ?? ''
   }
+  if (!html && !text) return null
   return { html, text }
 }
 

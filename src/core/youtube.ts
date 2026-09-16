@@ -1,4 +1,5 @@
 import { isInside } from './inlineRange'
+import { sanitizeHoverCss } from './imageProperties'
 
 export type YoutubeAttrs = {
   url: string
@@ -76,8 +77,9 @@ export function validateVideoSrc(src: string): 'empty' | 'invalid' | null {
 }
 
 function applyInlineCss(el: HTMLElement, css: string | undefined): void {
-  if (!css) return
-  for (const part of css.split(';')) {
+  const safe = sanitizeHoverCss(css ?? '')
+  if (!safe) return
+  for (const part of safe.split(';')) {
     const declaration = part.trim()
     if (!declaration) continue
     const colon = declaration.indexOf(':')
@@ -96,6 +98,8 @@ function applyYoutubeIframeAttrs(iframe: HTMLIFrameElement, embedUrl: string, at
     'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
   )
   iframe.setAttribute('allowfullscreen', '')
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation')
+  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin')
   const title = attrs.title.trim()
   if (title) iframe.setAttribute('title', title)
   else iframe.removeAttribute('title')

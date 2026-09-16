@@ -82,6 +82,8 @@ export function readImageFileAsDataUrl(file: File): Promise<string> {
 }
 
 async function readImageFileAsDataUrlInner(file: File): Promise<string> {
+  await ensureImageFileDecodable(file)
+
   if (shouldConvertImageFileToWebP(file) && supportsWebPEncoding()) {
     const webp = await convertImageFileToWebPDataUrl(file)
     if (
@@ -236,4 +238,37 @@ function extensionOf(name: string): string {
   const dot = name.lastIndexOf('.')
   if (dot < 0 || dot === name.length - 1) return ''
   return name.slice(dot + 1).toLowerCase()
+}
+
+async function ensureImageFileDecodable(file: File): Promise<void> {
+  if (typeof createImageBitmap === 'function') {
+    let bitmap: ImageBitmap
+    try {
+      bitmap = await createImageBitmap(file)
+    } catch {
+      throw new Error('type')
+    }
+    try {
+      if (!bitmap.width || !bitmap.height) throw new Error('type')
+    } finally {
+      bitmap.close()
+    }
+    return
+  }
+  await decodeImageWithElement(file)
+}
+
+function decodeImageWithElement(file: File): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    const finish = (ok: boolean) => {
+      URL.revokeObjectURL(url)
+      if (ok && img.naturalWidth > 0) resolve()
+      else reject(new Error('type'))
+    }
+    img.onload = () => finish(true)
+    img.onerror = () => finish(false)
+    img.src = url
+  })
 }

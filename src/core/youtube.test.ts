@@ -121,8 +121,31 @@ describe('insertYoutubeInDocument', () => {
     expect(iframe).not.toBeNull()
     expect(iframe?.getAttribute('src')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ')
     expect(iframe?.hasAttribute('allowfullscreen')).toBe(true)
+    expect(iframe?.getAttribute('sandbox')).toContain('allow-scripts')
+    expect(iframe?.getAttribute('sandbox')).toContain('allow-same-origin')
+    expect(iframe?.getAttribute('referrerpolicy')).toBe('strict-origin-when-cross-origin')
     expect(iframe?.style.maxWidth).toBe('100%')
     expect(iframe?.style.border).toBe('0px')
+  })
+
+  it('sandboxes the iframe and strips dangerous inline css (WE-012)', () => {
+    const el = mountVisual('<p>Hi</p>')
+    selectOffsets(el, 2, 2)
+
+    insertYoutubeInDocument(
+      el,
+      defaultYoutubeAttrs({
+        url: 'https://youtu.be/dQw4w9WgXcQ',
+        css: 'width: 320px; background: url(javascript:alert(1)); opacity: expression(alert(1))',
+      }),
+    )
+
+    const iframe = el.querySelector('iframe')
+    expect(iframe?.getAttribute('sandbox')).toContain('allow-scripts')
+    expect(iframe?.getAttribute('referrerpolicy')).toBe('strict-origin-when-cross-origin')
+    expect(iframe?.style.width).toBe('320px')
+    expect(iframe?.style.backgroundImage).not.toMatch(/javascript/i)
+    expect(iframe?.getAttribute('style') ?? '').not.toMatch(/expression/i)
   })
 
   it('sets optional title on iframe', () => {
@@ -171,5 +194,22 @@ describe('insertVideoInDocument', () => {
     expect(video?.getAttribute('src')).toBe('https://example.com/clip.mp4')
     expect(video?.getAttribute('title')).toBe('Clip')
     expect(el.querySelector('iframe')).toBeNull()
+  })
+
+  it('strips dangerous inline css on inserted video elements (WE-012)', () => {
+    const el = mountVisual('<p>Hi</p>')
+    selectOffsets(el, 2, 2)
+
+    insertVideoInDocument(
+      el,
+      defaultVideoAttrs({
+        src: 'https://example.com/clip.mp4',
+        css: 'max-width: 200px; background: url(javascript:alert(1))',
+      }),
+    )
+
+    const video = el.querySelector('video')
+    expect(video?.style.maxWidth).toBe('200px')
+    expect(video?.style.backgroundImage).not.toMatch(/javascript/i)
   })
 })

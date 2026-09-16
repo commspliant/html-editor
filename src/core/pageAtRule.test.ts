@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyPageAtRule,
+  collectPageAtRulesForPrint,
   emptyPageAtRuleApply,
   extractPageAtRuleCss,
   parsePageAtRuleCss,
@@ -134,6 +135,19 @@ describe('pageAtRule', () => {
       bottom: { value: 72, unit: 'pt' },
       left: { value: 72, unit: 'pt' },
     })
+  })
+
+  it('strips @import, expression, and javascript: from collected print @page css (WE-011)', () => {
+    const css = collectPageAtRulesForPrint([
+      '<style data-page-at-rule>@page { size: A4; } @import url("https://evil.example/x.css");</style><p>A</p>',
+      '<style data-page-at-rule>@page { size: letter; background: expression(alert(1)); }</style><p>B</p>',
+      '<style data-page-at-rule>@page { size: legal; background: url(javascript:alert(1)); }</style><p>C</p>',
+    ])
+    expect(css).toContain('@page')
+    expect(css).toContain('A4')
+    expect(css).not.toMatch(/@import/i)
+    expect(css).not.toMatch(/expression\s*\(/i)
+    expect(css).not.toMatch(/javascript:/i)
   })
 
   it('round-trips inch margins applied via applyPageAtRule', () => {

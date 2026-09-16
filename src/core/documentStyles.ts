@@ -273,6 +273,9 @@ export function writeDocumentHtml(doc: Document, html: string, title = '\u200B')
 
   const charset = doc.createElement('meta')
   charset.setAttribute('charset', 'utf-8')
+  const csp = doc.createElement('meta')
+  csp.setAttribute('http-equiv', 'Content-Security-Policy')
+  csp.setAttribute('content', "script-src 'none'; object-src 'none'; base-uri 'none'")
   const titleEl = doc.createElement('title')
   titleEl.textContent = title
   const style = doc.createElement('style')
@@ -283,7 +286,7 @@ export function writeDocumentHtml(doc: Document, html: string, title = '\u200B')
     link.href = href
     return link
   })
-  doc.head.replaceChildren(charset, titleEl, style, ...fontLinks)
+  doc.head.replaceChildren(charset, csp, titleEl, style, ...fontLinks)
   doc.title = title
   doc.body.innerHTML = body
 }

@@ -98,7 +98,7 @@ function sanitizeStyleAttribute(value: string): string {
     .join('; ')
 }
 
-function sanitizeCssText(css: string): string {
+export function sanitizeCssText(css: string): string {
   const next = css
     .replace(/@import\b[^;]*;?/gi, '')
     .replace(/url\s*\(\s*['"]?\s*(?:javascript|vbscript|data\s*:\s*text\/html)[^)]*\)/gi, '')

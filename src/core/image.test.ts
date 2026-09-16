@@ -143,6 +143,35 @@ describe('readImageFileAsDataUrl', () => {
     expect(shouldConvert).toHaveBeenCalled()
     expect(convert).not.toHaveBeenCalled()
   })
+
+  it('rejects files that fail image decode (WE-014)', async () => {
+    vi.spyOn(globalThis, 'createImageBitmap').mockRejectedValue(new Error('Invalid image'))
+    const file = new File(['<html>evil</html>'], 'evil.jpg', { type: 'image/jpeg' })
+    await expect(readImageFileAsDataUrl(file)).rejects.toThrow('type')
+  })
+
+  it('rejects files that fail HTMLImageElement decode when createImageBitmap is missing (WE-014)', async () => {
+    const original = globalThis.createImageBitmap
+    class FakeImage {
+      naturalWidth = 0
+      naturalHeight = 0
+      onload: ((ev: Event) => void) | null = null
+      onerror: ((ev: Event) => void) | null = null
+      set src(_value: string) {
+        queueMicrotask(() => this.onerror?.(new Event('error')))
+      }
+    }
+    vi.stubGlobal('Image', FakeImage)
+    try {
+      // @ts-expect-error test stub
+      globalThis.createImageBitmap = undefined
+      const file = new File(['<html>evil</html>'], 'evil.jpg', { type: 'image/jpeg' })
+      await expect(readImageFileAsDataUrl(file)).rejects.toThrow('type')
+    } finally {
+      globalThis.createImageBitmap = original
+      vi.unstubAllGlobals()
+    }
+  })
 })
 
 describe('insertImageInDocument', () => {

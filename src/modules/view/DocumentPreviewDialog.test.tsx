@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { LocaleProvider } from '../../i18n/LocaleProvider'
-import { DocumentPreviewDialog } from './DocumentPreviewDialog'
+import { DocumentPreviewDialog, formatPreviewHtml } from './DocumentPreviewDialog'
 
 describe('DocumentPreviewDialog', () => {
   it('renders the snapshot html in a sandboxed iframe', async () => {
@@ -66,5 +66,46 @@ describe('DocumentPreviewDialog', () => {
       expect(pages?.[0]?.innerHTML).toContain('Page 1')
       expect(pages?.[1]?.innerHTML).toContain('Page 2')
     })
+  })
+
+  it('keeps sandbox without scripts (WE-010)', async () => {
+    render(
+      <LocaleProvider>
+        <DocumentPreviewDialog open html="<p>Hello preview</p>" onClose={() => undefined} />
+      </LocaleProvider>,
+    )
+
+    const frame = screen.getByTitle('Document preview') as HTMLIFrameElement
+    const sandbox = frame.getAttribute('sandbox') ?? ''
+    expect(sandbox.split(/\s+/)).not.toContain('allow-scripts')
+    expect(sandbox).not.toContain('allow-popups')
+  })
+
+  it('sanitizes preview html before writing the iframe (WE-010)', async () => {
+    render(
+      <LocaleProvider>
+        <DocumentPreviewDialog
+          open
+          html={'<p onclick="alert(1)">Hello preview</p><script>alert(1)</script>'}
+          onClose={() => undefined}
+        />
+      </LocaleProvider>,
+    )
+
+    const frame = screen.getByTitle('Document preview') as HTMLIFrameElement
+    await waitFor(() => {
+      expect(frame.contentDocument?.body.innerHTML).toContain('Hello preview')
+    })
+    expect(frame.contentDocument?.body.innerHTML).not.toMatch(/\bonclick\b/i)
+    expect(frame.contentDocument?.body.innerHTML).not.toMatch(/<script\b/i)
+    const csp = frame.contentDocument?.head.querySelector('meta[http-equiv="Content-Security-Policy"]')
+    expect(csp?.getAttribute('content')).toContain("script-src 'none'")
+  })
+
+  it('strips scripts and handlers from formatPreviewHtml (WE-010)', () => {
+    const html = formatPreviewHtml('<p onclick="alert(1)">Hello</p><script>alert(1)</script>')
+    expect(html).toContain('Hello')
+    expect(html).not.toMatch(/\bonclick\b/i)
+    expect(html).not.toMatch(/<script\b/i)
   })
 })

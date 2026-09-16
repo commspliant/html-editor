@@ -92,6 +92,22 @@ describe('serializeSelection', () => {
     selectOffsets(el, 2, 2)
     expect(serializeSelection(el)).toBeNull()
   })
+
+  it('sanitizes copied html (WE-013)', () => {
+    const el = mountVisual('<p onclick="alert(1)">Hello</p><iframe srcdoc="x"></iframe>')
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+
+    const payload = serializeSelection(el)
+    expect(payload?.text).toContain('Hello')
+    expect(payload?.html).toContain('Hello')
+    expect(payload?.html).not.toMatch(/\bonclick\b/i)
+    expect(payload?.html).not.toMatch(/<iframe\b/i)
+    expect(payload?.html).not.toMatch(/<script\b/i)
+  })
 })
 
 describe('deleteSelectionInDocument', () => {
