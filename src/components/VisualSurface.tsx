@@ -21,6 +21,7 @@ import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import type { HydrateEmbeddedImages } from '../core/documentEquality'
 import { syncVisualBodyHtml } from '../core/visualBodySync'
+import { handleContentEditablePaste } from '../core/pasteHtml'
 import type { RulerUnit } from '../core/rulerUnits'
 import { useT } from '../i18n/LocaleProvider'
 import { RulerVisualFrame } from './RulerVisualFrame'
@@ -164,6 +165,13 @@ export const VisualSurface = forwardRef<HTMLElement, VisualSurfaceProps>(
         onPointerDown={onPointerDown}
         onMouseUp={onMouseUp}
         onContextMenu={onContextMenu}
+        onPaste={
+          disabled
+            ? undefined
+            : (event) => {
+                handleContentEditablePaste(event, event.currentTarget)
+              }
+        }
         onInput={(event) => {
           const surface = event.currentTarget
           skipPropSyncRef.current = true

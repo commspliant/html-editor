@@ -368,9 +368,11 @@ export type EditorProps = {
    */
   customFonts?: CustomFont[]
   /**
-   * When true (default), strip `<script>` tags and `javascript:` URLs from document HTML
-   * on inbound `value` / `defaultValue` / `pages` and on every outbound write.
-   * Set false to disable; use `transformHtml` for custom filtering instead.
+   * When true (default), strip XSS vectors (scripts, event handlers, dangerous URIs,
+   * iframe/form/object/embed) from document HTML on inbound `value` / `defaultValue` /
+   * `pages` and on every outbound write, including multi-page commits. Tables and
+   * inline styles used for email are kept. Set false to disable; use `transformHtml`
+   * for custom filtering instead.
    */
   sanitizeHtml?: boolean
   /**

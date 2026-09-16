@@ -31,6 +31,7 @@ import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import type { HydrateEmbeddedImages } from '../core/documentEquality'
 import { syncVisualBodyHtml } from '../core/visualBodySync'
+import { handleContentEditablePaste } from '../core/pasteHtml'
 import { templateMarkupPreserved } from '../core/templateTags'
 import type { RulerUnit } from '../core/rulerUnits'
 import { useVirtualPageRange, findFirstVisiblePageIndex, findLastVisiblePageIndex } from '../hooks/useVirtualPageRange'
@@ -203,6 +204,13 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
         onPointerDown={(event) => onPointerDown(index, event)}
         onMouseUp={onMouseUp}
         onContextMenu={onContextMenu}
+        onPaste={
+          disabled
+            ? undefined
+            : (event) => {
+                handleContentEditablePaste(event, event.currentTarget)
+              }
+        }
         onInput={(event) => {
           const surface = event.currentTarget
           dirtyRef.current = true
