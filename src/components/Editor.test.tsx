@@ -3798,6 +3798,81 @@ describe('Editor sanitizeHtml', () => {
     const lastHtml = onChange.mock.calls.at(-1)?.[0] as string
     expect(lastHtml).toContain('<script')
   })
+
+  it('sanitizes multi-page visual input before onPagesChange (WE-003)', async () => {
+    const onPagesChange = vi.fn()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[0].innerHTML = '<p>One</p><script>alert(1)</script><img src="x" onerror="alert(1)">'
+    fireEvent.input(surfaces[0])
+    await flushPagesChangeNotify()
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages[0]).toContain('One')
+    expect(lastPages[0]).not.toMatch(/<script\b/i)
+    expect(lastPages[0]).not.toMatch(/\bonerror\b/i)
+    expect(lastPages[1]).toContain('Two')
+  })
+
+  it('sanitizes pasted HTML in enableMultiPages mode (WE-003, WE-006)', async () => {
+    const onPagesChange = vi.fn()
+    render(
+      <Editor
+        enableMultiPages
+        defaultPages={['<p>One</p>', '<p>Two</p>']}
+        onPagesChange={onPagesChange}
+      />,
+    )
+
+    const surfaces = screen.getAllByRole('textbox', { name: 'Visual editor' })
+    surfaces[0].focus()
+    const range = document.createRange()
+    range.selectNodeContents(surfaces[0])
+    range.collapse(false)
+    window.getSelection()?.removeAllRanges()
+    window.getSelection()?.addRange(range)
+
+    fireEvent.paste(surfaces[0], {
+      clipboardData: {
+        getData: (type: string) =>
+          type === 'text/html' ? '<p>Pasted</p><script>alert(1)</script>' : '',
+      },
+    })
+    await flushPagesChangeNotify()
+
+    const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+    expect(lastPages[0]).toContain('Pasted')
+    expect(lastPages.join('')).not.toMatch(/<script\b/i)
+  })
+
+  it('sanitizes dropped HTML files in enableMultiPages mode (WE-003)', async () => {
+    const onPagesChange = vi.fn()
+    render(
+      <Editor enableMultiPages defaultPages={['<p>Old</p>']} onPagesChange={onPagesChange} />,
+    )
+
+    const surface = screen.getAllByRole('textbox', { name: 'Visual editor' })[0]
+    const workspace = surface.closest(`.${styles.workspace}`)
+    if (!workspace) throw new Error('expected editor workspace')
+    const file = new File(['<p>Dropped</p><script>alert(1)</script>'], 'doc.html', {
+      type: 'text/html',
+    })
+
+    fireEvent.drop(workspace, { dataTransfer: fileDataTransfer([file]) })
+
+    await waitFor(() => {
+      const lastPages = onPagesChange.mock.calls.at(-1)?.[0] as string[]
+      expect(lastPages.join('')).toContain('Dropped')
+      expect(lastPages.join('')).not.toMatch(/<script\b/i)
+    })
+  })
 })
 
 describe('Editor onAutoSave', () => {

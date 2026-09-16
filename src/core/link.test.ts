@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { XSS_PAYLOADS } from './__fixtures__/xss-payloads'
 import {
   applyLinkInDocument,
   defaultLinkAttrs,
   isLinkActive,
   LINK_HOVER_HTML_ATTR,
   queryLinkAtSelection,
+  validateLinkHref,
 } from './link'
 
 function mountVisual(html: string) {
@@ -173,10 +175,59 @@ describe('applyLinkInDocument', () => {
     )
 
     const anchor = el.querySelector('a')
-    expect(anchor?.getAttribute(LINK_HOVER_HTML_ATTR)).toBe('<em>Tip</em>')
+    expect(anchor?.getAttribute(LINK_HOVER_HTML_ATTR)).toContain('Tip')
     expect(anchor?.getAttribute('onmouseover')).toContain('data-hover-html')
+    expect(anchor?.getAttribute('onmouseover')).toContain('textContent')
+    expect(anchor?.getAttribute('onmouseover')).not.toContain('innerHTML')
     expect(anchor?.getAttribute('onmouseout')).toContain('_hoverBox')
     expect(anchor?.textContent).toBe('Hello')
+  })
+
+  it('sanitizes hover HTML so img onerror cannot run (WE-004)', () => {
+    const el = mountVisual('<p>Hello</p>')
+    selectOffsets(el, 0, 5)
+
+    expect(
+      applyLinkInDocument(
+        el,
+        defaultLinkAttrs({
+          href: 'https://example.com',
+          hoverMode: 'html',
+          hoverHtml: XSS_PAYLOADS.linkHoverHtml,
+        }),
+      ),
+    ).toBe(true)
+
+    const hover = el.querySelector('a')?.getAttribute(LINK_HOVER_HTML_ATTR) ?? ''
+    expect(hover).not.toMatch(/\bonerror\b/i)
+    expect(el.querySelector('a')?.getAttribute('onmouseover') ?? '').not.toContain('innerHTML')
+  })
+
+  it('rejects javascript, vbscript, and data:text/html hrefs (WE-005)', () => {
+    const el = mountVisual('<p>Hello</p>')
+    selectOffsets(el, 0, 5)
+
+    expect(applyLinkInDocument(el, defaultLinkAttrs({ href: 'javascript:alert(1)' }))).toBe(false)
+    expect(applyLinkInDocument(el, defaultLinkAttrs({ href: 'vbscript:msgbox(1)' }))).toBe(false)
+    expect(
+      applyLinkInDocument(
+        el,
+        defaultLinkAttrs({ href: 'data:text/html,<script>alert(1)</script>' }),
+      ),
+    ).toBe(false)
+    expect(el.querySelector('a')).toBeNull()
+  })
+
+  it('accepts http, https, mailto, tel, and hash hrefs', () => {
+    expect(validateLinkHref('https://example.com')).toBe(true)
+    expect(validateLinkHref('http://example.com')).toBe(true)
+    expect(validateLinkHref('mailto:a@example.com')).toBe(true)
+    expect(validateLinkHref('tel:+15551212')).toBe(true)
+    expect(validateLinkHref('#section-1')).toBe(true)
+    expect(validateLinkHref('javascript:alert(1)')).toBe(false)
+    expect(validateLinkHref('vbscript:msgbox(1)')).toBe(false)
+    expect(validateLinkHref('data:text/html,x')).toBe(false)
+    expect(validateLinkHref('ftp://example.com')).toBe(false)
   })
 
   it('links to a bookmark with a hash href', () => {

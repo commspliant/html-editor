@@ -86,7 +86,7 @@ import {
   emptyPageHtml,
   updatePageAt,
 } from '../core/multiPage'
-import { sanitizeDocumentHtml } from '../core/sanitizeHtml'
+import { sanitizeDocumentHtml, sanitizePageHtml } from '../core/sanitizeHtml'
 import {
   queryTextAlign,
   setTextAlignInDocument,
@@ -395,10 +395,13 @@ export function Editor({
   }
   const storedInitialPagesRef = useRef<string[] | null>(null)
   if (storedInitialPagesRef.current === null) {
-    storedInitialPagesRef.current =
+    const storedPages =
       optimizeEmbeddedImages && imageRegistryRef.current
         ? initialPages.map((page) => imageRegistryRef.current!.externalizeHtml(page))
         : [...initialPages]
+    storedInitialPagesRef.current = sanitizeHtml
+      ? storedPages.map((page) => sanitizePageHtml(page))
+      : storedPages
   }
   const initialHtmlRaw = enableMultiPages
     ? joinPagesToHtml(storedInitialPagesRef.current)
@@ -519,9 +522,10 @@ export function Editor({
   const pagesPropRef = useRef(pagesProp)
   pagesPropRef.current = pagesProp
   const ingestedPagesProp = useMemo(() => {
-    if (!optimizeEmbeddedImages || pagesProp === undefined) return pagesProp
+    if (pagesProp === undefined) return pagesProp
     return normalizePages(pagesProp).map((page) => {
-      const sanitized = sanitizeHtml ? sanitizeDocumentHtml(page) : page
+      const sanitized = sanitizeHtml ? sanitizePageHtml(page) : page
+      if (!optimizeEmbeddedImages) return sanitized
       return imageRegistryRef.current?.externalizeHtml(sanitized) ?? sanitized
     })
   }, [optimizeEmbeddedImages, pagesProp, sanitizeHtml])
@@ -1182,7 +1186,11 @@ export function Editor({
       editedIndex?: number,
       options?: { skipHistory?: boolean },
     ) => {
-      const storedPages = nextPages.map((page) => externalizeStorageHtml(page))
+      const storedPages = nextPages.map((page) => {
+        const sanitized = sanitizeHtmlRef.current ? sanitizePageHtml(page) : page
+        const transformed = transformHtmlRef.current?.(sanitized) ?? sanitized
+        return externalizeStorageHtml(transformed)
+      })
       const pageStoreHandle = pageStore
       if (!pageStoreHandle) return joinPagesToHtml(storedPages)
       const result = pageStoreHandle.setPages(storedPages, { editedIndex })
@@ -1277,15 +1285,16 @@ export function Editor({
 
   const onHtmlFileDrop = useCallback(
     (next: string) => {
+      const incoming = sanitizeHtmlRef.current ? sanitizeDocumentHtml(next) : next
       if (enableMultiPagesRef.current) {
         const index = activePageIndexRef.current
         const currentPages = pagesRef.current
         const nextPages = currentPages.slice()
-        nextPages[index] = next
+        nextPages[index] = incoming
         commitPages(nextPages, false, index)
         return
       }
-      recordHtml(next, false)
+      recordHtml(incoming, false)
     },
     [commitPages, recordHtml],
   )

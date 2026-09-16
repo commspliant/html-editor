@@ -5,6 +5,7 @@ import {
   textNodesInRange,
   unwrapElement,
 } from './inlineRange'
+import { isDangerousUri, sanitizePageHtml } from './sanitizeHtml'
 
 export type LinkHoverMode = 'color' | 'html'
 
@@ -23,12 +24,30 @@ export const LINK_HOVER_HTML_ATTR = 'data-hover-html'
 const BLANK_REL = 'noopener noreferrer'
 
 const HOVER_HTML_OVER =
-  "var n=this._hoverBox;if(!n){n=document.createElement('div');n.style.cssText='position:absolute;z-index:2147483646;background:#fff;border:1px solid #c8c8c8;border-radius:4px;padding:0.35rem 0.5rem;color:#222;max-width:18rem';this._hoverBox=n}n.innerHTML=this.getAttribute('data-hover-html')||'';var r=this.getBoundingClientRect();n.style.left=r.left+window.scrollX+'px';n.style.top=r.bottom+4+window.scrollY+'px';document.body.appendChild(n)"
+  "var n=this._hoverBox;if(!n){n=document.createElement('div');n.style.cssText='position:absolute;z-index:2147483646;background:#fff;border:1px solid #c8c8c8;border-radius:4px;padding:0.35rem 0.5rem;color:#222;max-width:18rem';this._hoverBox=n}n.textContent=this.getAttribute('data-hover-html')||'';var r=this.getBoundingClientRect();n.style.left=r.left+window.scrollX+'px';n.style.top=r.bottom+4+window.scrollY+'px';document.body.appendChild(n)"
 
 const HOVER_HTML_OUT = 'this._hoverBox&&this._hoverBox.remove()'
 
 const SAFE_CSS_COLOR =
   /^(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*(?:0|0?\.\d+|1))?\s*\))$/
+
+
+export function validateLinkHref(href: string): boolean {
+  const trimmed = href.trim()
+  if (!trimmed || isDangerousUri(trimmed)) return false
+  if (trimmed.startsWith('#')) return true
+  try {
+    const url = new URL(trimmed)
+    return (
+      url.protocol === 'http:' ||
+      url.protocol === 'https:' ||
+      url.protocol === 'mailto:' ||
+      url.protocol === 'tel:'
+    )
+  } catch {
+    return false
+  }
+}
 
 export function defaultLinkAttrs(overrides: Partial<LinkAttrs> = {}): LinkAttrs {
   return {
@@ -108,7 +127,7 @@ function clearHover(anchor: HTMLAnchorElement): void {
 function applyHover(anchor: HTMLAnchorElement, attrs: LinkAttrs): void {
   clearHover(anchor)
   if (attrs.hoverMode === 'html') {
-    const html = attrs.hoverHtml.trim()
+    const html = sanitizePageHtml(attrs.hoverHtml.trim())
     if (!html) return
     anchor.setAttribute(LINK_HOVER_HTML_ATTR, html)
     anchor.setAttribute('onmouseover', HOVER_HTML_OVER)
@@ -123,7 +142,9 @@ function applyHover(anchor: HTMLAnchorElement, attrs: LinkAttrs): void {
 
 export function applyLinkAttrs(anchor: HTMLAnchorElement, attrs: LinkAttrs): void {
   const next = defaultLinkAttrs(attrs)
-  anchor.setAttribute('href', next.href)
+  const href = next.href.trim()
+  if (validateLinkHref(href)) anchor.setAttribute('href', href)
+  else anchor.removeAttribute('href')
   const title = next.title.trim()
   if (title) anchor.setAttribute('title', title)
   else anchor.removeAttribute('title')
@@ -194,7 +215,7 @@ function insertLinkAtCaret(range: Range, attrs: LinkAttrs): boolean {
 
 export function applyLinkInDocument(root: HTMLElement, attrs: LinkAttrs): boolean {
   const href = attrs.href.trim()
-  if (!href) return false
+  if (!href || !validateLinkHref(href)) return false
   const next = defaultLinkAttrs({ ...attrs, href })
 
   const sel = window.getSelection()
