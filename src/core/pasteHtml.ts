@@ -47,7 +47,7 @@ function insertSanitizedTransfer(event: TransferEventLike, root: HTMLElement, da
   const sanitized = sanitizePageHtml(raw)
   const sel = window.getSelection()
   const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null
-  if (range && root.contains(range.commonAncestorContainer)) {
+  if (sel && range && root.contains(range.commonAncestorContainer)) {
     insertHtmlAtRange(range, sanitized)
     sel.removeAllRanges()
     sel.addRange(range)
