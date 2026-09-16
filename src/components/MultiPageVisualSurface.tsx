@@ -31,7 +31,7 @@ import { hasPrintLayout } from '../core/printLayout'
 import { stripPageAtRuleFromHtml } from '../core/pageAtRule'
 import type { HydrateEmbeddedImages } from '../core/documentEquality'
 import { syncVisualBodyHtml } from '../core/visualBodySync'
-import { handleContentEditablePaste } from '../core/pasteHtml'
+import { handleContentEditableDrop, handleContentEditablePaste } from '../core/pasteHtml'
 import { templateMarkupPreserved } from '../core/templateTags'
 import type { RulerUnit } from '../core/rulerUnits'
 import { useVirtualPageRange, findFirstVisiblePageIndex, findLastVisiblePageIndex } from '../hooks/useVirtualPageRange'
@@ -214,6 +214,13 @@ const MemoizedPageRow = memo(function MemoizedPageRow({
             ? undefined
             : (event) => {
                 handleContentEditablePaste(event, event.currentTarget)
+              }
+        }
+        onDrop={
+          disabled
+            ? undefined
+            : (event) => {
+                handleContentEditableDrop(event, event.currentTarget)
               }
         }
         onInput={(event) => {
@@ -556,11 +563,24 @@ export const MultiPageVisualSurface = forwardRef<
     const container = containerRef.current
     if (!container) return
     const handler = (event: Event) => {
-      onBeforeInputRef.current?.(event as InputEvent)
+      const input = event as InputEvent
+      const target = input.target
+      if (
+        !disabled &&
+        input.inputType === 'insertFromDrop' &&
+        input.dataTransfer &&
+        target instanceof HTMLElement
+      ) {
+        handleContentEditableDrop(
+          { dataTransfer: input.dataTransfer, preventDefault: () => input.preventDefault() },
+          target,
+        )
+      }
+      onBeforeInputRef.current?.(input)
     }
     container.addEventListener('beforeinput', handler)
     return () => container.removeEventListener('beforeinput', handler)
-  }, [])
+  }, [disabled])
 
   const handlePointerDown = useCallback((index: number, event: ReactPointerEvent<HTMLDivElement>) => {
     activatePage(index)

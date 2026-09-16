@@ -86,6 +86,19 @@ describe('sanitizePageHtml', () => {
     expect(result).toContain('Hi')
   })
 
+  it('blocks data:image/svg+xml and file: URIs while allowing blob: (session images)', () => {
+    const svg = sanitizePageHtml('<img src="data:image/svg+xml,<svg onload=alert(1)>" alt="x">')
+    expect(svg).not.toMatch(/data\s*:\s*image\s*\/\s*svg\s*\+\s*xml/i)
+
+    const file = sanitizePageHtml('<a href="file:///etc/passwd">Link</a>')
+    expect(file).not.toMatch(/file\s*:/i)
+    expect(file).toContain('Link')
+
+    const blob = sanitizePageHtml('<img src="blob:https://example.com/11111111-1111-1111-1111-111111111111" alt="ok">')
+    expect(blob).toContain('blob:')
+    expect(blob).toContain('ok')
+  })
+
   it('blocks vbscript: and data:text/html URIs (WE-008)', () => {
     const vbscript = sanitizePageHtml(XSS_PAYLOADS.vbscriptHref)
     expect(vbscript).not.toMatch(/vbscript\s*:/i)

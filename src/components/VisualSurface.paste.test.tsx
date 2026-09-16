@@ -60,4 +60,29 @@ describe('VisualSurface paste sanitization', () => {
     expect(visual.innerHTML).not.toMatch(/<iframe\b/i)
     expect(visual.innerHTML).not.toMatch(/<script\b/i)
   })
+
+  it('inserts sanitized dropped HTML and strips event handlers', () => {
+    const onChange = vi.fn()
+    render(
+      <LocaleProvider>
+        <VisualSurface html="<p>Hello</p>" onChange={onChange} pageLayoutEnabled={false} />
+      </LocaleProvider>,
+    )
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    placeCaretAtEnd(visual)
+    fireEvent.drop(visual, {
+      dataTransfer: {
+        files: [],
+        getData: (type: string) => (type === 'text/html' ? `<p>Dropped</p>${XSS_PAYLOADS.onclick}` : ''),
+      },
+    })
+
+    expect(visual.innerHTML).toContain('Dropped')
+    expect(visual.innerHTML).not.toMatch(/\bonclick\b/i)
+    expect(onChange).toHaveBeenCalled()
+    const last = onChange.mock.calls.at(-1)?.[0] as string
+    expect(last).toContain('Dropped')
+    expect(last).not.toMatch(/\bonclick\b/i)
+  })
 })
