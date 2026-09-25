@@ -31,6 +31,8 @@ export type ImageAlign = 'left' | 'center' | 'right'
 export type ImageObjectFit = 'fill' | 'contain' | 'cover' | 'none' | 'scale-down'
 
 export type ImagePropertiesApply = {
+  alt: string
+  title: string
   sizeMode: ImageSizeMode
   width: ImageSizeLength | null
   height: ImageSizeLength | null
@@ -88,6 +90,8 @@ export function defaultImagePropertiesApply(
   overrides: Partial<ImagePropertiesApply> = {},
 ): ImagePropertiesApply {
   return {
+    alt: '',
+    title: '',
     sizeMode: 'width',
     width: null,
     height: null,
@@ -174,6 +178,8 @@ export function readImageProperties(img: HTMLImageElement): ImagePropertiesApply
   const margin = align === 'center' ? { ...box.margin, left: null, right: null } : box.margin
   const size = readSize(img)
   return defaultImagePropertiesApply({
+    alt: img.getAttribute('alt') ?? '',
+    title: img.getAttribute('title') ?? '',
     sizeMode: size.sizeMode,
     width: size.width,
     height: size.height,
@@ -192,6 +198,8 @@ export function readImageProperties(img: HTMLImageElement): ImagePropertiesApply
 
 export function writeImageProperties(img: HTMLImageElement, draft: ImagePropertiesApply): boolean {
   let changed = false
+  if (writeAlt(img, draft.alt)) changed = true
+  if (writeTitle(img, draft.title)) changed = true
   if (writeSize(img, draft)) changed = true
   if (
     writeParagraphBox(img, {
@@ -231,6 +239,24 @@ export function applyImagePropertiesInDocument(
   const img = imageAtSelection(root)
   if (!img) return false
   return writeImageProperties(img, draft)
+}
+
+function writeAlt(img: HTMLImageElement, raw: string): boolean {
+  const alt = raw.trim()
+  const current = img.getAttribute('alt') ?? ''
+  if (current === alt) return false
+  if (alt) img.setAttribute('alt', alt)
+  else img.removeAttribute('alt')
+  return true
+}
+
+function writeTitle(img: HTMLImageElement, raw: string): boolean {
+  const title = raw.trim()
+  const current = img.getAttribute('title') ?? ''
+  if (current === title) return false
+  if (title) img.setAttribute('title', title)
+  else img.removeAttribute('title')
+  return true
 }
 
 function readSize(img: HTMLImageElement): {
@@ -404,6 +430,8 @@ function writeHoverCss(img: HTMLImageElement, raw: string): boolean {
 
 export function imagePropertiesEqual(a: ImagePropertiesApply, b: ImagePropertiesApply): boolean {
   return (
+    a.alt === b.alt &&
+    a.title === b.title &&
     a.sizeMode === b.sizeMode &&
     imageSizeLengthsEqual(a.width, b.width) &&
     imageSizeLengthsEqual(a.height, b.height) &&

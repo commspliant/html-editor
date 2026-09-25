@@ -6,6 +6,8 @@ import { LocaleProvider } from '../../i18n/LocaleProvider'
 import { ImagePropertiesDialog } from './ImagePropertiesDialog'
 
 const populated = defaultImagePropertiesApply({
+  alt: 'Chart',
+  title: 'Sales chart',
   sizeMode: 'lock',
   width: { value: 200, unit: 'px' },
   height: { value: 100, unit: 'px' },
@@ -38,11 +40,43 @@ describe('ImagePropertiesDialog', () => {
 
     expect(screen.getByRole('dialog', { name: 'Image properties' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'General' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('Alt text')).toHaveValue('Chart')
+    expect(screen.getByLabelText('Title')).toHaveValue('Sales chart')
     expect(screen.getByRole('combobox', { name: 'Image width' })).toHaveValue('200')
     expect(screen.getByRole('combobox', { name: 'Image height' })).toHaveValue('100')
 
     await user.click(screen.getByRole('button', { name: 'OK' }))
     expect(onApply).toHaveBeenCalledWith(populated)
+  })
+
+  it('applies edited alt and title from the general tab', async () => {
+    const user = userEvent.setup()
+    const onApply = vi.fn()
+    render(
+      <LocaleProvider>
+        <ImagePropertiesDialog
+          open
+          tab="general"
+          value={populated}
+          aspectRatio={2}
+          onTabChange={() => undefined}
+          onApply={onApply}
+          onClose={() => undefined}
+        />
+      </LocaleProvider>,
+    )
+
+    await user.clear(screen.getByLabelText('Alt text'))
+    await user.type(screen.getByLabelText('Alt text'), 'Updated chart')
+    await user.clear(screen.getByLabelText('Title'))
+    await user.type(screen.getByLabelText('Title'), 'Updated title')
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    expect(onApply).toHaveBeenCalledWith({
+      ...populated,
+      alt: 'Updated chart',
+      title: 'Updated title',
+    })
   })
 
   it('switches to alignment, advanced, and hover tabs', async () => {

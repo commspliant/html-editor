@@ -216,6 +216,8 @@ Give the editor a parent with a definite height (`height: 100%` on a sized ances
 
 `menuColor`, `menuBackground`, `menuFontSize`, and `menuFontFamily` restyle the dropdown menu bar and panels only — not the icon toolbar. `border` is the outer editor box and is ignored in fullscreen. Custom menu fonts must already be available on the page.
 
+**Image properties** (Format → Image, or the image context menu) opens a tabbed dialog when an image is selected. The **General** tab edits alt text, title, and size; other tabs cover alignment, border and margin, advanced fit/position/rotation, and hover CSS.
+
 The toolbar Font dropdown lists web-safe faces (Arial, Georgia, Times New Roman, and the rest of the usual stacks). Choose **Default** to clear an authored `font-family` so the text inherits. Applied faces are written as inline `style="font-family: …"` on the selection (or the page shell from Page properties).
 
 ### Custom CSS

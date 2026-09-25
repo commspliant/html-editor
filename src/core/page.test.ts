@@ -7,6 +7,7 @@ import {
   absorbLooseBlocksIntoPageShell,
   absorbLooseTextInPageShell,
   ensurePageShell,
+  ensurePageShellLayout,
   ensureSizedPageShellLayout,
   focusCaretInPageShell,
   normalizeCaretInPageShell,
@@ -104,6 +105,7 @@ describe('ensurePageShell', () => {
     expect(shell.hasAttribute(PAGE_SHELL_ATTR)).toBe(true)
     expect(shell.style.width).toBe('100%')
     expect(shell.style.height).toBe('100%')
+    expect(shell.style.position).toBe('relative')
     expect(el.children).toHaveLength(1)
     expect(el.firstElementChild).toBe(shell)
     expect(shell.innerHTML).toBe('<p>Hello</p><p>World</p>')
@@ -216,7 +218,7 @@ describe('applyPagePropertiesInDocument', () => {
 
     const shell = queryPageShell(el)
     expect(shell).not.toBeNull()
-    expect(shell?.getAttribute('style')).toBe('width: 100%; height: 100%;')
+    expect(shell?.getAttribute('style')).toBe('width: 100%; height: 100%; position: relative;')
     expect(el.style.backgroundColor).toBe('')
     expect(el.querySelector('p')?.textContent).toBe('Hello')
   })
@@ -338,6 +340,18 @@ describe('queryPageProperties', () => {
       '<div data-page style="font-family: Georgia, serif"><p>Hello</p></div>',
     )
     expect(queryPageProperties(el).font.fontFamily).toMatch(/Georgia/)
+  })
+})
+
+describe('ensurePageShellLayout', () => {
+  it('sets width, height, and position relative on the page shell', () => {
+    const shell = document.createElement('div')
+    shell.setAttribute(PAGE_SHELL_ATTR, '')
+
+    expect(ensurePageShellLayout(shell)).toBe(true)
+    expect(shell.style.width).toBe('100%')
+    expect(shell.style.height).toBe('100%')
+    expect(shell.style.position).toBe('relative')
   })
 })
 

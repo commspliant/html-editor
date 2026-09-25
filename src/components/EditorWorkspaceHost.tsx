@@ -507,6 +507,7 @@ function EditorWorkspaceHostInner({
       {mode === 'visual' && !contentLocked && selectedImage?.isConnected ? (
         <ImageResizeOverlay
           img={selectedImage}
+          zoomScale={pageZoomScale}
           onResize={handlers.handleImageResize}
           onResizeEnd={handlers.handleImageResizeEnd}
         />

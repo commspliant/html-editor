@@ -50,6 +50,34 @@ describe('ensureSizeForObjectFit', () => {
 })
 
 describe('writeImageProperties', () => {
+  it('writes and clears alt and title', () => {
+    const el = mountVisual('<p><img src="https://example.com/a.png"></p>')
+    const img = el.querySelector('img') as HTMLImageElement
+
+    writeImageProperties(
+      img,
+      defaultImagePropertiesApply({ alt: 'Chart', title: 'Sales chart' }),
+    )
+    expect(img.getAttribute('alt')).toBe('Chart')
+    expect(img.getAttribute('title')).toBe('Sales chart')
+
+    writeImageProperties(img, defaultImagePropertiesApply({ alt: '', title: '' }))
+    expect(img.hasAttribute('alt')).toBe(false)
+    expect(img.hasAttribute('title')).toBe(false)
+  })
+
+  it('trims alt and title before writing', () => {
+    const el = mountVisual('<p><img src="https://example.com/a.png"></p>')
+    const img = el.querySelector('img') as HTMLImageElement
+
+    writeImageProperties(
+      img,
+      defaultImagePropertiesApply({ alt: '  Chart  ', title: '  Tooltip  ' }),
+    )
+    expect(img.getAttribute('alt')).toBe('Chart')
+    expect(img.getAttribute('title')).toBe('Tooltip')
+  })
+
   it('writes width-only size and restores the insert default when cleared', () => {
     const el = mountVisual('<p><img src="https://example.com/a.png"></p>')
     const img = el.querySelector('img') as HTMLImageElement
@@ -164,10 +192,22 @@ describe('writeImageProperties', () => {
 })
 
 describe('readImageProperties', () => {
+  it('reads alt and title from the image element', () => {
+    const el = mountVisual(
+      '<p><img src="https://example.com/a.png" alt="Chart" title="Sales chart"></p>',
+    )
+    const img = el.querySelector('img') as HTMLImageElement
+    const read = readImageProperties(img)
+    expect(read.alt).toBe('Chart')
+    expect(read.title).toBe('Sales chart')
+  })
+
   it('round-trips size, align, fit, rotate, and hover', () => {
     const el = mountVisual('<p><img src="https://example.com/a.png"></p>')
     const img = el.querySelector('img') as HTMLImageElement
     const draft = defaultImagePropertiesApply({
+      alt: 'Diagram',
+      title: 'Flow diagram',
       sizeMode: 'lock',
       width: { value: 160, unit: 'px' },
       height: { value: 80, unit: 'px' },
@@ -179,6 +219,8 @@ describe('readImageProperties', () => {
     })
     writeImageProperties(img, draft)
     const read = readImageProperties(img)
+    expect(read.alt).toBe('Diagram')
+    expect(read.title).toBe('Flow diagram')
     expect(read.sizeMode).toBe('lock')
     expect(read.width).toEqual({ value: 160, unit: 'px' })
     expect(read.height).toEqual({ value: 80, unit: 'px' })

@@ -309,6 +309,7 @@ export function applyPagePropertiesInDocument(
   const wroteFont = writePageFont(shell, draft.font)
   const wroteBox = writeParagraphBox(shell, boxWithPageFill(draft))
   const wroteBackgroundImage = writePageBackgroundImage(shell, draft.backgroundImage)
+  ensurePageShellLayout(shell)
   syncPageHolderBackground(root)
 
   const previousAtRule = queryPageAtRule(root.innerHTML)
@@ -316,6 +317,7 @@ export function applyPagePropertiesInDocument(
   const editableHtml = stripPageAtRuleFromHtml(nextHtml)
   if (editableHtml !== stripPageAtRuleFromHtml(root.innerHTML)) {
     root.innerHTML = editableHtml
+    ensurePageShellLayout(ensurePageShell(root))
   }
   syncPageCanvasLayout(root, nextHtml)
   const wroteAtRule = JSON.stringify(previousAtRule) !== JSON.stringify(draft.atRule)
@@ -326,6 +328,7 @@ export function applyPagePropertiesInDocument(
 
   normalizePageBackgroundLayerInHolder(root)
   const repairedPageHtml = applyPageAtRule(root.innerHTML, draft.atRule)
+  ensurePageShellLayout(ensurePageShell(root))
 
   const changed = !existed || wroteFont || wroteBox || wroteBackgroundImage || wroteAtRule
   return { changed, pageHtml: repairedPageHtml }

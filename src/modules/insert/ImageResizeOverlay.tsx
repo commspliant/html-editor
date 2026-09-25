@@ -10,6 +10,8 @@ import styles from './ImageResizeOverlay.module.css'
 
 export type ImageResizeOverlayProps = {
   img: HTMLImageElement
+  /** Re-sync when page zoom changes (fit-width / fit-page on sized pages). */
+  zoomScale?: number
   onResize: (width: number, height: number) => void
   onResizeEnd: () => void
 }
@@ -54,7 +56,12 @@ function pointerCoords(event: { clientX: number; clientY: number }): { x: number
   return { x: event.clientX, y: event.clientY }
 }
 
-export function ImageResizeOverlay({ img, onResize, onResizeEnd }: ImageResizeOverlayProps) {
+export function ImageResizeOverlay({
+  img,
+  zoomScale = 1,
+  onResize,
+  onResizeEnd,
+}: ImageResizeOverlayProps) {
   const t = useT()
   const frameRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef(img)
@@ -75,19 +82,28 @@ export function ImageResizeOverlay({ img, onResize, onResizeEnd }: ImageResizeOv
   }
 
   useLayoutEffect(() => {
-    applyBox(readBox(img))
-
     const sync = () => {
       if (!img.isConnected) return
       applyBox(readBox(img))
     }
+    sync()
+
+    const observer =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            sync()
+          })
+        : null
+    observer?.observe(img)
+
     window.addEventListener('scroll', sync, true)
     window.addEventListener('resize', sync)
     return () => {
+      observer?.disconnect()
       window.removeEventListener('scroll', sync, true)
       window.removeEventListener('resize', sync)
     }
-  }, [img])
+  }, [img, zoomScale])
 
   const applyDrag = (clientX: number, clientY: number) => {
     const drag = dragRef.current

@@ -52,6 +52,17 @@ describe('ImageResizeOverlay', () => {
     expect(getComputedStyle(corner).cursor).toBe('se-resize')
   })
 
+  it('positions the frame with viewport coordinates on document.body', () => {
+    render(<Harness onResize={() => undefined} onResizeEnd={() => undefined} />)
+
+    const overlay = document.querySelector('[data-image-resize-overlay]') as HTMLElement
+    expect(overlay.parentElement).toBe(document.body)
+    expect(overlay.style.left).toBe('40px')
+    expect(overlay.style.top).toBe('20px')
+    expect(overlay.style.width).toBe('200px')
+    expect(overlay.style.height).toBe('100px')
+  })
+
   it('reports locked sizes while dragging the right handle and commits on pointer up', () => {
     const onResize = vi.fn()
     const onResizeEnd = vi.fn()
@@ -86,5 +97,34 @@ describe('ImageResizeOverlay', () => {
     fireEvent.mouseMove(document.body, { clientX: 280, clientY: 130 })
 
     expect(onResize).toHaveBeenCalledWith(240, 110)
+  })
+
+  it('re-syncs when zoomScale changes', () => {
+    const img = document.createElement('img')
+    stubBox(img, { left: 200, top: 160, width: 200, height: 100 })
+    document.body.append(img)
+
+    const { rerender } = render(
+      <LocaleProvider>
+        <ImageResizeOverlay img={img} zoomScale={1} onResize={() => undefined} onResizeEnd={() => undefined} />
+      </LocaleProvider>,
+    )
+
+    const overlay = document.querySelector('[data-image-resize-overlay]') as HTMLElement
+    expect(overlay.style.left).toBe('200px')
+
+    stubBox(img, { left: 240, top: 180, width: 160, height: 80 })
+    rerender(
+      <LocaleProvider>
+        <ImageResizeOverlay img={img} zoomScale={0.8} onResize={() => undefined} onResizeEnd={() => undefined} />
+      </LocaleProvider>,
+    )
+
+    expect(overlay.style.left).toBe('240px')
+    expect(overlay.style.top).toBe('180px')
+    expect(overlay.style.width).toBe('160px')
+    expect(overlay.style.height).toBe('80px')
+
+    img.remove()
   })
 })

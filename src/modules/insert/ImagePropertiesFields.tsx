@@ -109,6 +109,8 @@ export function ImagePropertiesFields({
   onChange,
 }: ImagePropertiesFieldsProps) {
   const t = useT()
+  const altId = useId()
+  const titleId = useId()
   const borderStyleId = useId()
   const rotateId = useId()
   const hoverId = useId()
@@ -167,8 +169,37 @@ export function ImagePropertiesFields({
       </div>
       <div className={styles.body} role="tabpanel">
         {tab === 'general' ? (
-          <fieldset className={styles.group}>
-            <legend className={styles.label}>{t('imagePropertiesSize')}</legend>
+          <>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor={altId}>
+                {t('imageDialogAlt')}
+              </label>
+              <input
+                id={altId}
+                className={styles.textInput}
+                value={value.alt}
+                disabled={disabled}
+                onChange={(event) => {
+                  onChange({ ...value, alt: event.target.value })
+                }}
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor={titleId}>
+                {t('imageDialogTitleField')}
+              </label>
+              <input
+                id={titleId}
+                className={styles.textInput}
+                value={value.title}
+                disabled={disabled}
+                onChange={(event) => {
+                  onChange({ ...value, title: event.target.value })
+                }}
+              />
+            </div>
+            <fieldset className={styles.group}>
+              <legend className={styles.label}>{t('imagePropertiesSize')}</legend>
             <div className={styles.iconRow} role="radiogroup" aria-label={t('imagePropertiesSizeMode')}>
               {SIZE_MODES.map((mode) => (
                 <button
@@ -199,6 +230,7 @@ export function ImagePropertiesFields({
               onChange={(height) => changeSize('height', height)}
             />
           </fieldset>
+          </>
         ) : null}
         {tab === 'alignment' ? (
           <fieldset className={styles.group}>

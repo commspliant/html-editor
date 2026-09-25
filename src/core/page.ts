@@ -50,6 +50,10 @@ export function ensurePageShellLayout(shell: HTMLElement): boolean {
     shell.style.height = '100%'
     changed = true
   }
+  if (shell.style.position !== 'relative') {
+    shell.style.position = 'relative'
+    changed = true
+  }
   return changed
 }
 

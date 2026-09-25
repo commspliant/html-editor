@@ -4557,6 +4557,34 @@ describe('Editor context menu', () => {
     expect(screen.getByRole('dialog', { name: 'Insert link' })).toBeInTheDocument()
   })
 
+  it('opens the image properties dialog and applies alt and title', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(
+      <Editor
+        defaultValue='<p><img src="https://example.com/a.png" alt="Chart" title="Sales chart"></p>'
+        onChange={onChange}
+      />,
+    )
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const img = visual.querySelector('img')
+    fireEvent.contextMenu(img as HTMLImageElement)
+    await user.click(screen.getByRole('menuitem', { name: 'Image properties' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Image properties' })
+    await user.clear(within(dialog).getByLabelText('Alt text'))
+    await user.type(within(dialog).getByLabelText('Alt text'), 'Updated chart')
+    await user.clear(within(dialog).getByLabelText('Title'))
+    await user.type(within(dialog).getByLabelText('Title'), 'Updated title')
+    await user.click(within(dialog).getByRole('button', { name: 'OK' }))
+
+    expect(dialog).not.toBeInTheDocument()
+    const updated = visual.querySelector('img') as HTMLImageElement
+    expect(updated.getAttribute('alt')).toBe('Updated chart')
+    expect(updated.getAttribute('title')).toBe('Updated title')
+    expect(onChange).toHaveBeenCalled()
+  })
+
   it('opens the image properties dialog and applies size', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
@@ -4988,6 +5016,27 @@ describe('Editor image resize', () => {
     expect(restored.style.width).toBe('200px')
     expect(restored.style.height).toBe('100px')
   })
+
+  it('positions resize overlay with viewport coordinates on sized pages', () => {
+    const pageWithImage =
+      '<style data-page-at-rule>@page { size: A4; margin: 20pt; }</style>' +
+      '<div data-page><p><img src="https://example.com/a.png" alt="Chart" style="width: 200px; height: 100px"></p></div>'
+    render(<Editor defaultValue={pageWithImage} />)
+
+    const visual = screen.getByRole('textbox', { name: 'Visual editor' })
+    const img = visual.querySelector('img') as HTMLImageElement
+    stubImageBox(img, { left: 280, top: 220, width: 200, height: 100 })
+    fireEvent.pointerDown(img, { clientX: 320, clientY: 250 })
+
+    const overlay = document.querySelector('[data-image-resize-overlay]') as HTMLElement
+    expect(overlay).toBeTruthy()
+    expect(overlay.parentElement).toBe(document.body)
+    expect(overlay.style.left).toBe('280px')
+    expect(overlay.style.top).toBe('220px')
+    expect(overlay.style.width).toBe('200px')
+    expect(overlay.style.height).toBe('100px')
+  })
+
 })
 
 describe('Editor comments', () => {
